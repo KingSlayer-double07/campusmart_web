@@ -29,7 +29,7 @@ export class InstitutionsService {
         const institution = await this.prisma.institution.create({
             data: {
                 name: dto.name,
-                domain: dto.domain,
+                domains: dto.domains ?? [],
             },
         });
         return institution;

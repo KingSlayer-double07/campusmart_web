@@ -6,6 +6,10 @@ import { defineConfig, env } from "prisma/config";
 export default defineConfig({
   schema: "prisma/schema.prisma",
   datasource: {
+    // Migrations use the direct (unpooled) connection; the app keeps the pooled DATABASE_URL.
     url: env("DIRECT_URL"),
+    // Only needed by `prisma migrate diff --from-migrations` (CI drift check). Prisma 7 reads it
+    // from here instead of the old --shadow-database-url flag.
+    shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL,
   },
 });
