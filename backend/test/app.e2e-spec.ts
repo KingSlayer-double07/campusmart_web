@@ -1,25 +1,23 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
+import { createTestApp, TestContext } from './utils';
 
 describe('AppController (e2e)', () => {
-  let app: INestApplication<App>;
+  let ctx: TestContext;
 
-  beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
+  beforeAll(async () => {
+    ctx = await createTestApp();
   });
 
-  it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Campusmart API is running');
+  afterAll(async () => {
+    await ctx.app.close();
+  });
+
+  it('GET /api returns the health message inside the envelope', async () => {
+    const res = await request(ctx.app.getHttpServer()).get('/api').expect(200);
+    expect(res.body).toEqual({
+      success: true,
+      data: 'Campusmart API is running',
+      timestamp: expect.any(String),
+    });
   });
 });
