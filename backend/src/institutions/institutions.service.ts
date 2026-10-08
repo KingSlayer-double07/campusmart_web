@@ -1,18 +1,14 @@
-import { Logger, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInstitutionDto } from './dto/create-institution.dto';
+import { domainCandidates, emailDomain, pickInstitution } from './email-domain';
 
 @Injectable()
 export class InstitutionsService {
   constructor(private readonly prisma: PrismaService) {}
-  private readonly logger = new Logger(InstitutionsService.name);
 
   async getAllInstitutions() {
-    const institutions = await this.prisma.institution.findMany();
-    if (!institutions) {
-      return [];
-    }
-    return institutions;
+    return this.prisma.institution.findMany({ orderBy: { name: 'asc' } });
   }
 
   async getInstitutionById(id: string) {
@@ -25,13 +21,23 @@ export class InstitutionsService {
     return institution;
   }
 
+  // The institution whose domains contain the email's domain or a parent of it, or null
+  async findForEmail(email: string) {
+    const domain = emailDomain(email);
+    if (!domain) return null;
+    const institutions = await this.prisma.institution.findMany({
+      where: { domains: { hasSome: domainCandidates(domain) } },
+      select: { id: true, name: true, domains: true },
+    });
+    return pickInstitution(domain, institutions);
+  }
+
   async createInstitution(dto: CreateInstitutionDto) {
-    const institution = await this.prisma.institution.create({
+    return this.prisma.institution.create({
       data: {
         name: dto.name,
         domains: dto.domains ?? [],
       },
     });
-    return institution;
   }
 }

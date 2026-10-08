@@ -1,16 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { IsEmail, MaxLength } from 'class-validator';
 import { NormalizeEmail } from './normalize-email';
 
-export class LoginDto {
+export class ForgotPasswordDto {
   @ApiProperty({ format: 'email', example: 'ada.obi@students.unilag.edu.ng' })
   @NormalizeEmail()
   @IsEmail({}, { message: 'Enter a valid email address' })
   @MaxLength(254)
   email!: string;
-
-  @ApiProperty({ example: 'Campus2026' })
-  @IsString()
-  @IsNotEmpty({ message: 'Password is required' })
-  password!: string;
 }

@@ -9,187 +9,211 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import type { Request, Response } from 'express';
+import {
+  ApiCookieAuth,
+  ApiNoContentResponse,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import type { Request, Response } from 'express';
+import { ApiOkEnvelope } from '../common/swagger/api-envelope.decorator';
+import { ErrorResponseDto } from '../common/swagger/error-response.dto';
+import { toUserDto, UserDto } from '../users/dto/user.dto';
+import {
+  clearAuthCookies,
+  REFRESH_COOKIE,
+  setAuthCookies,
+} from './auth-cookies';
+import type { AuthUser, ClientMeta } from './auth-user';
 import { AuthService } from './auth.service';
-import { RegisterUserDto } from './dto/register-user.dto';
-import { LoginDto } from './dto/login.dto';
-// TODO(resend): Uncomment with the verification endpoints below.
-// import { VerifyEmailDto } from './dto/verify-email.dto';
-import { LocalAuthGuard } from './guards/local-auth.guard';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { ApiOperation, ApiTags, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { CurrentUser } from './decorators/current-user.decorator';
-import { User } from '../generated/prisma/client';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
-// 7 days in milliseconds
-const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+// Login, register and every code/password route: 5 a minute per client IP (guide 0.5)
+const STRICT = { default: { limit: 5, ttl: 60_000 } };
 
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  maxAge: COOKIE_MAX_AGE,
-};
+const clientMeta = (req: Request): ClientMeta => ({
+  userAgent: req.get('user-agent'),
+  ipAddress: req.ip,
+});
+
+const refreshCookie = (req: Request): unknown =>
+  (req.cookies as Record<string, unknown> | undefined)?.[REFRESH_COOKIE];
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
-
-  // ── POST /auth/register ─────────────────────────────────────────────
+  constructor(private readonly auth: AuthService) {}
 
   @ApiOperation({
-    summary: 'Register a new account',
+    summary: 'Create an account with a school email',
     description:
-      'Creates a new user and returns the user data along with an authentication token',
+      'The institution comes from the email domain (or a parent of it). Sets both auth cookies and ' +
+      'emails a 6-digit verification code.',
   })
-  @ApiBody({ type: RegisterUserDto })
+  @ApiOkEnvelope(UserDto, { status: 201 })
   @ApiResponse({
-    status: 201,
-    description: 'Account created successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string' },
-        user: { type: 'object' },
-      },
-    },
+    status: 422,
+    type: ErrorResponseDto,
+    description:
+      'INSTITUTION_NOT_SUPPORTED: the email domain belongs to no school',
   })
+  @ApiResponse({
+    status: 409,
+    type: ErrorResponseDto,
+    description: 'Email already registered',
+  })
+  @Throttle(STRICT)
   @Post('register')
-  @Throttle({ default: { limit: 5, ttl: 60_000 } }) // 5 registration attempts per minute
   @HttpCode(HttpStatus.CREATED)
-  async registeruser(
-    @Body() dto: RegisterUserDto,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const { user, token } = await this.authService.registerUser(dto);
-    res.cookie('access_token', token, COOKIE_OPTIONS);
-    return { message: 'Account created successfully', user };
-  }
-
-  // ── POST /auth/login ──────────────────────────────────────────────────────
-  // LocalAuthGuard runs LocalStrategy first — if credentials are wrong,
-  // it throws before the handler is ever called
-
-  @ApiOperation({
-    summary: 'Login to an existing account',
-    description:
-      'Logs in with email and password, returning user data and setting an authentication cookie',
-  })
-  @ApiBody({ type: LoginDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Logged in successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string' },
-        user: { type: 'object' },
-      },
-    },
-  })
-  @UseGuards(LocalAuthGuard)
-  @Post('login')
-  @Throttle({ default: { limit: 5, ttl: 60_000 } }) // 5 login attempts per minute
-  @HttpCode(HttpStatus.OK)
-  login(
+  async register(
+    @Body() dto: RegisterDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
-    @Body() _dto: LoginDto, // validated but LocalStrategy does the actual check
-  ) {
-    const { user, token } = this.authService.login(
-      req.user as { id: string; email: string; role: string },
-    );
-    res.cookie('access_token', token, COOKIE_OPTIONS);
-    return { message: 'Logged in successfully', user };
+  ): Promise<UserDto> {
+    const { user, tokens } = await this.auth.register(dto, clientMeta(req));
+    setAuthCookies(res, tokens);
+    return toUserDto(user);
   }
 
-  // ── POST /auth/logout ─────────────────────────────────────────────────────
-
-  @ApiOperation({
-    summary: 'Logout from the current account',
+  @ApiOperation({ summary: 'Verify the email with the 6-digit code' })
+  @ApiCookieAuth()
+  @ApiOkEnvelope(UserDto)
+  @ApiResponse({
+    status: 400,
+    type: ErrorResponseDto,
     description:
-      'Clears the authentication cookie, effectively logging the user out',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Logged out successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string' },
-      },
-    },
-  })
-  @Post('logout')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } }) // 10 logout attempts per minute
-  @HttpCode(HttpStatus.OK)
-  logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie('access_token', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-    });
-    return { message: 'Logged out successfully' };
-  }
-
-  // ── POST /auth/verify-email ───────────────────────────────────────────────
-  // TODO(resend): Disabled until Resend is set up — see src/mail/mail.service.ts.
-
-  // @ApiOperation({
-  //   summary: 'Verify email address',
-  //   description: 'Confirms the current user\'s email using the 6-digit code sent to them',
-  // })
-  // @ApiBody({ type: VerifyEmailDto })
-  // @ApiResponse({ status: 200, description: 'Email verified successfully' })
-  // @UseGuards(JwtAuthGuard)
-  // @Post('verify-email')
-  // @Throttle({ default: { limit: 10, ttl: 60_000 } }) // 10 verification attempts per minute
-  // @HttpCode(HttpStatus.OK)
-  // async verifyEmail(@CurrentUser() user: User, @Body() dto: VerifyEmailDto) {
-  //   await this.authService.verifyEmail(user.id, dto.code);
-  //   return { message: 'Email verified successfully' };
-  // }
-
-  // ── POST /auth/verify-email/resend ────────────────────────────────────────
-
-  // @ApiOperation({
-  //   summary: 'Resend verification code',
-  //   description: 'Sends a new verification code to the current user\'s email, invalidating earlier codes',
-  // })
-  // @ApiResponse({ status: 200, description: 'Verification code sent' })
-  // @UseGuards(JwtAuthGuard)
-  // @Post('verify-email/resend')
-  // @Throttle({ default: { limit: 2, ttl: 60_000 } }) // 2 resends per minute
-  // @HttpCode(HttpStatus.OK)
-  // async resendVerification(@CurrentUser() user: User) {
-  //   await this.authService.resendVerificationCode(user.id);
-  //   return { message: 'Verification code sent' };
-  // }
-
-  // ── GET /auth/me ──────────────────────────────────────────────────────────
-  @ApiOperation({
-    summary: 'Get current user details',
-    description: 'Retrieves the details of the currently authenticated user',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Current user details retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', format: 'uuid' },
-        email: { type: 'string', format: 'email' },
-        firstName: { type: 'string' },
-        lastName: { type: 'string' },
-        role: { type: 'string', enum: ['BUYER', 'SELLER', 'ADMIN'] },
-      },
-    },
+      'INVALID_CODE (details.attemptsLeft), CODE_LOCKED after 5 wrong codes, CODE_EXPIRED',
   })
   @UseGuards(JwtAuthGuard)
+  @Throttle(STRICT)
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  async verifyEmail(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: VerifyEmailDto,
+  ): Promise<UserDto> {
+    return toUserDto(await this.auth.verifyEmail(user, dto.code));
+  }
+
+  @ApiOperation({
+    summary: 'Email a new verification code',
+    description: 'Invalidates earlier codes. At most 1 a minute and 5 an hour.',
+  })
+  @ApiCookieAuth()
+  @ApiNoContentResponse()
+  @ApiResponse({
+    status: 429,
+    type: ErrorResponseDto,
+    description: 'RATE_LIMITED (details.retryAfterSeconds)',
+  })
+  @UseGuards(JwtAuthGuard)
+  @Throttle(STRICT)
+  @Post('verify-email/resend')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async resendVerification(@CurrentUser() user: AuthUser): Promise<void> {
+    await this.auth.resendVerification(user);
+  }
+
+  @ApiOperation({ summary: 'Sign in', description: 'Sets both auth cookies.' })
+  @ApiOkEnvelope(UserDto)
+  @ApiResponse({ status: 401, type: ErrorResponseDto })
+  @Throttle(STRICT)
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  async login(
+    @Body() dto: LoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<UserDto> {
+    const { user, tokens } = await this.auth.login(dto, clientMeta(req));
+    setAuthCookies(res, tokens);
+    return toUserDto(user);
+  }
+
+  @ApiOperation({
+    summary: 'Rotate the session',
+    description:
+      'Uses the refresh_token cookie (path /api/auth). Issues a new access token and a new refresh token. ' +
+      'Presenting an already-rotated refresh token revokes the session.',
+  })
+  @ApiNoContentResponse({ description: 'Both cookies rotated' })
+  @ApiResponse({ status: 401, type: ErrorResponseDto })
+  @Post('refresh')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
+    try {
+      setAuthCookies(
+        res,
+        await this.auth.refresh(refreshCookie(req), clientMeta(req)),
+      );
+    } catch (error) {
+      clearAuthCookies(res);
+      throw error;
+    }
+  }
+
+  @ApiOperation({
+    summary: 'Sign out this device',
+    description: 'Revokes the session and clears both cookies.',
+  })
+  @ApiNoContentResponse()
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
+    await this.auth.logout(refreshCookie(req));
+    clearAuthCookies(res);
+  }
+
+  @ApiOperation({ summary: 'The signed-in user' })
+  @ApiCookieAuth()
+  @ApiOkEnvelope(UserDto)
+  @ApiResponse({ status: 401, type: ErrorResponseDto })
+  @UseGuards(JwtAuthGuard)
   @Get('me')
-  me(@CurrentUser() user: User) {
-    return user;
+  me(@CurrentUser() user: AuthUser): UserDto {
+    return toUserDto(user);
+  }
+
+  @ApiOperation({
+    summary: 'Email a password reset code',
+    description: 'Always 204, so accounts cannot be probed.',
+  })
+  @ApiNoContentResponse()
+  @Throttle(STRICT)
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<void> {
+    await this.auth.forgotPassword(dto.email);
+  }
+
+  @ApiOperation({
+    summary: 'Set a new password with the emailed code',
+    description: 'Revokes every session of the account.',
+  })
+  @ApiNoContentResponse()
+  @ApiResponse({
+    status: 400,
+    type: ErrorResponseDto,
+    description: 'INVALID_CODE',
+  })
+  @Throttle(STRICT)
+  @Post('reset-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async resetPassword(@Body() dto: ResetPasswordDto): Promise<void> {
+    await this.auth.resetPassword(dto);
   }
 }
