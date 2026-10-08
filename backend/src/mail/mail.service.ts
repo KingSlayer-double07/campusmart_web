@@ -1,42 +1,54 @@
-// TODO(resend): Disabled until we own a domain and can verify it with Resend.
-// To enable:
-//   1. npm install resend
-//   2. Add RESEND_API_KEY and MAIL_FROM to .env (and uncomment them in src/config/env.ts)
-//   3. Uncomment this file, mail.module.ts, and the verification code in the auth module
-//
-// import { Injectable, Logger } from '@nestjs/common';
-// import { ConfigService } from '@nestjs/config';
-// import { Resend } from 'resend';
-//
-// @Injectable()
-// export class MailService {
-//   private readonly logger = new Logger(MailService.name);
-//   private readonly resend: Resend;
-//   private readonly from: string;
-//
-//   constructor(configService: ConfigService) {
-//     this.resend = new Resend(configService.getOrThrow<string>('RESEND_API_KEY'));
-//     this.from = configService.getOrThrow<string>('MAIL_FROM');
-//   }
-//
-//   async sendVerificationCode(to: string, code: string, expiresInMinutes: number) {
-//     const { error } = await this.resend.emails.send({
-//       from: this.from,
-//       to,
-//       subject: 'Your CampusMart verification code',
-//       text:
-//         `Your CampusMart verification code is ${code}.\n\n` +
-//         `It expires in ${expiresInMinutes} minutes. If you didn't create an account, you can ignore this email.`,
-//       html: `
-//         <p>Your CampusMart verification code is:</p>
-//         <p style="font-size:28px;font-weight:bold;letter-spacing:6px">${code}</p>
-//         <p>It expires in ${expiresInMinutes} minutes. If you didn't create an account, you can ignore this email.</p>
-//       `,
-//     });
-//
-//     if (error) {
-//       this.logger.error(`Failed to send verification code to ${to}: ${error.message}`);
-//       throw new Error(error.message);
-//     }
-//   }
-// }
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { createTransport, Transporter } from 'nodemailer';
+import type { Env } from '../config/env';
+import { MailTemplate, MailTemplates, renderers } from './mail.templates';
+
+// D18: nodemailer over SMTP. Outside production emails print to the console instead, so local
+// sign-up works without SMTP and the Playwright smoke test can read codes from the log.
+@Injectable()
+export class MailService {
+  private readonly logger = new Logger(MailService.name);
+  private transporter?: Transporter;
+
+  constructor(private readonly config: ConfigService<Env, true>) {}
+
+  async send<K extends MailTemplate>(
+    to: string,
+    template: K,
+    vars: MailTemplates[K],
+  ): Promise<void> {
+    const mail = renderers[template](vars);
+
+    if (this.config.get('NODE_ENV', { infer: true }) !== 'production') {
+      this.logger.log(
+        `[dev mail] to=${to} template=${template} subject="${mail.subject}"\n${mail.text}`,
+      );
+      return;
+    }
+
+    await this.getTransporter().sendMail({
+      from: this.config.get('MAIL_FROM', { infer: true }),
+      to,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+    });
+  }
+
+  private getTransporter() {
+    if (!this.transporter) {
+      const port = this.config.get('MAIL_PORT', { infer: true }) ?? 587;
+      this.transporter = createTransport({
+        host: this.config.get('MAIL_HOST', { infer: true }),
+        port,
+        secure: port === 465,
+        auth: {
+          user: this.config.get('MAIL_USER', { infer: true }),
+          pass: this.config.get('MAIL_PASS', { infer: true }),
+        },
+      });
+    }
+    return this.transporter;
+  }
+}
