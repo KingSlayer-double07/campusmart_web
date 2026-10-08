@@ -10,15 +10,17 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
-import { RegisterBuyerDto } from './dto/register-buyer.dto';
-import { RegisterSellerDto } from './dto/register-seller.dto';
+import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginDto } from './dto/login.dto';
+// TODO(resend): Uncomment with the verification endpoints below.
+// import { VerifyEmailDto } from './dto/verify-email.dto';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ApiOperation, ApiTags, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { CurrentUser } from './decorators/current-user.decorator';
-import { User } from '@prisma/client';
+import { User } from '../generated/prisma/client';
 
 // 7 days in milliseconds
 const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
@@ -35,13 +37,13 @@ const COOKIE_OPTIONS = {
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // ── POST /auth/register/buyer ─────────────────────────────────────────────
+  // ── POST /auth/register ─────────────────────────────────────────────
 
   @ApiOperation({
-    summary: 'Register a new buyer account',
-    description: 'Creates a new buyer account and returns the user data along with an authentication token',
+    summary: 'Register a new account',
+    description: 'Creates a new user and returns the user data along with an authentication token',
   })
-  @ApiBody({ type:RegisterBuyerDto })
+  @ApiBody({ type:RegisterUserDto })
   @ApiResponse({
     status: 201,
     description: 'Account created successfully',
@@ -53,40 +55,14 @@ export class AuthController {
       },
     },
   })
-  @Post('register/buyer')
-  async registerBuyer(
-    @Body() dto: RegisterBuyerDto,
+  @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } }) // 5 registration attempts per minute
+  @HttpCode(HttpStatus.CREATED)
+  async registeruser(
+    @Body() dto: RegisterUserDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { user, token } = await this.authService.registerBuyer(dto);
-    res.cookie('access_token', token, COOKIE_OPTIONS);
-    return { message: 'Account created successfully', user };
-  }
-
-  // ── POST /auth/register/seller ────────────────────────────────────────────
-
-  @ApiOperation({
-    summary: 'Register a new seller account',
-    description: 'Creates a new seller account and returns the user data along with an authentication token',
-  })
-  @ApiBody({ type:RegisterSellerDto })
-  @ApiResponse({
-    status: 201,
-    description: 'Account created successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string' },
-        user: { type: 'object' },
-      },
-    },
-  })
-  @Post('register/seller')
-  async registerSeller(
-    @Body() dto: RegisterSellerDto,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const { user, token } = await this.authService.registerSeller(dto);
+    const { user, token } = await this.authService.registerUser(dto);
     res.cookie('access_token', token, COOKIE_OPTIONS);
     return { message: 'Account created successfully', user };
   }
@@ -113,6 +89,7 @@ export class AuthController {
   })
   @UseGuards(LocalAuthGuard)
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } }) // 5 login attempts per minute
   @HttpCode(HttpStatus.OK)
   async login(
     @Req() req: Request,
@@ -141,6 +118,7 @@ export class AuthController {
     },
   })
   @Post('logout')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } }) // 10 logout attempts per minute
   @HttpCode(HttpStatus.OK)
   logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie('access_token', {
@@ -151,8 +129,42 @@ export class AuthController {
     return { message: 'Logged out successfully' };
   }
 
-  // ── GET /auth/me ──────────────────────────────────────────────────────────
+  // ── POST /auth/verify-email ───────────────────────────────────────────────
+  // TODO(resend): Disabled until Resend is set up — see src/mail/mail.service.ts.
 
+  // @ApiOperation({
+  //   summary: 'Verify email address',
+  //   description: 'Confirms the current user\'s email using the 6-digit code sent to them',
+  // })
+  // @ApiBody({ type: VerifyEmailDto })
+  // @ApiResponse({ status: 200, description: 'Email verified successfully' })
+  // @UseGuards(JwtAuthGuard)
+  // @Post('verify-email')
+  // @Throttle({ default: { limit: 10, ttl: 60_000 } }) // 10 verification attempts per minute
+  // @HttpCode(HttpStatus.OK)
+  // async verifyEmail(@CurrentUser() user: User, @Body() dto: VerifyEmailDto) {
+  //   await this.authService.verifyEmail(user.id, dto.code);
+  //   return { message: 'Email verified successfully' };
+  // }
+
+  // ── POST /auth/verify-email/resend ────────────────────────────────────────
+
+  // @ApiOperation({
+  //   summary: 'Resend verification code',
+  //   description: 'Sends a new verification code to the current user\'s email, invalidating earlier codes',
+  // })
+  // @ApiResponse({ status: 200, description: 'Verification code sent' })
+  // @UseGuards(JwtAuthGuard)
+  // @Post('verify-email/resend')
+  // @Throttle({ default: { limit: 2, ttl: 60_000 } }) // 2 resends per minute
+  // @HttpCode(HttpStatus.OK)
+  // async resendVerification(@CurrentUser() user: User) {
+  //   await this.authService.resendVerificationCode(user.id);
+  //   return { message: 'Verification code sent' };
+  // }
+
+  
+  // ── GET /auth/me ──────────────────────────────────────────────────────────
   @ApiOperation({
     summary: 'Get current user details',
     description: 'Retrieves the details of the currently authenticated user',

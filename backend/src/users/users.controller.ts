@@ -1,9 +1,9 @@
-import { Controller, Get, UseGuards, Patch, Post, Param, Logger, Body } from "@nestjs/common";
+import { Controller, Get, UseGuards, Patch, Post, Param, Logger, Body, ParseUUIDPipe } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiResponse, ApiBody, ApiParam } from "@nestjs/swagger";
 import { UsersService } from "./users.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
-import { User } from "@prisma/client";
+import { User } from "../generated/prisma/client";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { ChangePasswordDto } from "./dto/change-password.dto";
 import { SubmitVerificationDto } from "./dto/submit-verification.dto";
@@ -89,10 +89,7 @@ export class UsersController {
         description: 'Return public profile of the specified user',
     })
     @Get(':id')
-    async getPublicProfile(@Param('id') id: string) {
-        if (!id) {
-            return { message: 'User ID is required' };
-        }
+    async getPublicProfile(@Param('id', new ParseUUIDPipe()) id: string) {
         this.logger.log(`Fetching public profile for user: ${id}`);
         const profile = await this.usersService.getPublicProfile(id);
         return profile;

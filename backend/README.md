@@ -1,98 +1,107 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# CampusMart API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+NestJS 11 backend for CampusMart, using Prisma 7 with Neon Postgres. Paystack handles payments.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Prerequisites
 
-## Description
+- Node.js 20+
+- A Postgres database. The project uses Neon; any Postgres 15+ works for local development.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Setup
 
-## Project setup
+### 1. Install dependencies
 
 ```bash
-$ npm install
+cd backend
+npm install
 ```
 
-## Compile and run the project
+### 2. Configure the environment
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cp .env.example .env
 ```
 
-## Run tests
+Then fill in `.env`. Every variable is validated at startup by the zod schema in [`src/config/env.ts`](src/config/env.ts). If anything is missing or malformed, the app stops before it starts and names each offending variable. Treat that file as the source of truth when this table and `.env.example` disagree.
+
+| Variable | Required | Default | Notes |
+| :--- | :---: | :--- | :--- |
+| `NODE_ENV` | | `development` | `development`, `test` or `production` |
+| `PORT` | | `4000` | |
+| `FRONTEND_URL` | | `http://localhost:3000` | CORS origin; cookies are sent cross-origin to it |
+| `APP_URL` | | `http://localhost:3000` | |
+| `DATABASE_URL` | ✓ | | Pooled connection string, used by the app at runtime |
+| `DIRECT_URL` | ✓ | | Direct (unpooled) connection string, used by Prisma CLI for migrations |
+| `JWT_SECRET` | ✓ | | |
+| `CLOUDINARY_CLOUD_NAME` | ✓ | | Image uploads |
+| `CLOUDINARY_API_KEY` | ✓ | | |
+| `CLOUDINARY_API_SECRET` | ✓ | | |
+| `MAIL_HOST` | ✓ | | SMTP |
+| `MAIL_PORT` | ✓ | | |
+| `MAIL_USER` | ✓ | | |
+| `MAIL_PASS` | ✓ | | |
+| `MAIL_FROM` | ✓ | | e.g. `CampusMart <noreply@campusmart.com>` |
+| `PAYSTACK_SECRET_KEY` | ✓ | | Use an `sk_test_…` key locally |
+| `PAYSTACK_ENABLED` | | `true` | |
+| `PLATFORM_FEE_BPS` | | `0` | Basis points; 100 = 1% |
+| `ORDER_PAYMENT_TTL_MINUTES` | | `30` | |
+| `ESCROW_DISPUTE_WINDOW_HOURS` | | `48` | |
+| `LOW_STOCK_THRESHOLD` | | `3` | |
+| `SEED_ADMIN_EMAIL` | ✓ | | |
+| `SEED_ADMIN_PASSWORD` | ✓ | | |
+
+### 3. Set up the database
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npx prisma migrate dev
+npx prisma generate
 ```
 
-## Deployment
+`migrate dev` applies the migrations in `prisma/migrations` to the database named by `DIRECT_URL`. Prisma 7 no longer generates the client as part of `migrate dev`, so run `generate` afterwards. The client is written to `src/generated/prisma`, which is git-ignored, so run `generate` again after every pull that touches `prisma/schema.prisma`.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+To change the schema, edit `prisma/schema.prisma` and run `npx prisma migrate dev --name <short_description>`.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### 4. Start the server
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm run start:dev
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+This starts the server in watch mode. The API runs at `http://localhost:4000/api`, and every route is under the `/api` prefix.
 
-## Resources
+## API docs
 
-Check out a few resources that may come in handy when working with NestJS:
+Swagger UI is served at **http://localhost:4000/api/docs**. The raw OpenAPI JSON is at `http://localhost:4000/api/docs-json`; point frontend type generation at that URL.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Swagger is not mounted when `NODE_ENV=production`.
 
-## Support
+## Error format
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+Every error response has this shape:
 
-## Stay in touch
+```json
+{
+  "statusCode": 409,
+  "code": "OUT_OF_STOCK",
+  "message": "Only 2 left",
+  "details": { "listingId": "…", "available": 2 },
+  "path": "/api/orders",
+  "timestamp": "2026-09-30T12:00:00.000Z"
+}
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Branch on `code`, not `message`. The generic codes are `VALIDATION_FAILED`, `UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, `INVALID_REFERENCE`, `RATE_LIMITED` and `INTERNAL`. Feature errors add their own codes:
 
-## License
+```ts
+throw new ConflictException({ code: 'OUT_OF_STOCK', message: 'Only 2 left', details });
+```
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## Scripts
+
+| Command | Purpose |
+| :--- | :--- |
+| `npm run start:dev` | Run in watch mode |
+| `npm run start:debug` | Watch mode with the Node inspector attached |
+| `npm run build` / `npm run start:prod` | Compile to `dist/` and run it |
+| `npm run lint` | ESLint with auto-fix |
+| `npm test` / `npm run test:e2e` | Unit and end-to-end tests |

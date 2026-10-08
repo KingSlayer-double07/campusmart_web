@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, Logger, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { hash, compare } from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -116,13 +116,25 @@ export class UsersService {
     });
     // If user not found, throw an error (shouldn't happen if authenticated)
     if (!user) {
-      throw new ConflictException('User not found');
+      throw new NotFoundException('User not found');
     }
     // If password is not set, throw an error
     if (!user.password) {
       throw new ConflictException('Password not set');
     }
-    
+
+    // Compare current password with stored hash
+    const isMatch = await compare(dto.currentPassword, user.password);
+    if (!isMatch) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    // If the new password is the same as the current password, throw an error
+    const isSamePassword = await compare(dto.newPassword, user.password);
+    if (isSamePassword) {
+      throw new BadRequestException('New password cannot be the same as the current password');
+    }
+
     // Hash the new password and update the user record
     const newHashedPassword = await hash(dto.newPassword, 12);
     await this.prisma.user.update({
@@ -157,7 +169,6 @@ export class UsersService {
       where: { id: userId },
       select: {
         id: true,
-        email: true,
         firstName: true,
         lastName: true,
         role: true,

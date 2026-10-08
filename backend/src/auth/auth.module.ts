@@ -7,10 +7,13 @@ import { AuthController } from './auth.controller';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersModule } from '../users/users.module';
+// TODO(resend): Uncomment once Resend is set up — see src/mail/mail.service.ts.
+// import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
     UsersModule,
+    // MailModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

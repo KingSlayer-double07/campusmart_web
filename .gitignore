@@ -20,6 +20,11 @@
 # production
 /build
 
+# Service Worker
+/public/sw.js
+/public/sw.js.map
+/public/swe-worker-*.js
+
 # misc
 .DS_Store
 *.pem
@@ -31,7 +36,7 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+.env
 
 # vercel
 .vercel
@@ -44,4 +49,4 @@ next-env.d.ts
 /.agents/
 
 # local prisma client
-backend/src/generated/prisma/
+/backend/src/generated/

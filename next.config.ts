@@ -8,6 +8,10 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return [{ source: '/api/:path*', destination: 
+      `${process.env.API_ORIGIN}/api/:path*`}];
+  },
   images: {
     remotePatterns: [
       {

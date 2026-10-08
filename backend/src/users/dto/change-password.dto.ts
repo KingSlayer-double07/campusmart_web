@@ -1,7 +1,15 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsStrongPassword } from "class-validator";
+import { IsNotEmpty, IsString, IsStrongPassword } from "class-validator";
 
 export class ChangePasswordDto {
+    @ApiProperty({
+        description: 'Current password of the user account',
+        type: String,
+    })
+    @IsString({ message: 'Current password must be a string' }) 
+    @IsNotEmpty({ message: 'Current password is required' })
+    currentPassword!: string;
+
     @ApiProperty({
         description: 'New password for the user account',
         type: String,

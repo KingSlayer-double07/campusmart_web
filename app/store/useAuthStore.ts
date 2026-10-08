@@ -42,7 +42,10 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       setUser: (user: User) => set({ user, isAuthenticated: true }),
-      clearAuth: () => set({ user: null, isAuthenticated: false }),
+      clearAuth: () => {
+        document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        set({ user: null, isAuthenticated: false });
+      },
     }),
     { name: "campus-mart-auth" }
   )

@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
-import { All, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
@@ -10,6 +11,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['log', 'error', 'warn', 'debug', 'verbose'],
   });
+
+  app.use(helmet()); // Basic security headers
+  app.getHttpAdapter().getInstance().set('trust proxy', 1); // Trust the first proxy (for secure cookies behind a reverse proxy)
 
   // Parse cookies from incoming requests — required for HTTP-only JWT cookie
   app.use(cookieParser());
@@ -41,27 +45,31 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  // Swagger API docs available at /api/docs
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('CampusMart API')
-    .setDescription('API documentation for CampusMart')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .addGlobalResponse({
-      status: 500,
-      description: 'Internal Server Error'
-    })
-    .build()
+  // Swagger API docs at /api/docs, raw OpenAPI JSON at /api/docs-json (for type generation).
+  // Not mounted in production.
+  if (process.env.NODE_ENV !== 'production') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('CampusMart API')
+      .setDescription('API documentation for CampusMart')
+      .setVersion('1.0')
+      .addCookieAuth('access_token')
+      .addGlobalResponse({
+        status: 500,
+        description: 'Internal Server Error'
+      })
+      .build()
 
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, document, {
-    swaggerOptions: {
-      persistAuthorization: true, // keeps the token across page refreshes
-      tagsSorter: 'alpha',
-      operationsSorter: 'alpha',
-    },
-  });
-  console.log(`Swagger Docs running on http://localhost:${process.env.PORT ?? 4000}/api/docs`)
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api/docs', app, document, {
+      jsonDocumentUrl: 'api/docs-json',
+      swaggerOptions: {
+        persistAuthorization: true, // keeps the token across page refreshes
+        tagsSorter: 'alpha',
+        operationsSorter: 'alpha',
+      },
+    });
+    console.log(`Swagger Docs running on http://localhost:${process.env.PORT ?? 4000}/api/docs`)
+  }
 
   await app.listen(process.env.PORT ?? 4000);
   console.log(`Backend running on http://localhost:${process.env.PORT ?? 4000}/api`);

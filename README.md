@@ -1,7 +1,7 @@
 # Campusmart
 
 ## Overview
-Campusmart is a high-performance, mobile-first e-commerce platform specifically engineered for campus ecosystems. Built with **Next.js 15** and **TypeScript**, the application provides students with a streamlined interface to browse, search, and purchase items ranging from fashion to electronics. The project emphasizes speed and accessibility, featuring a robust **Progressive Web App (PWA)** implementation and persistent state management to ensure a seamless user experience even in low-connectivity environments.
+Campusmart is a high-performance, mobile-first e-commerce platform specifically engineered for campus ecosystems. Built with **Next.js 16** and **TypeScript**, the application provides students with a streamlined interface to browse, search, and purchase items ranging from fashion to electronics. The project emphasizes speed and accessibility, featuring a robust **Progressive Web App (PWA)** implementation and persistent state management to ensure a seamless user experience even in low-connectivity environments.
 
 ## Features
 - **Mobile-First Experience**: Fully responsive interface designed for the "on-the-go" student lifestyle.
@@ -34,11 +34,13 @@ Follow these steps to set up the development environment locally:
    The application will be available at `http://localhost:3000`.
 
 ### Environment Variables
-Currently, the project utilizes local mock data for product listings. Future integrations with a production backend will require the following configuration:
+The frontend talks to the NestJS backend in [`backend/`](backend/README.md). Set it up and start it first, then create `.env.local`:
 ```bash
-NEXT_PUBLIC_API_URL=https://api.campusmart.com/v1
-NEXT_PUBLIC_STRIPE_KEY=your_stripe_public_key
+NEXT_PUBLIC_API_URL=http://localhost:4000/api
 ```
+If the variable is unset, the frontend falls back to `http://localhost:4000/api`.
+
+Payments go through **Paystack**. The backend creates each transaction, so the frontend needs no payment key.
 
 ## Usage
 
@@ -61,6 +63,8 @@ On supported mobile browsers, a prompt will automatically appear suggesting the 
 | **Zustand** | State Management | [View](https://zustand-demo.pmnd.rs/) |
 | **Tailwind CSS** | Utility-first Styling | [View](https://tailwindcss.com/) |
 | **Lucide React** | Icon Suite | [View](https://lucide.dev/) |
+| **NestJS + Prisma** | Backend API and database access | [View](backend/README.md) |
+| **Paystack** | Payments | [View](https://paystack.com/docs) |
 
 ## Contributing
 We welcome contributions that improve the campus shopping experience. 

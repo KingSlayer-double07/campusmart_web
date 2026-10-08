@@ -7,13 +7,20 @@ datasource db {
   provider = "postgresql"
 }
 
+enum EmailCodePurpose {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
 model User {
   id                   String                @id @default(uuid())
   email                String                @unique
   password             String?
   googleId             String?               @unique
-  firstName            String
-  lastName             String
+  username             String?               @unique
+  firstName            String?
+  lastName             String?
+  phone                String?
   role                 UserRole
   trustScore           Float                 @default(0)
   verificationStatus   VerificationStatus    @default(UNVERIFIED)
@@ -22,8 +29,9 @@ model User {
   institutionId        String?
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
-  passwordResetToken   String?               @unique
-  passwordResetExpiry  DateTime?
+  emailVerifiedAt      DateTime?
+  sessions             Session[]
+  emailCodes           EmailCode[]
   listings             Listing[]             @relation("SellerListings")
   moderationActions    ModerationAction[]
   orders               Order[]               @relation("BuyerOrders")
@@ -34,10 +42,39 @@ model User {
   wishlist             Wishlist[]
 }
 
+model Session {
+  id                  String      @id @default(uuid())
+  userId              String
+  refreshTokenHash    String
+  userAgent           String?
+  ipAddress           String?
+  lastUsedAt          DateTime    @default(now())
+  expiresAt           DateTime
+  revokedAt           DateTime?
+  createdAt           DateTime    @default(now())
+  user                User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+}
+
+model EmailCode {
+  id                String      @id @default(uuid())
+  userId            String
+  purpose           EmailCodePurpose
+  codeHash          String
+  attempts          Int         @default(0)
+  expiresAt         DateTime
+  usedAt            DateTime?
+  createdAt         DateTime    @default(now())
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+}
+
 model Institution {
   id        String    @id @default(uuid())
   name      String    @unique
-  domain    String?
+  domains   String[]
   createdAt DateTime  @default(now())
   listings  Listing[]
   users     User[]
