@@ -208,6 +208,7 @@ enum UserRole {
   BUYER
   SELLER
   ADMIN
+  PICKUP_AGENT
 }
 
 enum OrderStatus {
