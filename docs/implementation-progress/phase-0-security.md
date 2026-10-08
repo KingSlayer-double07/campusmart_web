@@ -143,7 +143,7 @@ Local Postgres 16; `DATABASE_URL=DIRECT_URL=postgresql://postgres:postgres@local
 | e2e | `Test Suites: 2 passed; Tests: 12 passed`. The guard was checked too: running against `campusmart_dev` throws "Refusing to run e2e tests against database campusmart_dev". |
 | Frontend | `npm run lint` → 0 errors, 2 pre-existing warnings (unused eslint-disable in `app/profile/page.tsx`, `app/sellers/profile/page.tsx`); `npx tsc --noEmit` exit 0; `npx vitest run` → 3 passed; `API_ORIGIN=http://localhost:4000 npm run build` succeeded. |
 | migrate diff | `SHADOW_DATABASE_URL=… npx prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code` → "No difference detected", exit 0. |
-| CI exists | `.github/workflows/ci.yml` (commit `ec48eb9`). It runs on GitHub after push; see the Phase 1 file for the first CI result. |
+| CI exists | `.github/workflows/ci.yml` (commit `ec48eb9`). It has not run on GitHub yet: pushing is blocked (see Phase 1, Needs from Collins). Every CI step was run locally with the CI env values. |
 
 ## 4. Deviations and assumptions
 
@@ -174,6 +174,7 @@ Local Postgres 16; `DATABASE_URL=DIRECT_URL=postgresql://postgres:postgres@local
 
 ## 5. Needs from Collins
 
+- **GitHub push access**: see Phase 1. Nothing has been pushed yet.
 - **Protect `master` and `develop`** so both CI jobs must pass (GitHub branch protection, guide Testing section).
 - **Trust proxy hops in production.** `trust proxy` is `1` as the guide says. If production traffic passes through
   Vercel and then a load balancer in front of the API, `req.ip` will be the Vercel egress IP. Rate limits and the
