@@ -5,7 +5,7 @@ export class LoginDto {
   @ApiProperty({
     description: 'Email address of the user',
     type: String,
-    example: 'user@example.com'
+    example: 'user@example.com',
   })
   @IsEmail({}, { message: 'Please provide a valid email address' })
   email!: string;
@@ -13,7 +13,7 @@ export class LoginDto {
   @ApiProperty({
     description: 'Password for the user account',
     type: String,
-    example: 'StrongPassword123'
+    example: 'StrongPassword123',
   })
   @IsString()
   @MinLength(8)

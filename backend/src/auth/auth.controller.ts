@@ -41,9 +41,10 @@ export class AuthController {
 
   @ApiOperation({
     summary: 'Register a new account',
-    description: 'Creates a new user and returns the user data along with an authentication token',
+    description:
+      'Creates a new user and returns the user data along with an authentication token',
   })
-  @ApiBody({ type:RegisterUserDto })
+  @ApiBody({ type: RegisterUserDto })
   @ApiResponse({
     status: 201,
     description: 'Account created successfully',
@@ -73,9 +74,10 @@ export class AuthController {
 
   @ApiOperation({
     summary: 'Login to an existing account',
-    description: 'Logs in with email and password, returning user data and setting an authentication cookie',
+    description:
+      'Logs in with email and password, returning user data and setting an authentication cookie',
   })
-  @ApiBody({ type:LoginDto })
+  @ApiBody({ type: LoginDto })
   @ApiResponse({
     status: 200,
     description: 'Logged in successfully',
@@ -105,7 +107,8 @@ export class AuthController {
 
   @ApiOperation({
     summary: 'Logout from the current account',
-    description: 'Clears the authentication cookie, effectively logging the user out'
+    description:
+      'Clears the authentication cookie, effectively logging the user out',
   })
   @ApiResponse({
     status: 200,
@@ -163,7 +166,6 @@ export class AuthController {
   //   return { message: 'Verification code sent' };
   // }
 
-  
   // ── GET /auth/me ──────────────────────────────────────────────────────────
   @ApiOperation({
     summary: 'Get current user details',

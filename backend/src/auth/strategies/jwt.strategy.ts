@@ -14,7 +14,7 @@ const cookieExtractor = (req: Request): string | null => {
 };
 
 export type JwtPayload = {
-  sub: string;  // user id
+  sub: string; // user id
   email: string;
   role: string;
 };

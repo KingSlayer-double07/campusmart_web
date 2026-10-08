@@ -7,14 +7,14 @@ import {
   IsOptional,
   IsString,
   IsUUID,
-  IsStrongPassword
+  IsStrongPassword,
 } from 'class-validator';
 
 export class CreateUserDto {
   @ApiProperty({
     description: 'Email address of the user',
     type: String,
-    example: 'user@example.com'
+    example: 'user@example.com',
   })
   @IsEmail({}, { message: 'Please provide a valid email address' })
   email!: string;
@@ -22,21 +22,27 @@ export class CreateUserDto {
   @ApiProperty({
     description: 'Password for the user',
     type: String,
-    example: 'SecurePass123'
+    example: 'SecurePass123',
   })
-  @IsStrongPassword({
-    minLength: 8,
-    minLowercase: 1,
-    minUppercase: 1,
-    minNumbers: 1,
-    minSymbols: 0
-  }, { message: 'New password must be strong (at least 8 characters, including uppercase, lowercase, number, and symbol)' })
+  @IsStrongPassword(
+    {
+      minLength: 8,
+      minLowercase: 1,
+      minUppercase: 1,
+      minNumbers: 1,
+      minSymbols: 0,
+    },
+    {
+      message:
+        'New password must be strong (at least 8 characters, including uppercase, lowercase, number, and symbol)',
+    },
+  )
   password!: string;
 
   @ApiProperty({
     description: 'First name of the user',
     type: String,
-    example: 'John'
+    example: 'John',
   })
   @IsString()
   @IsNotEmpty({ message: 'First name is required' })
@@ -45,7 +51,7 @@ export class CreateUserDto {
   @ApiProperty({
     description: 'Last name of the user',
     type: String,
-    example: 'Doe'
+    example: 'Doe',
   })
   @IsString()
   @IsNotEmpty({ message: 'Last name is required' })
@@ -57,13 +63,15 @@ export class CreateUserDto {
     example: 'BUYER',
     enum: UserRole,
   })
-  @IsEnum(UserRole, { message: `Role must be one of: ${Object.values(UserRole).join(', ')}` })
+  @IsEnum(UserRole, {
+    message: `Role must be one of: ${Object.values(UserRole).join(', ')}`,
+  })
   role!: UserRole;
 
   @ApiProperty({
     description: 'Institution ID to which the user belongs',
     type: String,
-    example: 'uuid-of-institution'
+    example: 'uuid-of-institution',
   })
   @IsUUID('all', { message: 'institutionId must be a valid UUID' })
   @IsOptional()

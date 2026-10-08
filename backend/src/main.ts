@@ -9,7 +9,10 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger: process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['log', 'error', 'warn', 'debug', 'verbose'],
+    logger:
+      process.env.NODE_ENV === 'production'
+        ? ['error', 'warn']
+        : ['log', 'error', 'warn', 'debug', 'verbose'],
   });
 
   app.use(helmet()); // Basic security headers
@@ -25,9 +28,9 @@ async function bootstrap() {
   // and strip unknown properties before they reach service logic
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,        // strip unknown properties
+      whitelist: true, // strip unknown properties
       forbidNonWhitelisted: true, // throw if unknown properties are sent
-      transform: true,        // auto-transform primitives (e.g. string → number)
+      transform: true, // auto-transform primitives (e.g. string → number)
     }),
   );
 
@@ -55,9 +58,9 @@ async function bootstrap() {
       .addCookieAuth('access_token')
       .addGlobalResponse({
         status: 500,
-        description: 'Internal Server Error'
+        description: 'Internal Server Error',
       })
-      .build()
+      .build();
 
     const document = SwaggerModule.createDocument(app, swaggerConfig);
     SwaggerModule.setup('api/docs', app, document, {
@@ -68,11 +71,15 @@ async function bootstrap() {
         operationsSorter: 'alpha',
       },
     });
-    console.log(`Swagger Docs running on http://localhost:${process.env.PORT ?? 4000}/api/docs`)
+    console.log(
+      `Swagger Docs running on http://localhost:${process.env.PORT ?? 4000}/api/docs`,
+    );
   }
 
   await app.listen(process.env.PORT ?? 4000);
-  console.log(`Backend running on http://localhost:${process.env.PORT ?? 4000}/api`);
+  console.log(
+    `Backend running on http://localhost:${process.env.PORT ?? 4000}/api`,
+  );
 }
 
 bootstrap();

@@ -4,7 +4,9 @@ const required = z.string().trim().min(1);
 
 // Validated at startup by ConfigModule.forRoot — the app refuses to boot on a missing or malformed variable.
 export const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  NODE_ENV: z
+    .enum(['development', 'test', 'production'])
+    .default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
   FRONTEND_URL: z.url().default('http://localhost:3000'),
   APP_URL: z.url().default('http://localhost:3000'),

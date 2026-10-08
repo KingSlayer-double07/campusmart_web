@@ -1,4 +1,11 @@
-import { Injectable, ConflictException, NotFoundException, Logger, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  Logger,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { hash, compare } from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -132,7 +139,9 @@ export class UsersService {
     // If the new password is the same as the current password, throw an error
     const isSamePassword = await compare(dto.newPassword, user.password);
     if (isSamePassword) {
-      throw new BadRequestException('New password cannot be the same as the current password');
+      throw new BadRequestException(
+        'New password cannot be the same as the current password',
+      );
     }
 
     // Hash the new password and update the user record
@@ -141,12 +150,12 @@ export class UsersService {
       where: { id: userId },
       data: { password: newHashedPassword },
     });
-    return { message: 'Password changed successfully' };    
+    return { message: 'Password changed successfully' };
   }
 
   // Submit verification documents for the user
   async submitVerification(userId: string, dto: SubmitVerificationDto) {
-    // Check if user exists    
+    // Check if user exists
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -178,7 +187,7 @@ export class UsersService {
         createdAt: true,
       },
     });
-    
+
     if (!publicProfile) {
       throw new NotFoundException('User not found');
     }

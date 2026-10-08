@@ -11,7 +11,10 @@ import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, validate: (raw) => envSchema.parse(raw) }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validate: (raw) => envSchema.parse(raw),
+    }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]), // 120 requests per minute
     PrismaModule,
     UsersModule,
