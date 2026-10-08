@@ -1,0 +1,44 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: backend } }
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: campusmart_test }
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/campusmart_test
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/campusmart_test
+      # Prisma 7 reads the shadow database from prisma.config.ts (the --shadow-database-url flag is gone).
+      # migrate diff wipes it, so it must not be the e2e database; the built-in `postgres` db is throwaway here.
+      SHADOW_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      JWT_SECRET: ci-secret-at-least-32-characters-long
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: backend/package-lock.json }
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npx prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code
+      - run: npm run lint -- --max-warnings 0
+      - run: npx tsc --noEmit
+      - run: npm test
+      - run: npm run test:e2e
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npx vitest run
+      - run: npm run build
+        env: { API_ORIGIN: http://localhost:4000 }

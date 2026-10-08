@@ -21,6 +21,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The API has its own ESLint config; generated service worker output isn't ours to lint
+    "backend/**",
+    "public/sw.js",
+    "public/swe-worker-*.js",
   ]),
 ]);
 
