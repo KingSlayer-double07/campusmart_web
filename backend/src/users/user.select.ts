@@ -1,7 +1,8 @@
+// The only user shape that may leave the API. Never add password or token columns here.
 export const safeUserSelect = {
   id: true,
   email: true,
-  userName: true,
+  username: true,
   firstName: true,
   lastName: true,
   role: true,

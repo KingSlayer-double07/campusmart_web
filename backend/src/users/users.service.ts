@@ -12,6 +12,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { SubmitVerificationDto } from './dto/submit-verification.dto';
+import { safeUserSelect } from './user.select';
 
 @Injectable()
 export class UsersService {
@@ -39,17 +40,7 @@ export class UsersService {
         institutionId: dto.institutionId ?? null,
       },
       // Never return the password hash to callers
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        verificationStatus: true,
-        trustScore: true,
-        institutionId: true,
-        createdAt: true,
-      },
+      select: safeUserSelect,
     });
 
     return user;
@@ -58,40 +49,15 @@ export class UsersService {
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({
       where: { email },
-      // Include password here so AuthService can compare hashes
-      select: {
-        id: true,
-        email: true,
-        password: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        verificationStatus: true,
-        trustScore: true,
-        institutionId: true,
-        createdAt: true,
-        isSuspended: true,
-        isActive: true,
-      },
+      // Include password here so AuthService can compare hashes; callers must strip it
+      select: { ...safeUserSelect, password: true },
     });
   }
 
   async findById(id: string) {
     return this.prisma.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        verificationStatus: true,
-        trustScore: true,
-        institutionId: true,
-        createdAt: true,
-        isSuspended: true,
-        isActive: true,
-      },
+      select: safeUserSelect,
     });
   }
 
@@ -100,6 +66,7 @@ export class UsersService {
     // Check if user exists
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
+      select: { id: true },
     });
     if (!user) {
       throw new NotFoundException('User not found');
@@ -112,6 +79,7 @@ export class UsersService {
         institutionId: dto.institutionId,
         email: dto.email,
       },
+      select: safeUserSelect,
     });
   }
 
@@ -158,6 +126,7 @@ export class UsersService {
     // Check if user exists
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
+      select: { id: true },
     });
     if (!user) {
       throw new NotFoundException('User not found');
