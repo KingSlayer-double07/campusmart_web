@@ -7,13 +7,15 @@ import PageHeader from "../components/PageHeader";
 import ActionListItem from "../components/ActionListItem";
 import { useCartStore } from "../store/useCartStore";
 import { useAuthStore } from "../store/useAuthStore";
+import { useLogout } from "@/lib/api/hooks/useLogout";
 import { useRouter } from "next/navigation";
 import { profileMenuGroups } from "../lib/data";
 
 export default function ProfilePage() {
   const [mounted, setMounted] = useState(false);
   const { cart } = useCartStore();
-  const { logout } = useAuthStore();
+  const logout = useLogout();
+  const authUser = useAuthStore((s) => s.user);
   const router = useRouter();
 
   useEffect(() => {
@@ -28,12 +30,15 @@ export default function ProfilePage() {
     router.push("/onboarding/role-select");
   };
 
+  const fullName = [authUser?.firstName, authUser?.lastName].filter(Boolean).join(" ");
   const user = {
-    name: "John Doe",
-    email: "john.doe@campus.edu",
-    phone: "+234 701 234 5678",
-    verified: true,
-    joinedDate: "January 2024",
+    name: fullName || authUser?.username || authUser?.email?.split("@")[0] || "",
+    email: authUser?.email ?? "",
+    phone: "",
+    verified: !!authUser?.emailVerifiedAt,
+    joinedDate: authUser
+      ? new Date(authUser.createdAt).toLocaleDateString("en-NG", { month: "long", year: "numeric" })
+      : "",
   };
 
   return (

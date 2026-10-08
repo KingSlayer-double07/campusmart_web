@@ -3,21 +3,22 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/app/store/useAuthStore";
+import { homeForRole } from "@/lib/auth/redirects";
 
 export default function SplashScreen() {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (isAuthenticated && user) {
-        router.replace(user.role === "SELLER" ? "/sellers" : "/");
+      if (user) {
+        router.replace(user.emailVerifiedAt ? homeForRole(user.role) : "/onboarding/verify-email");
       } else {
         router.replace("/onboarding/role-select");
       }
     }, 2200);
     return () => clearTimeout(timer);
-  }, [isAuthenticated, user, router]);
+  }, [user, router]);
 
   return (
     <>

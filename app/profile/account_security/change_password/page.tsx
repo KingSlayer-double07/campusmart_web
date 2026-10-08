@@ -10,6 +10,8 @@ import Button from "../../../components/Button";
 import { useToast, ToastContainer } from "../../../components/Toast";
 
 import { passwordRequirements as requirements } from "../../../lib/data";
+import { ApiError } from "@/lib/api/client";
+import { useChangePassword } from "@/lib/api/hooks/useSessions";
 
 function strengthLabel(passed: number): { label: string; color: string } {
   if (passed === 0) return { label: "", color: "" };
@@ -25,7 +27,9 @@ export default function ChangePasswordPage() {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const changePassword = useChangePassword();
+  const loading = changePassword.isPending;
 
   const passed = useMemo(
     () => requirements.filter((r) => r.test(next)).length,
@@ -37,24 +41,25 @@ export default function ChangePasswordPage() {
   );
 
   /* highlight new-password field border red when strength < 3 and has value */
-  const newFieldError = next.length > 0 && passed < 3;
+  const newFieldError = next.length > 0 && passed < requirements.length;
 
   const handleSubmit = async () => {
-    if (passed < 3 || next !== confirm || !current) return;
-    setLoading(true);
-    // TODO: wire to your auth store / API
-    await new Promise((r) => setTimeout(r, 1200));
-    setLoading(false);
-    toast.success("Password Updated!", "Your password has been changed");
-    // Clear fields then navigate back after toast shows
-    setCurrent("");
-    setNext("");
-    setConfirm("");
-    setTimeout(() => router.back(), 2000);
+    if (passed < requirements.length || next !== confirm || !current) return;
+    setError(null);
+    try {
+      await changePassword.mutateAsync({ currentPassword: current, newPassword: next });
+      toast.success("Password Updated!", "Your other devices have been signed out");
+      setCurrent("");
+      setNext("");
+      setConfirm("");
+      setTimeout(() => router.back(), 2000);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Couldn't update your password. Please try again.");
+    }
   };
 
   const canSubmit =
-    current.length > 0 && passed === 3 && next === confirm && !loading;
+    current.length > 0 && passed === requirements.length && next === confirm && !loading;
 
   return (
     <>
@@ -140,6 +145,12 @@ export default function ChangePasswordPage() {
               </p>
             )}
           </div>
+
+          {error && (
+            <p role="alert" className="text-sm font-medium text-red-500">
+              {error}
+            </p>
+          )}
 
           {/* Password Requirements card */}
           <div className="rounded-xl border border-border-default bg-surface-muted p-4 flex flex-col gap-2">

@@ -216,6 +216,7 @@ export const screenOptions = [
 /* ─────────────────────────────────────────────
    Account Security Data
 ───────────────────────────────────────────── */
+// Mirrors the API password policy (lib/validations/auth.ts, backend @IsCampusMartPassword)
 export const passwordRequirements = [
   { label: "At least 8 characters", test: (v: string) => v.length >= 8 },
   {
@@ -223,8 +224,8 @@ export const passwordRequirements = [
     test: (v: string) => /[A-Z]/.test(v) && /[a-z]/.test(v),
   },
   {
-    label: "Contains a number or symbol",
-    test: (v: string) => /[\d\W]/.test(v),
+    label: "Contains a number",
+    test: (v: string) => /\d/.test(v),
   },
 ];
 

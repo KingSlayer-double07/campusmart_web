@@ -15,6 +15,8 @@ interface AuthContainerProps {
   children: React.ReactNode;
   onSubmit: () => void;
   loading?: boolean;
+  /** Shown under the form, e.g. the ApiError message */
+  error?: string | null;
 }
 
 export default function AuthContainer({
@@ -24,6 +26,7 @@ export default function AuthContainer({
   children,
   onSubmit,
   loading = false,
+  error,
 }: AuthContainerProps) {
   const router = useRouter();
   const [isTermsOpen, setIsTermsOpen] = useState(false);
@@ -45,20 +48,35 @@ export default function AuthContainer({
           {title}
         </h1>
 
-        <div className="flex flex-col gap-4 mb-6">
-          {children}
-        </div>
+        <form
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!loading) onSubmit();
+          }}
+        >
+          <div className="flex flex-col gap-4 mb-4">
+            {children}
+          </div>
 
-        <div className="mb-8">
-          <Button 
-            onClick={onSubmit} 
-            loading={loading} 
-            outerRing 
-            roleType={roleType}
-          >
-            {type === "login" ? "Sign in" : "Create an Account"}
-          </Button>
-        </div>
+          {error && (
+            <p role="alert" className="text-[13px] font-medium text-red-500 mb-4">
+              {error}
+            </p>
+          )}
+
+          <div className="mb-8 mt-2">
+            <Button
+              type="submit"
+              loading={loading}
+              disabled={loading}
+              outerRing
+              roleType={roleType}
+            >
+              {type === "login" ? "Sign in" : "Create an Account"}
+            </Button>
+          </div>
+        </form>
 
         {type === "register" ? (
           <p className="text-foreground-muted text-[12.5px] text-center mb-6 tracking-tight">
@@ -84,17 +102,13 @@ export default function AuthContainer({
         ) : (
           <p className="text-foreground-muted text-[12.5px] text-center mb-6 tracking-tight">
             Forgotten your password?{" "}
-            <Link href="#" className={`${mainTextColor} hover:underline`}>
+            <Link href={`/onboarding/forgot-password?role=${roleType}`} className={`${mainTextColor} hover:underline`}>
               Recover it here
             </Link>
           </p>
         )}
 
-        <div className="flex flex-col justify-center gap-4 mb-6">
-          <Button variant="secondary" roleType={roleType}>
-            Continue with Google
-          </Button>
-        </div>
+        {/* "Continue with Google" returns with Google sign-in in Phase 10 */}
 
         <p className="text-foreground-muted text-[12.5px] text-center tracking-tight">
           {type === "login" ? (

@@ -1,3 +1,4 @@
+import RoleGate from "@/app/components/RoleGate";
 import SellersNav from "./components/sellersNav";
 
 export default function SellersLayout({
@@ -7,8 +8,10 @@ export default function SellersLayout({
 }) {
   return (
     <div className="relative flex justify-center max-w-dvw min-h-dvh bg-surface-muted text-foreground font-dmSans tracking-tight">
-      {children}
-      <SellersNav />
+      <RoleGate allow={["SELLER"]}>
+        {children}
+        <SellersNav />
+      </RoleGate>
     </div>
   );
 }

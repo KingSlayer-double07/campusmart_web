@@ -28,19 +28,11 @@ export default function LoginPage() {
 
           <div className="mb-8">
             <Button href="/onboarding/buyers/sign-in" outerRing roleType="buyer">
-              Sign in with email/number
+              Sign in with school email
             </Button>
           </div>
 
-          <p className="text-foreground-muted text-[12.5px] text-center mb-6 tracking-tight">
-            Or use a social account to sign in quickly.
-          </p>
-
-          <div className="flex flex-col justify-center gap-4 mb-6">
-            <button className="flex items-center justify-center w-full tracking-tight bg-card text-main py-2.5 border border-main rounded-full font-medium text-[14px] hover:brightness-105 transition-all">
-              Continue with Google
-            </button>
-          </div>
+          {/* "Continue with Google" returns with Google sign-in in Phase 10 */}
 
           <p className="text-foreground-muted text-[12.5px] text-center tracking-tight">
             Don&apos;t have an account?{" "}

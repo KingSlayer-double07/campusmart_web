@@ -28,19 +28,11 @@ export default function SellerWelcomePage() {
 
           <div className="mb-8">
             <Button href="/onboarding/sellers/sign-in" outerRing roleType="seller">
-              Sign in with email/number
+              Sign in with school email
             </Button>
           </div>
 
-          <p className="text-foreground-muted text-[12.5px] text-center mb-6 tracking-tight">
-            Or use a social account to sign in quickly.
-          </p>
-
-          <div className="flex flex-col justify-center gap-4 mb-6">
-            <Button variant="secondary" roleType="seller">
-              Continue with Google
-            </Button>
-          </div>
+          {/* "Continue with Google" returns with Google sign-in in Phase 10 */}
 
           <p className="text-foreground-muted text-[12.5px] text-center tracking-tight">
             Don&apos;t have an account?{" "}

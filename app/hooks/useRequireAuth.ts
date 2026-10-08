@@ -2,13 +2,14 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/app/store/useAuthStore";
 
+// Client-side redirect for pages outside the middleware matcher (e.g. the home page)
 export function useRequireAuth(redirectTo = "/splash") {
-  const { isAuthenticated } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!user) {
       router.replace(redirectTo);
     }
-  }, [isAuthenticated, router, redirectTo]);
+  }, [user, router, redirectTo]);
 }

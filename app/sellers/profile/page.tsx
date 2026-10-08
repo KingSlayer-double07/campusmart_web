@@ -21,10 +21,12 @@ import { useCartStore } from "@/app/store/useCartStore";
 import { useSellerStore } from "@/app/store/useSellerStore";
 
 import { useAuthStore } from "@/app/store/useAuthStore";
+import { useLogout } from "@/lib/api/hooks/useLogout";
 
 export default function ProfilePage() {
   const [mounted, setMounted] = useState(false);
-  const { logout, user: authUser } = useAuthStore();
+  const logout = useLogout();
+  const authUser = useAuthStore((s) => s.user);
   const { cart } = useCartStore();
   const { isOnline } = useSellerStore();
   const router = useRouter();
