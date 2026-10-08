@@ -7,112 +7,103 @@ import {
   Param,
   Body,
   ParseUUIDPipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiCookieAuth,
+  ApiNoContentResponse,
   ApiOperation,
   ApiTags,
   ApiResponse,
-  ApiBody,
   ApiParam,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { UsersService } from './users.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import type { AuthUser } from '../auth/auth-user';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { User } from '../generated/prisma/client';
-import { UpdateProfileDto } from './dto/update-profile.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ApiOkEnvelope } from '../common/swagger/api-envelope.decorator';
+import { ErrorResponseDto } from '../common/swagger/error-response.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { PublicProfileDto } from './dto/public-profile.dto';
 import { SubmitVerificationDto } from './dto/submit-verification.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { toUserDto, UserDto } from './dto/user.dto';
+import { VerificationRequestDto } from './dto/verification-request.dto';
+import { UsersService } from './users.service';
 
 @ApiTags('Users')
 @ApiCookieAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @ApiOperation({
-    summary: 'Return full profile of the currently authenticated user',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Return full profile of the currently authenticated user',
-  })
-  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: "The signed-in user's own profile" })
+  @ApiOkEnvelope(UserDto)
   @Get('me/profile')
-  getMyProfile(@CurrentUser() user: User) {
-    return user;
+  getMyProfile(@CurrentUser() user: AuthUser): UserDto {
+    return toUserDto(user);
   }
 
-  @ApiOperation({
-    summary: 'Update profile of the currently authenticated user',
-  })
-  @ApiBody({ type: UpdateProfileDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Return updated profile of the currently authenticated user',
-  })
-  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: "Update the signed-in user's profile" })
+  @ApiOkEnvelope(UserDto)
   @Patch('me/profile')
   async updateMyProfile(
-    @CurrentUser() user: User,
+    @CurrentUser() user: AuthUser,
     @Body() dto: UpdateProfileDto,
-  ) {
-    return this.usersService.updateProfile(user.id, dto);
+  ): Promise<UserDto> {
+    return toUserDto(await this.usersService.updateProfile(user.id, dto));
   }
 
   @ApiOperation({
-    summary: 'Change password of the currently authenticated user',
+    summary: 'Change the password',
+    description:
+      'Needs the current password. Signs out every other session; this one stays signed in.',
   })
-  @ApiBody({ type: ChangePasswordDto })
-  @ApiResponse({ status: 200, description: 'Password changed successfully' })
-  @ApiResponse({ status: 401, description: 'Current password is incorrect' })
-  @UseGuards(JwtAuthGuard)
+  @ApiNoContentResponse({ description: 'Password changed' })
+  @ApiResponse({
+    status: 401,
+    type: ErrorResponseDto,
+    description: 'Current password is incorrect',
+  })
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Patch('me/password')
+  @HttpCode(HttpStatus.NO_CONTENT)
   async changeMyPassword(
-    @CurrentUser() user: User,
+    @CurrentUser() user: AuthUser,
     @Body() dto: ChangePasswordDto,
-  ) {
-    return this.usersService.changePassword(user.id, dto);
+  ): Promise<void> {
+    await this.usersService.changePassword(user.id, user.sessionId, dto);
   }
 
-  @ApiOperation({
-    summary:
-      'Submit verification documents for the currently authenticated user',
-  })
-  @ApiBody({ type: SubmitVerificationDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Verification documents submitted successfully',
-  })
-  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Submit a seller verification document' })
+  @ApiOkEnvelope(VerificationRequestDto, { status: 201 })
   @Post('me/verify')
   async submitVerification(
-    @CurrentUser() user: User,
+    @CurrentUser() user: AuthUser,
     @Body() dto: SubmitVerificationDto,
-  ) {
+  ): Promise<VerificationRequestDto> {
     return this.usersService.submitVerification(user.id, dto);
   }
 
   @ApiOperation({
-    summary: 'Get public profile of a user by their ID',
+    summary: "Another user's public profile",
     description:
       'Name, role, verification status, trust score, institution and join date. Never the email.',
   })
-  @ApiParam({
-    name: 'id',
-    description: 'UUID of the user whose public profile is being requested',
-    required: true,
-  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkEnvelope(PublicProfileDto)
   @ApiResponse({
-    status: 200,
-    description: 'Return public profile of the specified user',
+    status: 400,
+    type: ErrorResponseDto,
+    description: 'The id is not a UUID',
   })
-  @ApiResponse({ status: 400, description: 'The id is not a UUID' })
-  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 404, type: ErrorResponseDto })
   @Get(':id')
-  async getPublicProfile(@Param('id', new ParseUUIDPipe()) id: string) {
+  async getPublicProfile(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<PublicProfileDto> {
     return this.usersService.getPublicProfile(id);
   }
 }

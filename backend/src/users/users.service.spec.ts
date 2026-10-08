@@ -2,6 +2,7 @@ import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { hash } from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
+import { SessionsService } from '../sessions/sessions.service';
 import { safeUserSelect } from './user.select';
 import { UsersService } from './users.service';
 
@@ -12,12 +13,21 @@ describe('UsersService', () => {
       findUnique: jest.fn(),
       update: jest.fn(),
     },
+    $transaction: jest.fn(),
   };
+  const sessions = { revokeOthers: jest.fn() };
 
   beforeEach(async () => {
     jest.resetAllMocks();
+    prisma.$transaction.mockImplementation((fn: (tx: unknown) => unknown) =>
+      fn(prisma),
+    );
     const moduleRef = await Test.createTestingModule({
-      providers: [UsersService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        UsersService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: SessionsService, useValue: sessions },
+      ],
     }).compile();
     service = moduleRef.get(UsersService);
   });
@@ -38,6 +48,18 @@ describe('UsersService', () => {
       expect(prisma.user.update).toHaveBeenCalledWith(
         expect.objectContaining({ select: safeUserSelect }),
       );
+    });
+
+    it('never writes the email or institution', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
+      await service.updateProfile('u1', {
+        firstName: 'Ada',
+        email: 'x@y.z',
+        institutionId: 'i2',
+      } as never);
+      const { data } = prisma.user.update.mock.calls[0][0];
+      expect(data).not.toHaveProperty('email');
+      expect(data).not.toHaveProperty('institutionId');
     });
   });
 
@@ -60,17 +82,18 @@ describe('UsersService', () => {
 
     it('rejects a wrong current password with 401', async () => {
       await expect(
-        service.changePassword('u1', {
+        service.changePassword('u1', 's1', {
           currentPassword: 'WrongPass1',
           newPassword: 'NewPass123',
         }),
       ).rejects.toBeInstanceOf(UnauthorizedException);
       expect(prisma.user.update).not.toHaveBeenCalled();
+      expect(sessions.revokeOthers).not.toHaveBeenCalled();
     });
 
     it('rejects a new password equal to the current one with 400', async () => {
       await expect(
-        service.changePassword('u1', {
+        service.changePassword('u1', 's1', {
           currentPassword: 'OldPass123',
           newPassword: 'OldPass123',
         }),
@@ -78,14 +101,15 @@ describe('UsersService', () => {
       expect(prisma.user.update).not.toHaveBeenCalled();
     });
 
-    it('stores a new hash when the current password matches', async () => {
-      await service.changePassword('u1', {
+    it('stores a new hash and signs out every other session', async () => {
+      await service.changePassword('u1', 's1', {
         currentPassword: 'OldPass123',
         newPassword: 'NewPass123',
       });
       const { data } = prisma.user.update.mock.calls[0][0];
       expect(data.password).toEqual(expect.stringMatching(/^\$2[aby]\$/));
       expect(data.password).not.toBe('NewPass123');
+      expect(sessions.revokeOthers).toHaveBeenCalledWith('u1', 's1', prisma);
     });
   });
 });

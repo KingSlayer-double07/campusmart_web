@@ -1,41 +1,18 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
 
+// The school email is the identity (D7) and the institution comes from it (D9), so neither is
+// editable here. Username and phone arrive with the Phase 10 profile work.
 export class UpdateProfileDto {
-  @ApiPropertyOptional({
-    description: 'First name of the user',
-    type: String,
-    example: 'John',
-  })
+  @ApiPropertyOptional({ example: 'Ada' })
   @IsString({ message: 'First name must be a string' })
+  @MaxLength(50)
   @IsOptional()
   firstName?: string;
 
-  @ApiPropertyOptional({
-    description: 'Last name of the user',
-    type: String,
-    example: 'Doe',
-  })
+  @ApiPropertyOptional({ example: 'Obi' })
   @IsString({ message: 'Last name must be a string' })
+  @MaxLength(50)
   @IsOptional()
   lastName?: string;
-
-  @ApiPropertyOptional({
-    description: 'Institution ID to which the user belongs',
-    type: String,
-    example: 'uuid-of-institution',
-  })
-  @IsUUID('all', { message: 'institutionId must be a valid UUID' })
-  @IsOptional()
-  institutionId?: string;
-
-  @ApiPropertyOptional({
-    description: 'Email address of the user',
-    type: String,
-    example: 'user@example.com',
-  })
-  @IsString({ message: 'Email must be a string' })
-  @IsEmail({}, { message: 'Email must be a valid email address' })
-  @IsOptional()
-  email?: string;
 }

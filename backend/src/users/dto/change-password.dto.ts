@@ -1,32 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsStrongPassword } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
+import { IsCampusMartPassword } from '../../auth/decorators/is-campusmart-password.decorator';
 
 export class ChangePasswordDto {
-  @ApiProperty({
-    description: 'Current password of the user account',
-    type: String,
-  })
+  @ApiProperty({ description: 'Current password of the account' })
   @IsString({ message: 'Current password must be a string' })
   @IsNotEmpty({ message: 'Current password is required' })
   currentPassword!: string;
 
   @ApiProperty({
-    description: 'New password for the user account',
-    type: String,
-    example: 'NewStrongPass456',
+    example: 'NewCampus2026',
+    description:
+      '8+ characters with an uppercase letter, a lowercase letter and a number',
   })
-  @IsStrongPassword(
-    {
-      minLength: 8,
-      minLowercase: 1,
-      minUppercase: 1,
-      minNumbers: 1,
-      minSymbols: 0,
-    },
-    {
-      message:
-        'New password must be strong (at least 8 characters, including uppercase, lowercase and a number)',
-    },
-  )
+  @IsCampusMartPassword()
   newPassword!: string;
 }
