@@ -30,6 +30,15 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm test
       - run: npm run test:e2e
+      # lib/api/schema.d.ts must be current (guide 1.5): regenerate it from the same OpenAPI
+      # document /api/docs-json serves and fail on any diff
+      - run: npm run openapi:export -- openapi.json
+      - name: npm run gen:api produces no diff
+        working-directory: .
+        run: |
+          npm ci
+          npx openapi-typescript backend/openapi.json -o lib/api/schema.d.ts
+          git diff --exit-code lib/api/schema.d.ts
   frontend:
     runs-on: ubuntu-latest
     steps:
