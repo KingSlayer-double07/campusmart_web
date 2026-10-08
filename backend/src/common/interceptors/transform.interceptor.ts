@@ -3,30 +3,33 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-  Logger,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
+export interface Envelope<T> {
+  success: true;
+  data: T;
+  timestamp: string;
+}
+
+// D2: every successful response is { success: true, data, timestamp }. Errors never reach this
+// interceptor; AllExceptionsFilter formats them.
 @Injectable()
-export class TransformInterceptor implements NestInterceptor {
-  private readonly logger = new Logger(TransformInterceptor.name);
-
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+export class TransformInterceptor<T> implements NestInterceptor<
+  T,
+  Envelope<T>
+> {
+  intercept(
+    _context: ExecutionContext,
+    next: CallHandler<T>,
+  ): Observable<Envelope<T>> {
     return next.handle().pipe(
-      map((data) => {
-        const response = {
-          success: data !== null && data !== undefined,
-          data,
-          timestamp: new Date().toISOString(),
-        };
-
-        if (!response.success) {
-          this.logger.error('Response success is false');
-        }
-
-        return response;
-      }),
+      map((data) => ({
+        success: true as const,
+        data,
+        timestamp: new Date().toISOString(),
+      })),
     );
   }
 }

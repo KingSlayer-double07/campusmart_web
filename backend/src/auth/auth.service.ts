@@ -1,6 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UserRole } from '../generated/prisma/enums';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { RegisterUserDto } from './dto/register-user.dto';
@@ -149,7 +148,7 @@ export class AuthService {
   // }
 
   // Called after LocalStrategy has already validated credentials
-  async login(user: any) {
+  login<T extends { id: string; email: string; role: string }>(user: T) {
     const token = this.signToken(user.id, user.email, user.role);
     return { user, token };
   }

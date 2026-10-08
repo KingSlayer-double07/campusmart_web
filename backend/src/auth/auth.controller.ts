@@ -93,12 +93,14 @@ export class AuthController {
   @Post('login')
   @Throttle({ default: { limit: 5, ttl: 60_000 } }) // 5 login attempts per minute
   @HttpCode(HttpStatus.OK)
-  async login(
+  login(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
     @Body() _dto: LoginDto, // validated but LocalStrategy does the actual check
   ) {
-    const { user, token } = await this.authService.login(req.user);
+    const { user, token } = this.authService.login(
+      req.user as { id: string; email: string; role: string },
+    );
     res.cookie('access_token', token, COOKIE_OPTIONS);
     return { message: 'Logged in successfully', user };
   }

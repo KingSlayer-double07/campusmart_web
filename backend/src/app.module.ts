@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from '@nestjs/config';
 import { envSchema } from './config/env';
@@ -22,6 +23,6 @@ import { PrismaModule } from './prisma/prisma.module';
     InstitutionsModule,
   ],
   controllers: [AppController],
-  providers: [AppService, { provide: 'APP_GUARD', useClass: ThrottlerGuard }],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

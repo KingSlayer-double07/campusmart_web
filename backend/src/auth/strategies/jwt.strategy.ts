@@ -7,10 +7,10 @@ import { UsersService } from '../../users/users.service';
 
 // Pull the JWT out of the HTTP-only cookie rather than the Authorization header
 const cookieExtractor = (req: Request): string | null => {
-  if (req && req.cookies) {
-    return req.cookies['access_token'] ?? null;
-  }
-  return null;
+  const cookies = req?.cookies as
+    | Record<string, string | undefined>
+    | undefined;
+  return cookies?.['access_token'] ?? null;
 };
 
 export type JwtPayload = {
