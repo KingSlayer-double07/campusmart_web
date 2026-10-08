@@ -34,11 +34,11 @@ Follow these steps to set up the development environment locally:
    The application will be available at `http://localhost:3000`.
 
 ### Environment Variables
-The frontend talks to the NestJS backend in [`backend/`](backend/README.md). Set it up and start it first, then create `.env.local`:
+The frontend talks to the NestJS backend in [`backend/`](backend/README.md). Set it up and start it first, then create `.env.local` from [`.env.example`](.env.example):
 ```bash
-NEXT_PUBLIC_API_URL=http://localhost:4000/api
+API_ORIGIN=http://localhost:4000
 ```
-If the variable is unset, the frontend falls back to `http://localhost:4000/api`.
+The browser only ever calls the Next.js origin. Next rewrites `/api/*` to `API_ORIGIN`, so cookies stay first-party and no CORS is involved. `API_ORIGIN` is server-only; never expose it with a `NEXT_PUBLIC_` prefix, and don't add pages under `app/api/`, which would shadow the rewrite.
 
 Payments go through **Paystack**. The backend creates each transaction, so the frontend needs no payment key.
 
