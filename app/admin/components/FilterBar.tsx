@@ -29,10 +29,13 @@ export default function FilterBar({
 }) {
   const [text, setText] = useState(search);
 
-  useEffect(() => setText(search), [search]);
+  // Follow the URL (e.g. "Clear filters"), but never trim what's still being typed
+  useEffect(() => {
+    setText((current) => (current.trim() === search ? current : search));
+  }, [search]);
 
   useEffect(() => {
-    if (text === search) return;
+    if (text.trim() === search) return;
     const timer = setTimeout(() => onSearch(text.trim()), 300);
     return () => clearTimeout(timer);
   }, [text, search, onSearch]);

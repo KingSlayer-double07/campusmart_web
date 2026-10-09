@@ -2,7 +2,10 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { CreateInstitutionDto, UpdateInstitutionDto } from './institution.dto';
 import { openingHoursProblem } from './opening-hours.dto';
-import { CreatePickupStationDto } from './pickup-station.dto';
+import {
+  CreatePickupStationDto,
+  UpdatePickupStationDto,
+} from './pickup-station.dto';
 
 async function errorsOf<T extends object>(
   cls: new () => T,
@@ -80,6 +83,24 @@ describe('admin DTOs', () => {
         openingHours: [{ day: 'MON', open: '09:00', close: '17:00' }],
       }),
     ).toEqual([]);
+  });
+});
+
+describe('UpdatePickupStationDto', () => {
+  it('validates opening hours on edits too, and refuses a new institution', async () => {
+    expect(
+      await errorsOf(UpdatePickupStationDto, {
+        openingHours: [{ day: 'MON', open: '17:00', close: '09:00' }],
+      }),
+    ).toContain('MON: closing time must be after opening time');
+    expect(
+      await errorsOf(UpdatePickupStationDto, {
+        institutionId: '3f8a1c9e-2b7d-4e5f-8a6b-1c2d3e4f5a6b',
+      }),
+    ).toContain('property institutionId should not exist');
+    expect(
+      await errorsOf(UpdatePickupStationDto, { isActive: false }),
+    ).toContain('Give a reason for switching it off');
   });
 });
 
