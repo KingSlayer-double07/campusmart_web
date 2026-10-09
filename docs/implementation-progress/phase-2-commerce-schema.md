@@ -1,8 +1,7 @@
 # Phase 2: commerce schema migration
 
 Branch: `feat/phase-2-commerce-schema` (off `backend`).
-Status: **IN PROGRESS**: everything is done except `prisma migrate reset` on the local dev database, which waits
-for Collins to confirm the migration SQL summary.
+Status: **DONE** (all items verified; no manual items).
 
 ## 1. Checklist
 
@@ -18,7 +17,7 @@ Gate items:
 - [x] Backend `npx tsc --noEmit`, `npm run lint -- --max-warnings 0`, `npm run build`, `npm test`, `npm run test:e2e` pass.
 - [x] Frontend `npm run lint`, `npx tsc --noEmit`, `npx vitest run`, `npm run build` pass.
 - [x] `npm run gen:api` produces no diff.
-- [ ] `prisma migrate reset` + `prisma db seed` run on the local dev database only (after Collins confirmed the
+- [x] `prisma migrate reset` + `prisma db seed` run on the local dev database only (after Collins confirmed the
   migration SQL summary).
 
 ## 2. Changes
@@ -64,7 +63,8 @@ Gate items:
 3. `backend/prisma/seed.ts`: one institution, two pickup stations (with `openingHours` JSON), and an admin from
    `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD`. Exported `seed(prisma, env)` so e2e runs the same code. Registered in
    `backend/prisma.config.ts` as `migrations.seed: 'ts-node prisma/seed.ts'`. Idempotent.
-4. `prisma migrate reset` on local `campusmart_dev`: **pending Collins' confirmation.**
+4. `prisma migrate reset --force` on local `campusmart_dev` (Collins confirmed the SQL summary, then gave Prisma's
+   AI-consent text "yes, reset campusmart_dev"), followed by `npx prisma db seed`.
 - `backend/README.md`: seed and reset steps.
 - Tests: `backend/src/prisma/schema.spec.ts` (no Decimal, every `*Kobo` field is `Int`),
   `backend/test/phase2-schema.e2e-spec.ts` (seed, two reviews, one review per listing per seller order),
@@ -85,6 +85,7 @@ Local Postgres 16. Unless stated, `DATABASE_URL=DIRECT_URL=postgresql://postgres
 | A user can receive two reviews | e2e `phase2-schema` › "a user can receive two reviews" (two collected seller orders from the same seller, one review each → `reviewsReceived` has ratings [4, 5]); › "allows one review per listing per seller order" (a duplicate → `P2002`). |
 | Backend gate | `npx tsc --noEmit` exit 0; `npm run lint -- --max-warnings 0` exit 0; `npm run build` exit 0 (`dist/main.js`); `npm test` → 14 suites, 103 tests passed; `npm run test:e2e` → 4 suites, 43 tests passed. |
 | Frontend gate | `npm run lint` exit 0 (0 errors, the 2 pre-existing warnings); `npx tsc --noEmit` exit 0; `npx vitest run` → 9 files, 60 tests passed; `API_ORIGIN=http://localhost:4000 npm run build` exit 0. |
+| Dev reset + seed | `DATABASE_URL=DIRECT_URL=…/campusmart_dev`: `PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION="yes, reset campusmart_dev" npx prisma migrate reset --force` → "Database reset successful", all 5 migrations applied; `npx prisma db seed` → "Seeded institution "University of Lagos" (unilag.edu.ng), 2 pickup stations and admin admin@campusmart.test."; `migrate diff --from-config-datasource --to-schema … --exit-code` → exit 0; SQL counts 1 institution, 2 stations, 1 user (`ADMIN`). Built API on `campusmart_dev`: `POST /api/auth/login` as the seed admin → 200 (`ADMIN`, email verified), `GET /api/auth/me` → 200. |
 | `gen:api` no diff | API on :4000, `npm run gen:api` → `schema.d.ts` gains only `InstitutionDto.isActive` (committed in `6c74a4d`). The CI path (`npm run openapi:export` + `openapi-typescript`) produces a byte-identical file (`diff -q` → identical). |
 
 ## 4. Deviations and assumptions
@@ -121,10 +122,13 @@ Local Postgres 16. Unless stated, `DATABASE_URL=DIRECT_URL=postgresql://postgres
 11. **`Institution.isActive` has no behaviour yet.** It's stored and returned (`InstitutionDto.isActive`), but sign-up
     still accepts every institution. See Needs from Collins.
 12. **Seller sign-up creates the `SellerProfile`** (guide 1.4 rule 9, which deferred it to Phase 2).
+13. **Prisma's AI guard on `migrate reset`.** Prisma 7 refuses `migrate reset` when run by an AI agent unless
+    `PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION` holds the user's explicit consent message. Collins gave it in a
+    separate message after reviewing the summary; the earlier approval didn't count for Prisma.
 
 ## 5. Needs from Collins
 
-- **Confirm the migration before I reset the local dev database.** Summary of
+- ~~**Confirm the migration before I reset the local dev database.**~~ Confirmed and done 2026-10-09. Summary of
   `20261009145230_commerce_core/migration.sql`:
   - Destructive (fine because nothing is in production; the guide resets instead of converting data): drops
     `Listing.price`/`quantity`, `Order.fulfillmentStatus`/`totalAmount`, `OrderItem.orderId`/`price`,
@@ -147,6 +151,6 @@ Local Postgres 16. Unless stated, `DATABASE_URL=DIRECT_URL=postgresql://postgres
   `SEED_ADMIN_PASSWORD` set. I haven't touched Neon.
 - **What should `Institution.isActive = false` do?** Proposal for Phase 9: block new sign-ups from its domains and
   hide it from `GET /institutions`; existing users keep access.
-- **Phase 9 timing:** the guide says to build the institutions and stations admin screens right after Phase 2. Do it
-  now, or in order after Phase 8?
+- ~~**Phase 9 timing**~~ **Decided 2026-10-09:** build the Phase 9 institutions and pickup-station admin screens right
+  after Phase 2, then Phase 3.
 - Still open from Phase 1: the middleware silent-refresh approach, branch protection for `master`/`develop`.
