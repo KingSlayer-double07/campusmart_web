@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Bell, Package, ClipboardList, TrendingUp, TrendingDown } from "lucide-react";
 import { useSellerStore } from "@/app/store/useSellerStore";
 import { useAuthStore } from "@/app/store/useAuthStore";
+import { useSellerProfile, useUpdateSellerProfile } from "@/lib/api/hooks/useSellerProfile";
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 
@@ -69,10 +70,18 @@ function BestPerformingCard() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SellersPage() {
-  const { isOnline, setIsOnline, stats } = useSellerStore();
+  const { stats } = useSellerStore();
   const { user } = useAuthStore();
-  
-  const sellerName = user?.firstName || user?.email?.split('@')[0] || "Seller";
+  const { data: profile } = useSellerProfile();
+  const updateProfile = useUpdateSellerProfile();
+
+  // Buyers see "Online" on this seller's listings (guide 3.2.8)
+  const isOnline = profile?.isOnline ?? false;
+  const setIsOnline = (value: boolean) => {
+    if (value !== isOnline) updateProfile.mutate({ isOnline: value });
+  };
+
+  const sellerName = profile?.storeName || user?.firstName || user?.email?.split('@')[0] || "Seller";
 
   const formatCurrency = (n: number) =>
     `₦${n.toLocaleString("en-NG")}`;

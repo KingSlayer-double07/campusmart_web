@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -12,42 +11,23 @@ export type SellerStats = {
   totalSalesChange: number;
 };
 
+// UI state only. The online switch lives on the server (PATCH /sellers/me, guide 3.2.8);
+// the dashboard numbers become real in Phase 7 and this store goes away then.
 export type SellerStore = {
-  // Online / Offline status
-  isOnline: boolean;
-  setIsOnline: (value: boolean) => void;
-
-
-
-  // Dashboard stats (would be fetched from API in production)
   stats: SellerStats;
   setStats: (stats: Partial<SellerStats>) => void;
 };
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
-export const useSellerStore = create<SellerStore>()(
-  persist(
-    (set) => ({
-      isOnline: false,
-      setIsOnline: (value) => set({ isOnline: value }),
-
-
-
-      stats: {
-        views: 1204,
-        viewsChange: 12,
-        orders: 15,
-        ordersChange: 5,
-        totalSales: 364500,
-        totalSalesChange: -2,
-      },
-      setStats: (partial) =>
-        set((state) => ({ stats: { ...state.stats, ...partial } })),
-    }),
-    {
-      name: "campus-mart-seller",
-      partialize: (state) => ({ isOnline: state.isOnline }),
-    }
-  )
-);
+export const useSellerStore = create<SellerStore>()((set) => ({
+  stats: {
+    views: 1204,
+    viewsChange: 12,
+    orders: 15,
+    ordersChange: 5,
+    totalSales: 364500,
+    totalSalesChange: -2,
+  },
+  setStats: (partial) => set((state) => ({ stats: { ...state.stats, ...partial } })),
+}));
