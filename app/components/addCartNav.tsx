@@ -4,17 +4,29 @@ import { CircleMinus, CirclePlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ApiError } from "@/lib/api/client";
 import type { Listing, ListingVariant } from "@/lib/api/listings";
-import { CATEGORY_LABELS } from "@/lib/labels";
-import { useCartStore } from "@/app/store/useCartStore";
+import { quantityInCart, useCart, useCartActions } from "@/lib/api/hooks/useCart";
 import BottomFloatingBar, { BottomFloatingBarContainer } from "./BottomFloatingBar";
 
 // The product page's bottom bar: choose an option, add to cart, then adjust the quantity up to
-// what's in stock. The seller sees a link to edit their own listing instead.
-export default function AddCartNav({ listing, variant }: { listing: Listing; variant: ListingVariant | null }) {
-  const { addToCart, increaseQty, decreaseQty, getItemById } = useCartStore();
+// what's in stock. Works on the server cart when signed in, else the guest cart (guide 4.3.1).
+// The seller sees a link to edit their own listing instead.
+export default function AddCartNav({
+  listing,
+  variant,
+  onError,
+}: {
+  listing: Listing;
+  variant: ListingVariant | null;
+  /** Why the cart refused, e.g. "Only 1 left" */
+  onError?: (message: string) => void;
+}) {
+  const cart = useCart();
+  const actions = useCartActions();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
@@ -35,51 +47,56 @@ export default function AddCartNav({ listing, variant }: { listing: Listing; var
   }
 
   const needsOption = listing.hasVariants && !variant;
-  const size = variant?.label ?? "default";
   const stock = variant ? variant.stock : listing.stock;
-  const cartItem = getItemById(listing.id, size);
-  const quantity = cartItem?.quantity ?? 0;
+  const variantId = variant?.id ?? null;
+  const quantity = quantityInCart(cart, listing.id, variantId);
   const soldOut = !needsOption && stock <= 0;
+  const line = { listingId: listing.id, variantId, variantLabel: variant?.label ?? null };
+
+  const run = async (change: () => Promise<void>) => {
+    setBusy(true);
+    try {
+      await change();
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : "Couldn't update your cart. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <BottomFloatingBar>
       <BottomFloatingBarContainer>
-        {!cartItem ? (
+        {quantity === 0 ? (
           <button
             type="button"
-            disabled={needsOption || soldOut}
+            disabled={needsOption || soldOut || busy}
             className="w-full h-10 rounded-full bg-main disabled:opacity-60 border border-border-default transition-all duration-300"
-            onClick={() =>
-              addToCart({
-                id: listing.id,
-                variantId: variant?.id ?? null,
-                name: listing.title,
-                priceKobo: variant?.priceKobo ?? listing.priceKobo,
-                image: listing.imageUrl,
-                quantity: 1,
-                category: CATEGORY_LABELS[listing.category],
-                size,
-                stockCount: stock,
-              })
-            }
+            onClick={() => run(() => actions.add(listing, variant, quantity))}
           >
             <p className="font-medium text-sm text-white">
-              {needsOption ? "Choose an option" : soldOut ? "Out of stock" : "Add to Cart"}
+              {needsOption ? "Choose an option" : soldOut ? "Out of stock" : busy ? "Adding…" : "Add to Cart"}
             </p>
           </button>
         ) : (
           <div className="w-full flex gap-4">
             <div className="w-28 px-2 h-10 rounded-full border bg-card border-main flex justify-between items-center">
-              <button type="button" aria-label="One fewer" onClick={() => decreaseQty(listing.id, size)}>
+              <button
+                type="button"
+                aria-label="One fewer"
+                disabled={busy}
+                className="disabled:opacity-40"
+                onClick={() => run(() => actions.setQuantity(line, quantity - 1))}
+              >
                 <CircleMinus color="#ff681f" size={18} />
               </button>
               <p className="font-medium text-main">{quantity}</p>
               <button
                 type="button"
                 aria-label="One more"
-                disabled={quantity >= stock}
+                disabled={busy || quantity >= stock}
                 className="disabled:opacity-40"
-                onClick={() => increaseQty(listing.id, size)}
+                onClick={() => run(() => actions.setQuantity(line, quantity + 1))}
               >
                 <CirclePlus color="#ff681f" size={18} />
               </button>

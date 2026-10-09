@@ -285,7 +285,7 @@ export default function ProductItem() {
         </div>
       </main>
 
-      <AddCartNav listing={listing} variant={variant} />
+      <AddCartNav listing={listing} variant={variant} onError={(message) => toast.error("Couldn't add it", message)} />
     </>
   );
 }

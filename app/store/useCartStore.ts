@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { ordersApi } from "@/lib/api/orders";
 
-// The guest cart. Phase 4 adds the server cart for signed-in users and merges this into it.
+// The guest cart only (D14, guide 4.3.1). Signed in, the cart lives on the server: useCart() picks
+// the right one, and AuthProvider merges this into the account's cart after sign-in.
 export type CartItem = {
   id: string; // listing id
   variantId: string | null;
@@ -13,6 +13,8 @@ export type CartItem = {
   category: string;
   size: string; // the option's label, or "default" without options
   stockCount: number;
+  sellerId?: string; // for grouping by store; older lines may lack it
+  storeName?: string;
 };
 
 type CartStore = {
@@ -22,8 +24,8 @@ type CartStore = {
   decreaseQty: (id: string, size: string) => void;
   removeFromCart: (id: string, size: string) => void;
   removeMultipleFromCart: (keysToRemove: string[]) => void;
+  setQuantity: (id: string, size: string, quantity: number) => void;
   getItemById: (id: string, size: string) => CartItem | undefined;
-  checkout: (paymentMethod: number, pickupStationId?: string) => Promise<{ orderId: string; message: string }>;
 };
 
 export const useCartStore = create<CartStore>()(
@@ -84,32 +86,16 @@ export const useCartStore = create<CartStore>()(
           ),
         })),
 
+      setQuantity: (id, size, quantity) =>
+        set((state) => ({
+          cart: state.cart
+            .map((item) => (item.id === id && item.size === size ? { ...item, quantity } : item))
+            .filter((item) => item.quantity > 0),
+        })),
+
       getItemById: (id, size) =>
         get().cart.find((i) => i.id === id && i.size === size),
 
-      checkout: async (paymentMethod, pickupStationId) => {
-        const { cart } = get();
-        try {
-          const payload = {
-            items: cart.map(item => ({
-              id: item.id,
-              quantity: item.quantity,
-              size: item.size
-            })),
-            paymentMethod,
-            pickupStationId,
-          };
-          
-          const result = await ordersApi.createOrder(payload);
-          
-          // Clear cart on successful checkout
-          set({ cart: [] });
-          return result;
-        } catch (error) {
-          console.error("Checkout failed:", error);
-          throw error;
-        }
-      },
     }),
     {
       name: "campus-mart-cart",

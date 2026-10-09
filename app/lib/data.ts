@@ -32,8 +32,8 @@ export const profileMenuGroups = [
   {
     title: "Quick Access",
     items: [
-      { icon: Package, label: "My Orders", description: "Track and manage your purchases", href: "/checkout" },
-      { icon: Heart, label: "Wishlist", description: "Your saved items", href: "/cart" },
+      { icon: Package, label: "My Orders", description: "Track and manage your purchases", href: "/orders" },
+      { icon: Heart, label: "Wishlist", description: "Your saved items", href: "/favourites" },
       { icon: Shield, label: "Account Security", description: "Manage passwords and verification", href: "/profile/account_security" },
       { icon: Link2, label: "Sellers page", description: "Go to sellers page", href: "/sellers" },
     ],

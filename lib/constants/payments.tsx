@@ -1,9 +1,11 @@
 import React from "react";
 import { CreditCard, Landmark, LucideIcon } from "lucide-react";
 import Image from "next/image";
+import type { PaymentMethod } from "@/lib/labels";
 
+// Guide 4.3.4: each option is a PaymentMethod the API understands, never a numeric id
 export interface PaymentOption {
-  id: number;
+  id: PaymentMethod;
   title: string;
   Icon?: LucideIcon;
   subLogos?: React.ReactNode;
@@ -12,8 +14,8 @@ export interface PaymentOption {
 
 export const PAYMENT_OPTIONS: PaymentOption[] = [
   {
-    id: 1,
-    title: "Add a card",
+    id: "CARD",
+    title: "Card",
     Icon: CreditCard,
     subLogos: (
       <div className="flex gap-1 items-center ml-1">
@@ -24,20 +26,20 @@ export const PAYMENT_OPTIONS: PaymentOption[] = [
     ),
   },
   { 
-    id: 2, 
-    title: "Bank Transfer", 
+    id: "BANK_TRANSFER",
+    title: "Bank transfer",
     Icon: Landmark 
   },
   { 
-    id: 3, 
-    title: "Opay", 
+    id: "OPAY",
+    title: "OPay",
     rightLogo: (
       <Image src="/OPay.png" alt="OPay" width={52} height={20} className="object-contain h-6 w-auto" />
     ) 
   },
   { 
-    id: 4, 
-    title: "Palmpay", 
+    id: "PALMPAY",
+    title: "PalmPay",
     rightLogo: (
       <Image src="/palmpay.png" alt="PalmPay" width={52} height={20} className="object-contain h-6 w-auto" />
     ) 

@@ -5,8 +5,9 @@ type Schemas = components['schemas'];
 export type ListingCategory = Schemas['ListingCategory'];
 export type ProductCondition = Schemas['ProductCondition'];
 export type ListingStatus = Schemas['ListingStatus'];
-export type FulfillmentStatus = 'PENDING' | 'AWAITING_DROPOFF' | 'DROPPED_OFF' | 'COLLECTED' | 'CANCELLED' | 'DISPUTED';
-export type PaymentMethod = 'CARD' | 'BANK_TRANSFER' | 'OPAY' | 'PALMPAY';
+export type FulfillmentStatus = Schemas['FulfillmentStatus'];
+export type PaymentMethod = Schemas['PaymentMethod'];
+export type OrderStatus = Schemas['OrderStatus'];
 
 export const CATEGORY_LABELS: Record<ListingCategory, string> = {
   FASHION: 'Fashion',
@@ -40,6 +41,13 @@ export const FULFILLMENT_STATUS_LABELS: Record<FulfillmentStatus, string> = {
   COLLECTED: 'Collected',
   CANCELLED: 'Cancelled',
   DISPUTED: 'Disputed',
+};
+
+export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  PENDING_PAYMENT: 'Awaiting payment',
+  PAID: 'Paid',
+  CANCELLED: 'Cancelled',
+  EXPIRED: 'Not paid in time',
 };
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {

@@ -1,0 +1,17 @@
+PASS  After sign-in the guest cart is merged into the account and cleared from the phone
+PASS  Add to Cart on a product goes to the server cart
+PASS  The cart groups lines by store, each with a subtotal
+PASS  A price change is flagged, but checkout stays open
+PASS  Tapping OK accepts the new price
+PASS  More than is left blocks checkout, with a fix offered
+PASS  "Change to 1" fixes it
+PASS  Pickup stations come from the API, with hours
+PASS  Checkout shows the station and has no coupon field
+PASS  OUT_OF_STOCK at checkout names the item and links back to the cart
+PASS  Checkout reserves the stock (lamp sold out while the order waits)  (stock=0 SOLDOUT)
+PASS  Two stores make two seller orders with different CM- codes  (CM-ZVVRJA, CM-SG98LA)
+PASS  Cancelling puts the stock back on sale  (stock=1 ACTIVE)
+PASS  My Orders lists it as cancelled
+PASS  The profile menu links My Orders to /orders
+
+15/15 passed
