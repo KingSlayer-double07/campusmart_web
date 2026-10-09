@@ -436,6 +436,153 @@ export interface paths {
         patch: operations["AdminPickupStationsController_update"];
         trace?: never;
     };
+    "/api/uploads/signature": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get a signature for a direct upload to Cloudinary
+         * @description POST the file to https://api.cloudinary.com/v1_1/<cloudName>/image/upload with file, api_key, timestamp, signature and folder (and type for VERIFICATION). Valid for one hour.
+         */
+        post: operations["UploadsController_signature"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/listings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Browse listings at your institution
+         * @description Active listings only. Search matches the title or description. Sorts: newest, price_asc, price_desc, popular (views in the last 7 days; first 200 results).
+         */
+        get: operations["ListingsController_browse"];
+        put?: never;
+        /**
+         * Create a listing (sellers)
+         * @description Photos must be uploaded with a LISTING signature from POST /uploads/signature. An ACTIVE listing with no stock is saved as SOLDOUT.
+         */
+        post: operations["ListingsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/listings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One listing with photos, options and seller
+         * @description Records a view unless you're the seller. The seller also sees their own drafts here.
+         */
+        get: operations["ListingsController_findOne"];
+        put?: never;
+        post?: never;
+        /** Delete your listing (soft delete) */
+        delete: operations["ListingsController_remove"];
+        options?: never;
+        head?: never;
+        /**
+         * Edit your listing
+         * @description Partial update. images and variants, when sent, replace the whole set (options are matched by name).
+         */
+        patch: operations["ListingsController_update"];
+        trace?: never;
+    };
+    "/api/listings/{id}/related": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Up to 10 active listings in the same category */
+        get: operations["ListingsController_related"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/listings/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Publish, unpublish or archive your listing
+         * @description ACTIVE with no stock becomes SOLDOUT. A listing under review (FLAGGED) cannot change.
+         */
+        patch: operations["ListingsController_setStatus"];
+        trace?: never;
+    };
+    "/api/sellers/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your store profile */
+        get: operations["SellersController_me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edit your store profile
+         * @description storeName, bio, logoUrl (AVATAR upload) and the isOnline toggle
+         */
+        patch: operations["SellersController_update"];
+        trace?: never;
+    };
+    "/api/sellers/me/listings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Your listings, every status including drafts
+         * @description Newest first; filter with status
+         */
+        get: operations["SellersController_listings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -730,6 +877,202 @@ export interface components {
             isActive?: boolean;
             /** @description Required when isActive is false. Kept in the audit log. */
             reason?: string;
+        };
+        UploadSignatureDto: {
+            /** @example campusmart */
+            cloudName: string;
+            /** @description The public API key (not the secret) */
+            apiKey: string;
+            /** @description Unix seconds; Cloudinary rejects it after an hour */
+            timestamp: number;
+            signature: string;
+            /** @example campusmart/listings/3f8a… */
+            folder: string;
+            /**
+             * @description Sent for VERIFICATION uploads, which must not be public
+             * @enum {string}
+             */
+            type?: "authenticated";
+        };
+        /** @enum {string} */
+        UploadPurpose: "LISTING" | "AVATAR" | "VERIFICATION";
+        UploadSignatureRequestDto: {
+            purpose: components["schemas"]["UploadPurpose"];
+        };
+        /** @enum {string} */
+        ListingCategory: "FASHION" | "BEAUTY" | "FOOD" | "CREATIVE" | "TECH" | "SERVICES" | "OTHERS";
+        /** @enum {string} */
+        ProductCondition: "NEW" | "USED_LIKE_NEW" | "USED_GOOD" | "USED_FAIR";
+        /** @enum {string} */
+        ListingStatus: "DRAFT" | "ACTIVE" | "SOLDOUT" | "ARCHIVED" | "FLAGGED";
+        ListingCardSellerDto: {
+            /** Format: uuid */
+            id: string;
+            /** @description Store name, else username, else first name. Never an email. */
+            displayName: string;
+            /** @description Seller ID check approved (Phase 9) */
+            verified: boolean;
+        };
+        ListingCardDto: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            /** @description Listing price in kobo */
+            priceKobo: number;
+            /** @description Lowest price a buyer can pay, across active options */
+            minPriceKobo: number;
+            /** @description Highest price a buyer can pay, across active options */
+            maxPriceKobo: number;
+            /** @description First photo */
+            imageUrl: string | null;
+            category: components["schemas"]["ListingCategory"];
+            condition: components["schemas"]["ProductCondition"];
+            status: components["schemas"]["ListingStatus"];
+            /** @description Units left; the sum of active options when it has options */
+            stock: number;
+            ratingAvg: number;
+            ratingCount: number;
+            hasVariants: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            seller: components["schemas"]["ListingCardSellerDto"];
+        };
+        ListingPageDto: {
+            items: components["schemas"]["ListingCardDto"][];
+            nextCursor: string | null;
+        };
+        /** @enum {string} */
+        ListingSort: "newest" | "price_asc" | "price_desc" | "popular";
+        ListingSellerDto: {
+            /** Format: uuid */
+            id: string;
+            /** @description Store name, else username, else first name. Never an email. */
+            displayName: string;
+            /** @description Seller ID check approved (Phase 9) */
+            verified: boolean;
+            storeName: string | null;
+            logoUrl: string | null;
+            ratingAvg: number;
+            ratingCount: number;
+            isOnline: boolean;
+        };
+        ListingImageDto: {
+            /** Format: uuid */
+            id: string;
+            url: string;
+            publicId: string;
+            /** @description 0 is the cover photo */
+            position: number;
+        };
+        ListingVariantDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example M */
+            label: string;
+            /** @description null = the listing price */
+            priceKobo: number | null;
+            stock: number;
+            isActive: boolean;
+        };
+        ListingDto: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            /** @description Listing price in kobo */
+            priceKobo: number;
+            /** @description Lowest price a buyer can pay, across active options */
+            minPriceKobo: number;
+            /** @description Highest price a buyer can pay, across active options */
+            maxPriceKobo: number;
+            /** @description First photo */
+            imageUrl: string | null;
+            category: components["schemas"]["ListingCategory"];
+            condition: components["schemas"]["ProductCondition"];
+            status: components["schemas"]["ListingStatus"];
+            /** @description Units left; the sum of active options when it has options */
+            stock: number;
+            ratingAvg: number;
+            ratingCount: number;
+            hasVariants: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            seller: components["schemas"]["ListingSellerDto"];
+            description: string;
+            images: components["schemas"]["ListingImageDto"][];
+            /** @description Buyers see active options only; the owner sees all */
+            variants: components["schemas"]["ListingVariantDto"][];
+            /** @description True when the signed-in user is the seller */
+            isOwner: boolean;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ListingImageInputDto: {
+            /** @example https://res.cloudinary.com/campusmart/image/upload/v1/campusmart/listings/<userId>/abc.jpg */
+            url: string;
+            /** @example campusmart/listings/<userId>/abc */
+            publicId: string;
+        };
+        ListingVariantInputDto: {
+            /** @example Black / XL */
+            label: string;
+            /** @description Leave out to use the listing price */
+            priceKobo?: number;
+            stock: number;
+        };
+        CreateListingDto: {
+            /** @example UrbanFlex cargo pants */
+            title: string;
+            description: string;
+            /** @description In kobo (D3); ₦1 = 100 */
+            priceKobo: number;
+            /** @description Required without variants; ignored when variants are sent */
+            stock?: number;
+            category: components["schemas"]["ListingCategory"];
+            condition: components["schemas"]["ProductCondition"];
+            images: components["schemas"]["ListingImageInputDto"][];
+            variants?: components["schemas"]["ListingVariantInputDto"][];
+            /** @enum {string} */
+            status: "DRAFT" | "ACTIVE";
+        };
+        UpdateListingDto: {
+            /** @example UrbanFlex cargo pants */
+            title?: string;
+            description?: string;
+            /** @description In kobo (D3); ₦1 = 100 */
+            priceKobo?: number;
+            /** @description Required without variants; ignored when variants are sent */
+            stock?: number;
+            category?: components["schemas"]["ListingCategory"];
+            condition?: components["schemas"]["ProductCondition"];
+            images?: components["schemas"]["ListingImageInputDto"][];
+            variants?: components["schemas"]["ListingVariantInputDto"][];
+        };
+        ListingStatusDto: {
+            /** @enum {string} */
+            status: "DRAFT" | "ACTIVE" | "ARCHIVED";
+        };
+        SellerProfileDto: {
+            storeName: string | null;
+            bio: string | null;
+            logoUrl: string | null;
+            /** @description Shown to buyers as "Online" */
+            isOnline: boolean;
+            ratingAvg: number;
+            ratingCount: number;
+            payoutBankName: string | null;
+            /** @example 6789 */
+            payoutAccountLast4: string | null;
+            payoutAccountName: string | null;
+            /** @description A payout account is set up (Phase 5) */
+            hasPayoutAccount: boolean;
+        };
+        UpdateSellerProfileDto: {
+            /** @example TrendHUB NG */
+            storeName?: string;
+            bio?: string | null;
+            /** @description Uploaded with an AVATAR signature; null removes it */
+            logoUrl?: string | null;
+            isOnline?: boolean;
         };
     };
     responses: never;
@@ -1916,6 +2259,686 @@ export interface operations {
                 };
             };
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    UploadsController_signature: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UploadSignatureRequestDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["UploadSignatureDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description UPLOADS_NOT_CONFIGURED */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ListingsController_browse: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+                q?: string;
+                category?: components["schemas"]["ListingCategory"];
+                condition?: components["schemas"]["ProductCondition"];
+                minPriceKobo?: number;
+                maxPriceKobo?: number;
+                /** @description popular = most viewed in the last 7 days, first 200 results only */
+                sort?: components["schemas"]["ListingSort"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["ListingPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ListingsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateListingDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["ListingDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description VALIDATION_FAILED, or INVALID_IMAGE for a photo not uploaded through CampusMart */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ListingsController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["ListingDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not in your institution, not active, deleted, or (owner routes) not yours */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ListingsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not in your institution, not active, deleted, or (owner routes) not yours */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description LISTING_HAS_OPEN_ORDERS (details.openOrders) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ListingsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateListingDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["ListingDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not in your institution, not active, deleted, or (owner routes) not yours */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ListingsController_related: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["ListingCardDto"][];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not in your institution, not active, deleted, or (owner routes) not yours */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ListingsController_setStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ListingStatusDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["ListingDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not in your institution, not active, deleted, or (owner routes) not yours */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description LISTING_UNDER_REVIEW */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SellersController_me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["SellerProfileDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SellersController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSellerProfileDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["SellerProfileDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SellersController_listings: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+                status?: components["schemas"]["ListingStatus"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["ListingPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

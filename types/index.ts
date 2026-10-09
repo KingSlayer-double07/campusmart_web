@@ -13,15 +13,5 @@ export type SellerOrder = {
   placedAt: string;
 };
 
-export type ProductStatus = "In Stock" | "Out of Stock" | "Draft";
-
-export type SellerProduct = {
-  id: string;
-  name: string;
-  sku: string;
-  image: string;
-  category: string;
-  price: number;
-  quantity: number;
-  status: ProductStatus;
-};
+// Listings use the generated types in lib/api/listings.ts (Phase 3). SellerOrder becomes a generated
+// type in Phase 6.
