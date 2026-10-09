@@ -62,7 +62,7 @@ export default function ProductDetailPage() {
   }
 
   if (isError || !product || !product.isOwner) {
-    const missing = !product || !product.isOwner || (error instanceof ApiError && error.status === 404);
+    const missing = product ? !product.isOwner : error instanceof ApiError && error.status === 404;
     return shell(
       <div className="flex flex-col items-center gap-3 py-32 text-center text-sm">
         <p className="text-foreground-muted">{missing ? "Product not found." : "We couldn't load this product."}</p>

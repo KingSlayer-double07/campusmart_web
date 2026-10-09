@@ -35,7 +35,7 @@ export default function EditProductPage() {
   }
 
   if (isError || !listing || !listing.isOwner) {
-    const missing = !listing || (error instanceof ApiError && error.status === 404) || !listing.isOwner;
+    const missing = listing ? !listing.isOwner : error instanceof ApiError && error.status === 404;
     return (
       <main className="flex flex-col max-w-md w-full pb-32 bg-card">
         {header}
