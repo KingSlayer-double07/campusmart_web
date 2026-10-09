@@ -7,9 +7,12 @@ import type { SellerOrder, OrderStatus } from "@/types";
 export const ordersApi = {
   // Fetch orders received by the seller
   fetchOrders: async (): Promise<SellerOrder[]> => {
-    return fetchApi<SellerOrder[]>('/orders', {
+    const res = await fetchApi<unknown>('/orders', {
       method: 'GET',
     });
+    // GET /orders is currently the buyer's paged endpoint ({ items, nextCursor }), not a list of
+    // seller orders. Return [] until the seller endpoint exists so callers can rely on an array.
+    return Array.isArray(res) ? (res as SellerOrder[]) : [];
   },
 
   // Update the status of an order (e.g. from 'Awaiting drop-off' to 'Dropped off')
