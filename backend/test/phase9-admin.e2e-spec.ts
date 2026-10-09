@@ -26,7 +26,7 @@ const STATION = {
   openingHours: HOURS,
 };
 
-// Phase 9 slice A: institutions and pickup stations, plus Collins' inactive-institution rule
+// Phase 9 slice A: institutions and pickup stations, plus the inactive-institution rule
 describe('Phase 9 admin: institutions and pickup stations (e2e)', () => {
   let ctx: TestContext;
 

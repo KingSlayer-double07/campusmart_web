@@ -1,4 +1,9 @@
-import { isOwnUpload, isOwnUploadUrl, uploadFolder } from './cloudinary-urls';
+import {
+  isOwnUpload,
+  isOwnUploadUrl,
+  parseImageUrl,
+  uploadFolder,
+} from './cloudinary-urls';
 
 describe('Cloudinary URL checks', () => {
   const folder = uploadFolder('LISTING', 'u1');
@@ -74,5 +79,50 @@ describe('Cloudinary URL checks', () => {
         avatars,
       ),
     ).toBe(false);
+  });
+
+  describe('parseImageUrl', () => {
+    const base = 'https://res.cloudinary.com/campusmart/image';
+
+    it('reads a private upload with its signature and version', () => {
+      expect(
+        parseImageUrl(
+          `${base}/authenticated/s--Ab12Cd34--/v1700000000/campusmart/verification/u-1/card.JPG`,
+          'campusmart',
+        ),
+      ).toEqual({
+        type: 'authenticated',
+        publicId: 'campusmart/verification/u-1/card',
+        format: 'jpg',
+      });
+      expect(
+        parseImageUrl(
+          `${base}/upload/campusmart/listings/u1/a.png`,
+          'campusmart',
+        ),
+      ).toEqual({
+        type: 'upload',
+        publicId: 'campusmart/listings/u1/a',
+        format: 'png',
+      });
+    });
+
+    it('gives null for anything else', () => {
+      for (const url of [
+        'not a url',
+        'http://res.cloudinary.com/campusmart/image/upload/v1/a.jpg',
+        'https://res.cloudinary.com/other/image/upload/v1/a.jpg',
+        'https://res.cloudinary.com.evil.com/campusmart/image/upload/v1/a.jpg',
+        `${base}/private/v1/a.jpg`,
+        `${base}/upload/c_fill,w_100/v1/a.jpg`,
+        `${base}/upload/v1/a.jpg?x=1`,
+        `${base}/upload/v1/a.jpg#x`,
+        `${base}/upload/v1/../a.jpg`,
+        `${base}/upload/v1/a`,
+        'https://res.cloudinary.com/campusmart/video/upload/v1/a.mp4',
+      ]) {
+        expect(parseImageUrl(url, 'campusmart')).toBeNull();
+      }
+    });
   });
 });

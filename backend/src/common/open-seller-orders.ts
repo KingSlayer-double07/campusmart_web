@@ -5,7 +5,7 @@ import {
   OrderStatus,
 } from '../generated/prisma/enums';
 
-// A seller order that isn't finished yet (Collins, 2026-10-09): an unpaid checkout that hasn't
+// A seller order that isn't finished yet (decided 2026-10-09): an unpaid checkout that hasn't
 // expired, a paid order waiting for drop-off, at the station or disputed, and a collected order
 // whose 48-hour dispute window is still open (escrow held).
 export function openSellerOrderWhere(

@@ -34,11 +34,15 @@ export interface ProductCardActions {
   onDelete: (listing: ListingCard) => void;
 }
 
-// Which status moves make sense from here. A listing under review can't change status.
-export function statusActions(status: ListingStatus): { label: string; status: OwnerListingStatus }[] {
+// Which status moves make sense from here. A listing under review can't change status, and only
+// an admin-verified seller can publish.
+export function statusActions(
+  status: ListingStatus,
+  canPublish = true,
+): { label: string; status: OwnerListingStatus }[] {
   if (status === "FLAGGED") return [];
   const actions: { label: string; status: OwnerListingStatus }[] = [];
-  if (status === "DRAFT" || status === "ARCHIVED") actions.push({ label: "Publish", status: "ACTIVE" });
+  if (canPublish && (status === "DRAFT" || status === "ARCHIVED")) actions.push({ label: "Publish", status: "ACTIVE" });
   if (status !== "DRAFT") actions.push({ label: "Move to draft", status: "DRAFT" });
   if (status !== "ARCHIVED") actions.push({ label: "Archive", status: "ARCHIVED" });
   return actions;
@@ -46,7 +50,15 @@ export function statusActions(status: ListingStatus): { label: string; status: O
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
 
-export default function SellerProductCard({ product, actions }: { product: ListingCard; actions: ProductCardActions }) {
+export default function SellerProductCard({
+  product,
+  actions,
+  canPublish = true,
+}: {
+  product: ListingCard;
+  actions: ProductCardActions;
+  canPublish?: boolean;
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const run = (action: () => void) => (e: React.MouseEvent) => {
@@ -57,7 +69,7 @@ export default function SellerProductCard({ product, actions }: { product: Listi
   };
 
   const menu = [
-    ...statusActions(product.status).map((a) => ({ label: a.label, action: () => actions.onStatus(product, a.status) })),
+    ...statusActions(product.status, canPublish).map((a) => ({ label: a.label, action: () => actions.onStatus(product, a.status) })),
     { label: "Adjust stock", action: () => actions.onAdjustStock(product) },
   ];
 

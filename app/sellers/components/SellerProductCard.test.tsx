@@ -39,6 +39,12 @@ describe("SellerProductCard", () => {
     expect(statusActions("FLAGGED")).toEqual([]);
   });
 
+  it("hides Publish until the seller is verified", () => {
+    expect(statusActions("DRAFT", false).map((a) => a.label)).toEqual(["Archive"]);
+    expect(statusActions("ARCHIVED", false).map((a) => a.label)).toEqual(["Move to draft"]);
+    expect(statusActions("ACTIVE", false).map((a) => a.label)).toEqual(["Move to draft", "Archive"]);
+  });
+
   it("runs the menu's actions", () => {
     const actions = { onStatus: vi.fn(), onAdjustStock: vi.fn(), onDelete: vi.fn() };
     render(<SellerProductCard product={listing as never} actions={actions} />);

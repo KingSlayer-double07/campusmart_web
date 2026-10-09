@@ -1,6 +1,6 @@
 # Phase 3: listings, variants and uploads
 
-Branch: `feat/phase-3-listings` (off `backend`).
+Branches: `feat/phase-3-listings`, then `feat/phase-3-seller-verification` (both off `backend`).
 Status: **DONE pending manual checks**
 
 ## 1. Checklist
@@ -20,7 +20,18 @@ Gate items:
 - [x] Frontend `npm run lint`, `npx tsc --noEmit`, `npx vitest run`, `npm run build` pass.
 - [x] `npm run gen:api` produces no diff; `prisma migrate diff ... --exit-code` is clean.
 - [x] Every new endpoint meets the definition of done.
-- [ ] **MANUAL:** a real upload to Cloudinary, once Collins has an account (see section 5).
+- [ ] **MANUAL:** a real upload to Cloudinary, once you have an account (see section 5).
+
+Your rule (decided 2026-10-09): sellers must be verified by an admin before they can list.
+
+- [x] An unverified seller can save drafts but can't publish (403 `SELLER_NOT_VERIFIED` on create with `ACTIVE` and
+  on `PATCH /listings/:id/status` to `ACTIVE`); the add form offers Save as draft only and Publish is hidden.
+- [x] A seller sends a student ID photo as a private upload; an admin approves or rejects it (a reject needs a note
+  the seller sees); once approved, the seller can publish.
+- [x] Only admins see the queue and the photo, through a link that expires after 10 minutes. Every decision is
+  audited.
+- [ ] **MANUAL:** the same flow with a real Cloudinary account (the photo must open for the admin and not for anyone
+  else).
 
 ## 2. Changes
 
@@ -93,6 +104,47 @@ Gate items:
 - Tests (Vitest): `labels`, `uploads`, `share`, `listingFormModel`, `ListingForm`, `SellerProductCard`, `SearchBar`,
   `addCartNav`, `ProductCarousel`, `PendingStoreName`, and the edit page's loading / not-yours / retry states.
 
+### 3.3 Seller verification before publishing (decided 2026-10-09)
+Branch `feat/phase-3-seller-verification`. Brings forward the guide's seller verification (9.1 "Seller verification",
+needed from Phase 3; 9.2.5; the "Get verified" card from Phase 10).
+- **Schema**: `VerificationRequest` gains `reviewNote`, `reviewedAt`, `reviewedById` (nullable) and two indexes
+  (`20261009190000_verification_review`, additive; no rows change). `reviewedById` is a plain column like
+  `AuditLog.actorId`.
+- **Publish rule** (`src/sellers/seller-verification.ts`): `POST /listings` with `status: ACTIVE` and
+  `PATCH /listings/:id/status` to `ACTIVE` need `User.verificationStatus = VERIFIED`, else 403 `SELLER_NOT_VERIFIED`
+  ("An admin needs to verify your student ID before your products can go live. You can save drafts in the
+  meantime."). Drafts, edits, archiving, stock and delete don't need it.
+- **Seller side** (`SellerVerificationController`, SELLER + verified email):
+  - `POST /users/me/verify { documentUrl }`: only a private (`authenticated`) upload on our cloud inside
+    `campusmart/verification/<userId>/` (else 400 `INVALID_DOCUMENT`). The user's status moves to `PENDING` with a
+    conditional update, so two quick submits can't open two requests (409 `VERIFICATION_PENDING`, or
+    `ALREADY_VERIFIED`). A rejected seller can send again. The old route, which took any URL and never changed the
+    seller's status, is removed.
+  - `GET /users/me/verification` → `{ status, latestRequest: { id, status, reviewNote, createdAt, reviewedAt } }`.
+    The document URL is never returned.
+- **Admin side** (`AdminVerificationController`, `@AdminOnly()` on the class):
+  - `GET /admin/verification-requests?status=PENDING|VERIFIED|REJECTED&cursor&limit`: waiting oldest first,
+    decided latest first. Each row has the seller (name, email, store, school) and `documentViewUrl`, a signed
+    Cloudinary download link that expires after 10 minutes (`CloudinaryService.privateImageUrl`). A stored URL that
+    isn't a private upload in that seller's folder gets `null`.
+  - `POST /admin/verification-requests/:id/decide { decision: VERIFIED|REJECTED, note }`: note 3–500 characters,
+    required to reject. Only a `PENDING` request can be decided (409 `VERIFICATION_ALREADY_DECIDED`). Updates the
+    request and the user in one transaction and writes `SELLER_VERIFIED` / `SELLER_VERIFICATION_REJECTED` to the
+    audit log with the note.
+- **Frontend**:
+  - Store profile: a "Get verified" card (upload student ID with progress → "We're checking your student ID" →
+    approved: card gone, badge shown; rejected: the admin's note and "Send a new photo"). `useMyVerification`,
+    `useSubmitVerification`, `useCanPublish`.
+  - Add product offers Save as draft only until verified; the products list and product page hide Publish and show a
+    short notice linking to the card.
+  - `/admin/verifications` (nav: Verifications): Waiting / Approved / Rejected tabs, a review dialog with the ID
+    photo beside the account details, Approve, or Reject with a note; "Reload photo" when the 10-minute link has
+    expired. The overview shows how many sellers are waiting. The pill tabs moved out of `FilterBar` into `Tabs`.
+- Tests: unit `seller-verification.service.spec.ts`, `admin-verification.service.spec.ts`,
+  `cloudinary.service.spec.ts`, `cloudinary-urls.spec.ts` (`parseImageUrl`), `listings.service.spec.ts` (publish
+  rule), `admin-dto.spec.ts`; e2e `test/phase3-seller-verification.e2e-spec.ts` (5); listing e2e sellers are created
+  verified. Vitest `VerificationCard`, `ReviewDialog`, `ListingForm` (drafts only), `SellerProductCard` (no Publish).
+
 ## 3. Verification evidence
 
 Local Postgres 16; e2e on `campusmart_test`; browser walk on `campusmart_dev`.
@@ -107,11 +159,13 @@ Local Postgres 16; e2e on `campusmart_test`; browser walk on `campusmart_dev`.
 | Definition of done | Unknown fields → 400 (e2e "only verified sellers can create, and unknown fields are rejected"; a client-sent `institutionId` is refused). Validation: e2e "validates price, photos and option names". Auth in the service (owner `findFirst` → 404; FLAGGED → 409; open orders → 409); role and verified-email guards (e2e: unverified seller 403, buyer 403 on create and on `/sellers/me`). Response DTOs in `lib/api/schema.d.ts`; `hasPayoutAccount` instead of the recipient code. Shared codes: `VALIDATION_FAILED`, `NOT_FOUND`, `FORBIDDEN`, `INVALID_IMAGE`, `UPLOADS_NOT_CONFIGURED`, `LISTING_UNDER_REVIEW`, `LISTING_HAS_OPEN_ORDERS`, `NO_INSTITUTION`. Unit tests for every service rule (`listings.service.spec.ts`, `sellers.service.spec.ts`, `uploads.service.spec.ts`, `listing-rules.spec.ts`); e2e happy and forbidden paths for all 11 endpoints (17 tests). Frontend loading, empty and error states on every new screen (Vitest `ProductCarousel`, `ListingForm`, edit page). |
 | Other rules | e2e: "replacing photos deletes the old ones from Cloudinary, keeping any an order shows" (`destroy` spy); "publish, unpublish and archive; drafts only show to their seller"; "delete is refused while an order is open, then soft-deletes"; "pages newest first with a cursor"; "sorts by price across pages, and filters by category and price"; "searches title and description, treating % literally"; "popular orders by the last 7 days' views"; "records a buyer's view but not the seller's, and lists related items"; "an account with no institution sees nothing"; "a seller reads and edits their store; buyers get 403"; "signs uploads into your own folder; verification uploads are private" (signature checked with Cloudinary's own `api_sign_request`). |
 | Seller flows in a browser | `listings-walk-output.txt` **16/16 PASS**: delete with a confirm step, add with options, Adjust stock per option, edit opens with saved photos and options and saves without re-uploading, store name and online switch, search puts `q` in the URL, the product page shows the store and Online, Add to Cart waits for an option and uses the option's price, the cart shows "Option: L" and ₦15,000. Screenshots: `phone-seller-products.png`, `phone-product-menu.png`, `phone-adjust-stock.png`, `phone-delete-confirm.png`, `phone-edit-product.png`, `phone-seller-product.png`, `phone-seller-profile.png`, `phone-search.png`, `phone-product.png`, `phone-cart.png`. The browser's POST to `api.cloudinary.com` and Next's image proxy are answered locally (no Cloudinary account yet; images in the shots are the app's own sample photos). The dev overlay's "2 Issues" badge in some shots is the Vercel Analytics script being blocked by this sandbox's network, not an app error. |
-| Backend gate | `npx tsc --noEmit` exit 0; `npm run lint -- --max-warnings 0` exit 0; `npm run build` exit 0; `npm test` → 25 suites, 186 tests passed; `npm run test:e2e` (DATABASE_URL → `campusmart_test`) → 6 suites, 84 tests passed. |
-| Frontend gate | `npm run lint` exit 0 (0 errors, 1 pre-existing warning in `app/profile/page.tsx`); `npx tsc --noEmit` exit 0; `npx vitest run` → 30 files, 138 tests passed; `API_ORIGIN=http://localhost:4000 npm run build` exit 0 (`/categories`, `/productItem/[id]`, `/sellers/products`, `/sellers/products/[id]`, `/sellers/products/[id]/edit` built). |
-| `gen:api` / migrate diff | CI path (`npm run openapi:export` + `openapi-typescript`) and `openapi-typescript http://localhost:4000/api/docs-json` both match the committed `lib/api/schema.d.ts` (`diff -q`). `prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code` → exit 0 (no schema change in this phase). |
+| Seller verification: API | e2e `test/phase3-seller-verification.e2e-spec.ts`: "an unverified seller can save drafts but not publish"; "a seller sends their student ID once; buyers cannot" (5 kinds of wrong URL → `INVALID_DOCUMENT`, a second send → `VERIFICATION_PENDING`, buyers 403); "an admin rejects with a reason the seller sees, then approves a new photo; the seller can publish" (signed `image/download` link with `type=authenticated` and `expires_at` ≤ 10 minutes, no stored URL in responses, note required, deciding twice → 409, `/auth/me` shows `VERIFIED`, publish → `ACTIVE` with `seller.verified`, audit rows with the admin's id and note, `reviewedById` set); "only admins reach the queue, and an unknown request is 404"; "a stored URL that is not a private CampusMart upload is never linked". The Phase 9 access loop (`test/phase9-admin.e2e-spec.ts`) picks up both new admin routes from the OpenAPI document and checks 401 / 403. |
+| Seller verification: browser | `evidence/phase3-seller-verification/verification-walk.mjs` → `verification-walk-output.txt`: **17/17 PASS** (a fresh seller, the seed admin on a laptop and on a phone): "Get verified" card; Add product with Save as draft only; no Publish in the draft's menu; the ID photo goes up as a private upload into the seller's verification folder; the overview counts 1 waiting; review dialog with the photo from a signed link expiring within 10 minutes; reject needs a note; the Rejected tab shows it; the seller sees the note and sends a new photo; the queue and dialog fit a phone; approve; the notice disappears and the draft publishes ("In stock"); the profile shows the badge. Screenshots: `phone-get-verified.png`, `phone-add-product-draft-only.png`, `phone-products-unverified.png`, `phone-verification-pending.png`, `desktop-overview-verification.png`, `desktop-verifications-queue.png`, `desktop-review-dialog.png`, `desktop-reject-note.png`, `desktop-rejected-tab.png`, `phone-verification-rejected.png`, `phone-admin-review.png`, `phone-admin-approved.png`, `phone-published-after-approval.png`, `phone-seller-verified.png`. The ID card is a generated sample (`sample-id-card.jpg`); Cloudinary's upload and download are answered locally. |
+| Backend gate | Before seller verification: 25 suites / 186 unit tests, 6 suites / 84 e2e. After: `npx tsc --noEmit` exit 0; `npm run lint -- --max-warnings 0` exit 0; `npm run build` exit 0; `npm test` → 28 suites, 206 tests passed; `npm run test:e2e` (DATABASE_URL → `campusmart_test`) → 7 suites, 89 tests passed. |
+| Frontend gate | Before seller verification: 30 files / 138 tests. After: `npm run lint` exit 0 (0 errors, 1 pre-existing warning in `app/profile/page.tsx`); `npx tsc --noEmit` exit 0; `npx vitest run` → 32 files, 153 tests passed; `API_ORIGIN=http://localhost:4000 npm run build` exit 0 (adds `/admin/verifications`). |
+| `gen:api` / migrate diff | CI path (`npm run openapi:export` + `openapi-typescript`) and `openapi-typescript http://localhost:4000/api/docs-json` both match the committed `lib/api/schema.d.ts` (`diff -q`). `prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code` → exit 0 after `20261009190000_verification_review`. |
 
-### MANUAL: try the seller and buyer flows (for Collins)
+### MANUAL: try the seller and buyer flows (for you)
 
 Needs Cloudinary credentials in `backend/.env` (`CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`,
 `CLOUDINARY_API_SECRET`) and `res.cloudinary.com` allowed in `next.config` images (already there).
@@ -123,12 +177,17 @@ Needs Cloudinary credentials in `backend/.env` (`CLOUDINARY_CLOUD_NAME`, `CLOUDI
 4. Edit the product, replace one photo, save. The replaced photo should disappear from Cloudinary within a minute.
 5. Sign in as a buyer at the same school in another browser: find the product by search, pick a size, add it to the
    cart. A buyer at another school shouldn't find it.
-6. Tell me anything that felt unclear.
+6. Seller verification: as a new seller, upload a photo of a student ID from the store profile. As the seed admin,
+   open Verifications, check the photo opens, and approve. Copy the photo link and open it again after 10 minutes:
+   it should no longer work. The same image address without its `s--…--/` signature part should be refused too
+   (private images need a signature).
+7. Tell me anything that felt unclear.
 
 ## 4. Deviations and assumptions
 
-1. **"Verified" means a verified email.** Every listings route needs `@RequireVerifiedEmail()`; creating also needs
-   the SELLER role. Seller identity verification (the "Verified seller" badge) isn't required to list. See section 5.
+1. **Two kinds of "verified".** Every listings route needs a verified email (`@RequireVerifiedEmail()`); creating
+   also needs the SELLER role. Publishing also needs an admin-verified seller (your rule, 2026-10-09; see 3.3).
+   You chose to let unverified sellers prepare drafts.
 2. **Price sort and price filters use the listing's main price** (`priceKobo`). An option with a lower override price
    doesn't move the listing; cards still show "From ₦X" using the lowest option price. Revisit if sellers often price
    options below the main price.
@@ -156,16 +215,32 @@ Needs Cloudinary credentials in `backend/.env` (`CLOUDINARY_CLOUD_NAME`, `CLOUDI
 12. **Seller dashboard numbers** stay mock in `useSellerStore` until Phase 7; only the online toggle is real.
 13. **Mock catalogue deleted** (`categories`, `products`, `featuredProducts`, `featuredStores` in
     `app/components/data.ts`): the guide's clean-up item, done now that nothing imports them.
-14. **Local dev data**: the walk left seller `amaka.store@students.unilag.edu.ng` (store "Amaka Styles", online),
-    buyers `tobi.buyer@students.unilag.edu.ng` and `kemi.buyer@ui.edu.ng`, the institution University of Ibadan
-    (`ui.edu.ng`, added through the admin API), and the listing "UrbanFlex cargo pants" with placeholder image URLs
-    in `campusmart_dev`. Local only; a reset plus seed clears them.
+14. **Local dev data**: the walks left sellers `amaka.store@students.unilag.edu.ng` (store "Amaka Styles", online)
+    and `chidi.store@students.unilag.edu.ng` (Chidi Okeke, "Chidi Gadgets"), both now verified through the admin
+    flow; buyers `tobi.buyer@students.unilag.edu.ng` and `kemi.buyer@ui.edu.ng`; the institution University of
+    Ibadan (`ui.edu.ng`, added through the admin API); listings "UrbanFlex cargo pants" and two "Desk lamp"s with
+    placeholder image URLs; and the verification requests and audit rows from the walks, all in `campusmart_dev`.
+    Local only; a reset plus seed clears them. (The "UrbanFlex cargo pants" listing went live before the rule
+    existed; production has no listings yet.)
+15. **Seller verification details** (smallest choices, 2026-10-09):
+    - Approval is final in this slice; there's no "revoke". If revoking is added, that seller's live listings should
+      be hidden at the same time.
+    - A seller's earlier ID photos stay in Cloudinary (private) after a rejection, for the record; nothing deletes
+      them yet.
+    - The seller isn't emailed or notified about the decision (MAIL_* isn't set up and notifications are Phase 10);
+      they see it on their store profile.
+    - The admin sees the seller's email, to match the card to the account. Only admins get it.
+    - Cloudinary returns a private upload's address with a signature that doesn't expire. It's stored in
+      `VerificationRequest.documentUrl` and never sent back by the API; admins only ever get the 10-minute link.
+    - Buyers aren't affected: a buyer can't send a verification request (403).
 
-## 5. Needs from Collins
+## 5. Needs from you
 
 - **Cloudinary account** (blocks real uploads): `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`,
   `CLOUDINARY_API_SECRET` for local `.env` and, later, the host's secrets. Production won't boot without them. Until
   then `POST /uploads/signature` answers 503 and the form says photo uploads aren't set up yet. Then run the MANUAL
   check above.
-- **Can sellers list before identity verification?** Built as yes (verified email is enough); the badge shows only
-  for verified sellers. Say if listing should wait for verification.
+- ~~**Can sellers list before identity verification?**~~ **Decided 2026-10-09:** no. An admin verifies them first;
+  until then they can save drafts. Built in 3.3.
+- **Cloudinary "authenticated" delivery**: when the account is set up, check in the Cloudinary console that
+  authenticated images aren't publicly reachable (the default). The MANUAL step above covers it.

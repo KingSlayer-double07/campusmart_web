@@ -3,7 +3,6 @@ import {
   Get,
   UseGuards,
   Patch,
-  Post,
   Param,
   Body,
   ParseUUIDPipe,
@@ -26,10 +25,8 @@ import { ApiOkEnvelope } from '../common/swagger/api-envelope.decorator';
 import { ErrorResponseDto } from '../common/swagger/error-response.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { PublicProfileDto } from './dto/public-profile.dto';
-import { SubmitVerificationDto } from './dto/submit-verification.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { toUserDto, UserDto } from './dto/user.dto';
-import { VerificationRequestDto } from './dto/verification-request.dto';
 import { UsersService } from './users.service';
 
 @ApiTags('Users')
@@ -75,16 +72,6 @@ export class UsersController {
     @Body() dto: ChangePasswordDto,
   ): Promise<void> {
     await this.usersService.changePassword(user.id, user.sessionId, dto);
-  }
-
-  @ApiOperation({ summary: 'Submit a seller verification document' })
-  @ApiOkEnvelope(VerificationRequestDto, { status: 201 })
-  @Post('me/verify')
-  async submitVerification(
-    @CurrentUser() user: AuthUser,
-    @Body() dto: SubmitVerificationDto,
-  ): Promise<VerificationRequestDto> {
-    return this.usersService.submitVerification(user.id, dto);
   }
 
   @ApiOperation({

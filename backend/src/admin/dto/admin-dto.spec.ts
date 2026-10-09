@@ -6,6 +6,10 @@ import {
   CreatePickupStationDto,
   UpdatePickupStationDto,
 } from './pickup-station.dto';
+import {
+  DecideVerificationDto,
+  ListVerificationRequestsQueryDto,
+} from './verification-request.dto';
 
 async function errorsOf<T extends object>(
   cls: new () => T,
@@ -130,5 +134,40 @@ describe('openingHoursProblem', () => {
         { day: 'SAT', open: '10:00', close: '14:00' },
       ]),
     ).toBeNull();
+  });
+
+  it('needs a note to reject a seller, not to approve one', async () => {
+    expect(
+      await errorsOf(DecideVerificationDto, { decision: 'REJECTED' }),
+    ).toContain('Tell the seller why');
+    expect(
+      await errorsOf(DecideVerificationDto, {
+        decision: 'REJECTED',
+        note: '  ok ',
+      }),
+    ).toContain('The note must be 3 to 500 characters');
+    expect(
+      await errorsOf(DecideVerificationDto, {
+        decision: 'REJECTED',
+        note: 'Blurry photo',
+      }),
+    ).toEqual([]);
+    expect(
+      await errorsOf(DecideVerificationDto, { decision: 'VERIFIED' }),
+    ).toEqual([]);
+    expect(
+      await errorsOf(DecideVerificationDto, { decision: 'PENDING' }),
+    ).toContain('Choose VERIFIED or REJECTED');
+  });
+
+  it('lists the pending queue unless told otherwise', async () => {
+    expect(plainToInstance(ListVerificationRequestsQueryDto, {}).status).toBe(
+      'PENDING',
+    );
+    expect(
+      await errorsOf(ListVerificationRequestsQueryDto, {
+        status: 'UNVERIFIED',
+      }),
+    ).not.toEqual([]);
   });
 });

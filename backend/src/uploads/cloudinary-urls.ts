@@ -40,3 +40,38 @@ export function isOwnUploadUrl(
   const path = new URL(url).pathname;
   return path.includes(`/${folder}/`) && !path.includes('..');
 }
+
+export interface CloudinaryImageRef {
+  type: 'upload' | 'authenticated';
+  publicId: string;
+  format: string;
+}
+
+const escapeRegex = (text: string) =>
+  text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Reads an image URL from an upload response on our account:
+// https://res.cloudinary.com/<cloud>/image/<upload|authenticated>/[s--<sig>--/][v<n>/]<publicId>.<format>
+// Anything else (another account, transformations, a query string, "..") gives null.
+export function parseImageUrl(
+  url: string,
+  cloudName: string,
+): CloudinaryImageRef | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  if (parsed.search || parsed.hash || url.includes('..')) return null;
+  const match = new RegExp(
+    `^https://res\\.cloudinary\\.com/${escapeRegex(cloudName)}/image/(upload|authenticated)/` +
+      '(?:s--[A-Za-z0-9_-]{8,}--/)?(?:v\\d+/)?([A-Za-z0-9_/-]+)\\.([A-Za-z0-9]{2,5})$',
+  ).exec(url);
+  if (!match) return null;
+  return {
+    type: match[1] as CloudinaryImageRef['type'],
+    publicId: match[2],
+    format: match[3].toLowerCase(),
+  };
+}

@@ -12,14 +12,14 @@ import { PrismaClient } from '../src/generated/prisma/client';
 import { UserRole } from '../src/generated/prisma/enums';
 import { emailDomain, pickInstitution } from '../src/institutions/email-domain';
 
-// TODO(Collins): replace with your school's real name and email domains before seeding a
+// TODO: replace with your school's real name and email domains before seeding a
 // shared database. Sign-up only accepts emails on these domains (or their sub-domains).
 export const SEED_INSTITUTION = {
   name: 'University of Lagos',
   domains: ['unilag.edu.ng'],
 };
 
-// TODO(Collins): replace with the real stations, contacts and hours.
+// TODO: replace with the real stations, contacts and hours.
 const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
 export const SEED_STATIONS = [
   {

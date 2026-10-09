@@ -378,13 +378,19 @@ model Wishlist {
 }
 
 model VerificationRequest {
-  id          String             @id @default(uuid())
-  status      VerificationStatus @default(PENDING)
-  documentUrl String
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  userId      String
-  user        User               @relation(fields: [userId], references: [id])
+  id           String             @id @default(uuid())
+  status       VerificationStatus @default(PENDING)
+  documentUrl  String // authenticated Cloudinary upload under campusmart/verification/<userId>/
+  reviewNote   String? // the admin's reason, shown to the seller (required when REJECTED)
+  reviewedAt   DateTime?
+  reviewedById String? // the admin; like AuditLog.actorId, no relation
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  userId       String
+  user         User               @relation(fields: [userId], references: [id])
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
 }
 
 model ModerationAction {

@@ -14,6 +14,10 @@ export type UpdatePickupStationBody = Schemas['UpdatePickupStationDto'];
 export type OpeningHours = Schemas['OpeningHoursDto'];
 export type Weekday = Schemas['Weekday'];
 export type ActiveFilter = Schemas['ActiveFilter'];
+export type AdminVerificationRequest = Schemas['AdminVerificationRequestDto'];
+export type AdminVerificationPage = Schemas['AdminVerificationPageDto'];
+export type ReviewQueue = Schemas['ReviewQueue'];
+export type DecideVerificationBody = Schemas['DecideVerificationDto'];
 
 export interface AdminListFilters {
   q?: string;
@@ -54,4 +58,9 @@ export const adminApi = {
     fetchApi<AdminPickupStation>('/admin/pickup-stations', json('POST', body)),
   updateStation: (id: string, body: UpdatePickupStationBody) =>
     fetchApi<AdminPickupStation>(`/admin/pickup-stations/${id}`, json('PATCH', body)),
+
+  verificationRequests: (filters: { status?: ReviewQueue; cursor?: string; limit?: number } = {}) =>
+    fetchApi<AdminVerificationPage>('/admin/verification-requests', { params: toParams(filters) }),
+  decideVerification: (id: string, body: DecideVerificationBody) =>
+    fetchApi<AdminVerificationRequest>(`/admin/verification-requests/${id}/decide`, json('POST', body)),
 };

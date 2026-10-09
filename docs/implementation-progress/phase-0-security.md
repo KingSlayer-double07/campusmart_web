@@ -81,7 +81,7 @@ below says what was already there and what this phase changed.
   `trust proxy` were already present.
 - New `backend/src/app.setup.ts` (`configureApp`) holds helmet, trust proxy, cookie parser, `/api` prefix,
   validation pipe, filter, interceptor and CORS; `main.ts` and the e2e tests both call it.
-- Later change (2026-10-09, Collins): the limits are keyed per email/account instead of per IP, via
+- Later change (decided 2026-10-09): the limits are keyed per email/account instead of per IP, via
   `AccountThrottlerGuard`. See phase-1-integration.md, "Rate limits per account". The checklist item below still
   holds: the 6th login for the same email within a minute is a 429.
 
@@ -146,7 +146,7 @@ Local Postgres 16; `DATABASE_URL=DIRECT_URL=postgresql://postgres:postgres@local
 | e2e | `Test Suites: 2 passed; Tests: 12 passed`. The guard was checked too: running against `campusmart_dev` throws "Refusing to run e2e tests against database campusmart_dev". |
 | Frontend | `npm run lint` → 0 errors, 2 pre-existing warnings (unused eslint-disable in `app/profile/page.tsx`, `app/sellers/profile/page.tsx`); `npx tsc --noEmit` exit 0; `npx vitest run` → 3 passed; `API_ORIGIN=http://localhost:4000 npm run build` succeeded. |
 | migrate diff | `SHADOW_DATABASE_URL=… npx prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code` → "No difference detected", exit 0. |
-| CI exists | `.github/workflows/ci.yml` (commit `ec48eb9`). It has not run on GitHub yet: pushing is blocked (see Phase 1, Needs from Collins). Every CI step was run locally with the CI env values. |
+| CI exists | `.github/workflows/ci.yml` (commit `ec48eb9`). It has not run on GitHub yet: pushing is blocked (see Phase 1, Needs from you). Every CI step was run locally with the CI env values. |
 
 ## 4. Deviations and assumptions
 
@@ -175,11 +175,11 @@ Local Postgres 16; `DATABASE_URL=DIRECT_URL=postgresql://postgres:postgres@local
 9. **`summary_diff.patch`** (a 116 KB UTF-16 diff committed on `develop`) looks accidental. I left it alone and
    scanned it: no credentials.
 
-## 5. Needs from Collins
+## 5. Needs from you
 
 - ~~**GitHub push access**~~: resolved 2026-10-09, see Phase 1.
 - **Protect `master` and `develop`** so both CI jobs must pass (GitHub branch protection, guide Testing section).
 - **Trust proxy hops in production.** `trust proxy` is `1` as the guide says. If production traffic passes through
   Vercel and then a load balancer in front of the API, `req.ip` will be the Vercel egress IP. Rate limits and the
   Active Sessions IP would then be per-proxy, not per-user. Confirm the hop count once the API host is chosen.
-- ~~**Should `summary_diff.patch` be deleted from `develop`?**~~ Dropped by Collins (2026-10-09): leave it.
+- ~~**Should `summary_diff.patch` be deleted from `develop`?**~~ Dropped (2026-10-09): leave it.

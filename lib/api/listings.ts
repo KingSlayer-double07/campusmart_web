@@ -15,6 +15,8 @@ export type SellerProfile = Schemas['SellerProfileDto'];
 export type UpdateSellerProfileBody = Schemas['UpdateSellerProfileDto'];
 export type UploadPurpose = Schemas['UploadPurpose'];
 export type UploadSignature = Schemas['UploadSignatureDto'];
+export type MyVerification = Schemas['MyVerificationDto'];
+export type VerificationStatus = Schemas['VerificationStatus'];
 export type OwnerListingStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
 
 export interface ListingFilters {
@@ -57,6 +59,9 @@ export const listingsApi = {
 export const sellersApi = {
   me: () => fetchApi<SellerProfile>('/sellers/me'),
   update: (body: UpdateSellerProfileBody) => fetchApi<SellerProfile>('/sellers/me', json('PATCH', body)),
+  verification: () => fetchApi<MyVerification>('/users/me/verification'),
+  submitVerification: (documentUrl: string) =>
+    fetchApi<MyVerification>('/users/me/verify', json('POST', { documentUrl })),
 };
 
 export const uploadsApi = {

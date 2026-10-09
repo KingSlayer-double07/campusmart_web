@@ -27,7 +27,9 @@ import { ApiError } from "@/lib/api/client";
 import type { SellerProfile } from "@/lib/api/listings";
 import { useLogout } from "@/lib/api/hooks/useLogout";
 import { useSellerProfile, useUpdateSellerProfile } from "@/lib/api/hooks/useSellerProfile";
+import { useCanPublish } from "@/lib/api/hooks/useSellerVerification";
 import { uploadImages } from "@/lib/uploads";
+import VerificationCard from "../components/VerificationCard";
 
 const inputClass =
   "w-full bg-surface-muted border border-border-default rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-foreground-muted focus:outline-none focus:ring-2 focus:ring-seller-main/30 focus:border-seller-main transition";
@@ -207,6 +209,7 @@ export default function ProfilePage() {
   const { data: profile, isPending, isError, refetch } = useSellerProfile();
   const update = useUpdateSellerProfile();
   const [editing, setEditing] = useState(false);
+  const verified = useCanPublish();
 
   const handleLogout = async () => {
     await logout();
@@ -257,7 +260,7 @@ export default function ProfilePage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <h2 className="text-lg font-semibold text-foreground truncate">{profile.storeName ?? "Name your store"}</h2>
-                  {authUser?.verificationStatus === "VERIFIED" && (
+                  {verified && (
                     <BadgeCheck size={18} className="text-seller-main shrink-0" aria-label="Verified seller" />
                   )}
                 </div>
@@ -302,6 +305,9 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+
+        {/* Get verified (hidden once an admin has approved the seller) */}
+        <VerificationCard />
 
         {/* Quick Access Menu */}
         <div className="flex flex-col gap-3">

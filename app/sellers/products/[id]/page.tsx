@@ -9,6 +9,8 @@ import Modal from "@/app/components/Modal";
 import PageHeader from "@/app/components/PageHeader";
 import { StatusBadge, skuOf, statusActions } from "@/app/sellers/components/SellerProductCard";
 import { useListingActions } from "@/app/sellers/components/useListingActions";
+import VerificationNotice from "@/app/sellers/components/VerificationNotice";
+import { useCanPublish } from "@/lib/api/hooks/useSellerVerification";
 import { ApiError } from "@/lib/api/client";
 import { useListing } from "@/lib/api/hooks/useListings";
 import { CATEGORY_LABELS, CONDITION_LABELS, formatNaira, formatPriceRange } from "@/lib/labels";
@@ -29,6 +31,7 @@ export default function ProductDetailPage() {
   const router = useRouter();
   const { data: product, isPending, isError, error, refetch } = useListing(id);
   const { actions, dialogs } = useListingActions(() => router.push("/sellers/products"));
+  const canPublish = useCanPublish();
   const [expanded, setExpanded] = useState(false);
   const [photo, setPhoto] = useState(0);
   const [manageOpen, setManageOpen] = useState(false);
@@ -202,7 +205,8 @@ export default function ProductDetailPage() {
               CampusMart is reviewing this listing, so it can&apos;t be published or moved yet.
             </p>
           )}
-          {statusActions(product.status).map((a) => (
+          {!canPublish && (product.status === "DRAFT" || product.status === "ARCHIVED") && <VerificationNotice />}
+          {statusActions(product.status, canPublish).map((a) => (
             <button
               key={a.label}
               type="button"
