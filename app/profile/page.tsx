@@ -5,7 +5,7 @@ import { LogOut, Edit2 } from "lucide-react";
 import Nav from "../components/nav";
 import PageHeader from "../components/PageHeader";
 import ActionListItem from "../components/ActionListItem";
-import { useCartStore } from "../store/useCartStore";
+import { useCart } from "@/lib/api/hooks/useCart";
 import { useAuthStore } from "../store/useAuthStore";
 import { useLogout } from "@/lib/api/hooks/useLogout";
 import { useRouter } from "next/navigation";
@@ -13,7 +13,7 @@ import { profileMenuGroups } from "../lib/data";
 
 export default function ProfilePage() {
   const [mounted, setMounted] = useState(false);
-  const { cart } = useCartStore();
+  const cart = useCart();
   const logout = useLogout();
   const authUser = useAuthStore((s) => s.user);
   const router = useRouter();
@@ -82,9 +82,9 @@ export default function ProfilePage() {
                 </p>
                 <div className="flex flex-col gap-2">
                   {group.items.map((item) => {
-                    const badge = item.href === "/cart" && cart.length > 0 ? (
+                    const badge = item.href === "/cart" && cart.lineCount > 0 ? (
                       <span className="bg-main text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
-                        {cart.length}
+                        {cart.lineCount}
                       </span>
                     ) : undefined;
                     

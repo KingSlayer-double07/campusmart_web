@@ -1,270 +1,278 @@
 "use client";
 
-import {
-  ChevronRight,
-  CircleMinus,
-  CirclePlus,
-  CreditCard,
-  Info,
-  Landmark,
-  Store,
-  Trash2,
-} from "lucide-react";
-import { useCartStore, selectTotalPrice } from "../store/useCartStore";
-import { usePickupStore } from "../store/usePickupStore";
-import Image from "next/image";
-import { formatNaira } from "@/lib/labels";
-import Link from "next/link";
-import PageHeader from "../components/PageHeader";
-import Modal from "../components/Modal";
 import { useEffect, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ChevronRight, ImageOff, Info, Store } from "lucide-react";
+import InfoBanner from "../components/InfoBanner";
+import Modal from "../components/Modal";
+import PageHeader from "../components/PageHeader";
+import { usePickupStore } from "../store/usePickupStore";
+import { ApiError } from "@/lib/api/client";
+import { useCheckout, usePickupStations } from "@/lib/api/hooks/useBuyerOrders";
+import { blockingIssues, useCart } from "@/lib/api/hooks/useCart";
 import { PAYMENT_OPTIONS } from "@/lib/constants/payments";
+import { formatNaira, type PaymentMethod } from "@/lib/labels";
 
-// ─── Divider ──────────────────────────────────────────────────────────────────
 function Divider() {
   return <div className="w-full h-0.5 rounded-full bg-neutral-200" />;
 }
 
-export default function Checkout() {
+interface Problem {
+  title: string;
+  text: string;
+  action?: { label: string; href: string };
+}
+
+// What to tell the buyer when checkout is refused (guide 4.3.4)
+function problemFrom(err: unknown): Problem {
+  if (err instanceof ApiError) {
+    if (err.code === "OUT_OF_STOCK" || err.code === "ITEM_UNAVAILABLE") {
+      return { title: "Your cart changed", text: err.message, action: { label: "Review cart", href: "/cart" } };
+    }
+    if (err.code === "CART_EMPTY") return { title: "Your cart is empty", text: err.message, action: { label: "Browse products", href: "/categories" } };
+    if (err.status === 404) return { title: "Choose another station", text: err.message, action: { label: "Pickup stations", href: "/pickup-station" } };
+    if (err.status === 403) return { title: "You can't check out right now", text: err.message };
+    if (err.status === 0) return { title: "You're offline", text: "Check your connection and try again. You won't be charged twice." };
+    return { title: "Checkout didn't go through", text: err.message };
+  }
+  return { title: "Checkout didn't go through", text: "Please try again." };
+}
+
+export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, increaseQty, decreaseQty, checkout } = useCartStore();
-  const totalPrice = useCartStore(selectTotalPrice);
-  const { selectedStation } = usePickupStore();
+  const cart = useCart();
+  const stations = usePickupStations();
+  const checkout = useCheckout();
+  const { selectedStationId } = usePickupStore();
   const [mounted, setMounted] = useState(false);
-  const [payMethod, setPayMethod] = useState<number>();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [payMethod, setPayMethod] = useState<PaymentMethod | null>(null);
+  const [problem, setProblem] = useState<Problem | null>(null);
+  // Made once per visit: retrying a request that may have reached the server returns the same order
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
 
-  const totalQty = cart.reduce((s, i) => s + i.quantity, 0);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
 
-  const handleCheckout = async () => {
-    if (!payMethod) {
-      setError("Please select a payment method");
+  const station = stations.data?.find((s) => s.id === selectedStationId) ?? null;
+  const lines = cart.groups.flatMap((g) => g.lines);
+  const blocking = blockingIssues(cart);
+  const busy = checkout.isPending || checkout.isSuccess;
+
+  const proceed = async () => {
+    if (!station) {
+      setProblem({ title: "Choose a pickup station", text: "Pick where you'll collect your order.", action: { label: "Pickup stations", href: "/pickup-station" } });
       return;
     }
-    
-    setIsProcessing(true);
+    if (!payMethod) {
+      setProblem({ title: "Choose how you'll pay", text: "Pick one of the payment choices." });
+      return;
+    }
     try {
-      await checkout(payMethod, selectedStation?.id?.toString());
-      router.push("/order-confirmation");
-    } catch (error) {
-      console.error(error);
-      setError("Checkout failed. Please try again.");
-    } finally {
-      setIsProcessing(false);
+      const result = await checkout.mutateAsync({ pickupStationId: station.id, paymentMethod: payMethod, idempotencyKey });
+      if (result.authorizationUrl) {
+        window.location.href = result.authorizationUrl;
+      } else {
+        // No payment page while online payment is switched off (Phase 5 turns it on)
+        router.replace(`/order-confirmation?orderId=${result.orderId}&payment=unavailable`);
+      }
+    } catch (err) {
+      if (err instanceof ApiError && (err.code === "OUT_OF_STOCK" || err.code === "ITEM_UNAVAILABLE" || err.code === "CART_EMPTY")) {
+        cart.refetch();
+      }
+      setProblem(problemFrom(err));
     }
   };
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
 
   return (
     <>
       <main className="pb-0 pt-8">
-        {/* Page header */}
         <div className="flex flex-col gap-2 pb-4">
           <div className="px-4 sm:px-6">
-            <PageHeader title="Order confirmation" />
+            <PageHeader title="Checkout" />
           </div>
           <Divider />
         </div>
 
-        <div className="flex flex-col gap-6">
-
-          {/* LEFT — Form content */}
-          <div className="flex flex-col gap-6">
-
-            {/* Items thumbnail row */}
+        {checkout.isSuccess ? (
+          <div className="flex flex-col items-center gap-2 px-6 py-12 text-center" aria-busy="true">
+            <p className="font-medium text-foreground">Order placed. Taking you to payment…</p>
+          </div>
+        ) : cart.isLoading ? (
+          <div className="flex flex-col gap-3 px-4 sm:px-6 animate-pulse" aria-busy="true" aria-label="Loading your order">
+            <div className="h-24 rounded bg-surface-muted" />
+            <div className="h-16 rounded bg-surface-muted" />
+          </div>
+        ) : cart.isError ? (
+          <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
+            <p className="font-medium text-foreground">We couldn&apos;t load your cart</p>
+            <button type="button" onClick={cart.refetch} className="text-sm font-semibold text-main">
+              Try again
+            </button>
+          </div>
+        ) : lines.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
+            <p className="font-medium text-foreground">Your cart is empty</p>
+            <Link href="/categories" className="text-sm font-semibold text-main">
+              Browse products
+            </Link>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-6 pb-44">
+            {/* Items */}
             <div className="flex flex-col gap-2">
               <div className="flex justify-between items-center px-4 sm:px-6">
-                <p className="font-semibold">Items in your order ({cart.length})</p>
+                <p className="font-semibold">Items in your order ({cart.itemCount})</p>
                 <Link href="/cart" className="flex items-center">
-                  <p className="text-xs text-foreground/70 tracking-normal">View all</p>
+                  <p className="text-xs text-foreground/70 tracking-normal">Edit cart</p>
                   <ChevronRight size={14} strokeWidth={1.5} />
                 </Link>
               </div>
-
               <div className="flex gap-2 overflow-x-scroll px-4 sm:px-6 no-scrollbar">
-                {cart.map((cartItem) => (
-                  <div key={`${cartItem.id}-${cartItem.size}`} className="flex flex-col items-center gap-1">
-                    {/* Thumbnail with optional stock badge */}
-                    <div className="relative overflow-hidden rounded-sm size-22 bg-surface-muted">
-                      {cartItem.image && (
-                        <Image
-                          src={cartItem.image}
-                          alt={cartItem.name}
-                          fill
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                      {/* Stock badge — shown when quantity is low (<10). Real data would drive this. */}
-                      {cartItem.stockCount !== undefined && cartItem.stockCount < 10 && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-main text-white text-[10px] font-semibold text-center py-0.5">
-                          {cartItem.stockCount} Left
-                        </div>
+                {lines.map((line) => (
+                  <div key={line.key} className="flex flex-col items-center gap-1 w-22 shrink-0">
+                    <div className="relative overflow-hidden rounded-sm size-22 bg-surface-muted flex items-center justify-center text-foreground-muted">
+                      {line.imageUrl ? <Image src={line.imageUrl} alt={line.title} fill sizes="88px" className="object-cover" /> : <ImageOff size={18} />}
+                      <span className="absolute right-1 top-1 rounded-full bg-black/60 px-1.5 text-[10px] font-semibold text-white">×{line.quantity}</span>
+                      {line.issue && line.issue.type !== "PRICE_CHANGED" && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-red-500 text-white text-[10px] font-semibold text-center py-0.5">{line.issue.message}</div>
                       )}
                     </div>
-
-                    <p className="text-main font-semibold text-sm tracking-normal">
-                      {formatNaira(cartItem.priceKobo)}
-                    </p>
-
-                    <div className="w-20 px-2 h-6.5 rounded-full border bg-card border-neutral-500 flex justify-between items-center">
-                      <button onClick={() => decreaseQty(cartItem.id, cartItem.size)}>
-                        {cartItem.quantity === 1 ? (
-                          <Trash2 size={15} color="#737373" strokeWidth={2.5} />
-                        ) : (
-                          <CircleMinus size={15} color="#737373" strokeWidth={2.5} />
-                        )}
-                      </button>
-                      <p className="font-medium text-sm">{cartItem.quantity}</p>
-                      <button onClick={() => increaseQty(cartItem.id, cartItem.size)}>
-                        <CirclePlus size={15} color="#737373" strokeWidth={2.5} />
-                      </button>
-                    </div>
+                    <p className="text-main font-semibold text-sm tracking-normal">{formatNaira(line.unitPriceKobo)}</p>
+                    {line.variantLabel && <p className="text-[11px] text-foreground-muted">{line.variantLabel}</p>}
                   </div>
                 ))}
               </div>
+              {blocking.length > 0 && (
+                <div className="px-4 sm:px-6">
+                  <InfoBanner variant="error" title="Some items changed" text={<>Fix them in your <Link href="/cart" className="font-semibold text-main">cart</Link> before paying.</>} />
+                </div>
+              )}
             </div>
 
             <Divider />
 
+            {/* Summary: no coupons yet, so no coupon field (guide 4.3.4) */}
             <div className="px-4 sm:px-6 flex flex-col gap-2">
               <p className="font-semibold">Order summary</p>
               <div className="flex flex-col gap-2 text-sm">
-                <div className="flex justify-between text-foreground/70">
-                  <span>Cost of Items</span>
-                  <span className="font-medium text-foreground">{formatNaira(totalPrice)}</span>
-                </div>
-                <div className="flex justify-between text-foreground/70 items-center">
-                  <span>Coupon codes</span>
-                  <div className="flex items-center text-foreground/70 gap-0.5">
-                    <input
-                      type="text"
-                      placeholder="Enter here"
-                      className="text-sm bg-transparent outline-none text-right w-24 placeholder:text-foreground/70 text-foreground"
-                    />
-                    <button className="hover:text-main transition-colors" title="Apply Coupon">
-                      <ChevronRight size={14} strokeWidth={1.9} />
-                    </button>
+                {cart.groups.map((group) => (
+                  <div key={group.sellerId ?? "items"} className="flex justify-between text-foreground/70">
+                    <span>{group.storeName ?? "Items"}</span>
+                    <span className="font-medium text-foreground">{formatNaira(group.subtotalKobo)}</span>
                   </div>
-                </div>
+                ))}
                 <Divider />
                 <div className="flex justify-between font-bold text-base">
-                  <span>Amount to Pay</span>
-                  <span>{formatNaira(totalPrice)}</span>
+                  <span>Amount to pay</span>
+                  <span>{formatNaira(cart.subtotalKobo)}</span>
                 </div>
+                {cart.groups.length > 1 && (
+                  <p className="text-xs text-foreground-muted">
+                    You pay once. Each store drops its items at your pickup station separately.
+                  </p>
+                )}
               </div>
             </div>
 
             <Divider />
 
-            {/* Shipping */}
+            {/* Pickup station */}
             <div className="px-4 sm:px-6 flex flex-col gap-2">
-              <p className="font-semibold">Shipping method</p>
-              <div className="flex justify-between text-sm items-center gap-2">
-                <div className="flex gap-1 items-center shrink-0">
-                  <Store size={17} color="#ff681f" />
-                  <p className="text-foreground/70">Pick-up Station</p>
+              <p className="font-semibold">Pickup station</p>
+              <Link href="/pickup-station" className="flex justify-between items-center gap-2 text-sm">
+                <div className="flex gap-2 items-start min-w-0">
+                  <Store size={17} color="#ff681f" className="shrink-0 mt-0.5" />
+                  {station ? (
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground truncate">{station.name}</p>
+                      <p className="text-xs text-foreground-muted truncate">{station.address}</p>
+                    </div>
+                  ) : (
+                    <p className="text-blue-600">{stations.isPending ? "Loading stations…" : "Select a pickup station"}</p>
+                  )}
                 </div>
-                <Link href="/pickup-station" className="text-blue-600 flex items-center gap-0.5 min-w-0">
-                  <p className="text-sm truncate">
-                    {selectedStation ? selectedStation.name : "Select a pickup station"}
-                  </p>
-                  <ChevronRight size={14} strokeWidth={1.9} className="shrink-0" />
-                </Link>
-              </div>
+                <span className="flex items-center text-xs text-foreground/70 shrink-0">
+                  {station ? "Change" : ""}
+                  <ChevronRight size={14} strokeWidth={1.9} />
+                </span>
+              </Link>
             </div>
 
             <Divider />
 
             {/* Payment */}
-            <div className="px-4 sm:px-6 flex flex-col gap-3 pb-38">
-              <p className="font-semibold">Payment choices</p>
-              <div className="flex flex-col gap-3">
+            <div className="px-4 sm:px-6 flex flex-col gap-3">
+              <p className="font-semibold" id="payment-choices">Payment choices</p>
+              <div className="flex flex-col gap-3" role="radiogroup" aria-labelledby="payment-choices">
                 {PAYMENT_OPTIONS.map((option) => (
                   <button
                     key={option.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={option.id === payMethod}
+                    aria-label={option.title}
                     className="flex justify-between items-center w-full"
                     onClick={() => setPayMethod(option.id)}
                   >
                     <div className="flex flex-col items-start gap-0.5">
                       <div className="flex gap-2 items-center">
-                        {/* Radio indicator */}
-                        <div
-                          className="rounded-full border-2 border-border-default transition-all duration-200 size-4 shrink-0 flex items-center justify-center"
-                        >
-                          {option.id === payMethod && (
-                            <div className="size-2 rounded-full bg-main" />
-                          )}
+                        <div className="rounded-full border-2 border-border-default transition-all duration-200 size-4 shrink-0 flex items-center justify-center">
+                          {option.id === payMethod && <div className="size-2 rounded-full bg-main" />}
                         </div>
-                        {option.Icon && (
-                          <option.Icon color="#737373" size={17} strokeWidth={2.2} />
-                        )}
+                        {option.Icon && <option.Icon color="#737373" size={17} strokeWidth={2.2} />}
                         <p className="text-sm text-foreground/70">{option.title}</p>
                       </div>
-                      {/* Sub-logos (Visa/MC/Verve) below "Add a card" */}
-                      {"subLogos" in option && option.subLogos && (
-                        <div className="pl-8">{option.subLogos}</div>
-                      )}
+                      {option.subLogos && <div className="pl-8">{option.subLogos}</div>}
                     </div>
-
-                    {/* Right-side logo (OPay, PalmPay) */}
-                    {"rightLogo" in option && option.rightLogo && (
-                      <div>{option.rightLogo}</div>
-                    )}
+                    {option.rightLogo && <div>{option.rightLogo}</div>}
                   </button>
                 ))}
               </div>
             </div>
-
           </div>
-
-          {/* RIGHT - Summary */}
-          <div className="w-full mt-4">
-            <main className="fixed bottom-0 left-0 right-0 flex flex-col gap-2 items-center pb-6 font-dmSans tracking-tight z-50">
-              <div className="backdrop-blur-xs flex justify-center items-center py-2 px-2 rounded-full border border-border-default w-[90%] sm:w-[80%] bg-card/30 max-w-sm sm:max-w-md gap-2">
-                <p className="text-xs line-clamp-1">Items can only be returned within{" "}
-                  <span className="text-main font-semibold">24 hours</span>{" "}
-                  of picking-up</p>
-              </div>
-              <div className="backdrop-blur-xs flex justify-center items-center py-2 px-3 rounded-full border border-border-default w-[95%] sm:w-[88%] bg-card/30 max-w-sm sm:max-w-md gap-3">
-                <p className="text-main font-bold text-base whitespace-nowrap shrink-0">
-                  {formatNaira(totalPrice)}
-                </p>
-                <button
-                  className="w-full h-10 rounded-full bg-main border border-transparent disabled:opacity-40 transition-all duration-300 hover:brightness-105 active:scale-[0.98]"
-                  onClick={handleCheckout}
-                  disabled={cart.length === 0 || isProcessing}
-                >
-                  <p className="font-medium text-sm text-white">
-                    {isProcessing ? "Processing..." : `Proceed to Pay (${totalQty})`}
-                  </p>
-                </button>
-              </div>
-            </main>
-          </div>
-
-        </div>
+        )}
       </main>
 
-      <Modal isOpen={!!error} onClose={() => setError(null)} title="Error">
-        <div className="flex flex-col gap-4">
-          <p className="text-sm text-foreground-muted">{error}</p>
-          <button 
-            onClick={() => setError(null)} 
-            className="w-full py-3 bg-main text-white font-medium rounded-xl hover:bg-main-light transition active:scale-95"
-          >
-            OK
-          </button>
+      {lines.length > 0 && !checkout.isSuccess && (
+        <div className="fixed bottom-0 left-0 right-0 flex flex-col gap-2 items-center pb-6 font-dmSans tracking-tight z-50">
+          <div className="backdrop-blur-xs flex justify-center items-center gap-1.5 py-2 px-3 rounded-full border border-border-default w-[90%] sm:w-[80%] bg-card/30 max-w-sm sm:max-w-md">
+            <Info size={13} className="text-main shrink-0" />
+            <p className="text-xs line-clamp-1">
+              You have <span className="text-main font-semibold">48 hours</span> after collecting to report a problem
+            </p>
+          </div>
+          <div className="backdrop-blur-xs flex justify-center items-center py-2 px-3 rounded-full border border-border-default w-[95%] sm:w-[88%] bg-card/30 max-w-sm sm:max-w-md gap-3">
+            <p className="text-main font-bold text-base whitespace-nowrap shrink-0">{formatNaira(cart.subtotalKobo)}</p>
+            <button
+              type="button"
+              className="w-full h-10 rounded-full bg-main border border-transparent disabled:opacity-40 transition-all duration-300 hover:brightness-105 active:scale-[0.98]"
+              onClick={proceed}
+              disabled={busy || blocking.length > 0 || cart.isLoading}
+            >
+              <p className="font-medium text-sm text-white">{busy ? "Placing your order…" : `Proceed to Pay (${cart.itemCount})`}</p>
+            </button>
+          </div>
+        </div>
+      )}
+
+      <Modal isOpen={!!problem} onClose={() => setProblem(null)} title={problem?.title ?? ""}>
+        <div className="flex flex-col gap-4 mt-2">
+          <p className="text-sm text-foreground-muted" role="alert">
+            {problem?.text}
+          </p>
+          {problem?.action ? (
+            <Link href={problem.action.href} className="w-full py-3 bg-main text-white text-center font-medium rounded-xl">
+              {problem.action.label}
+            </Link>
+          ) : (
+            <button type="button" onClick={() => setProblem(null)} className="w-full py-3 bg-main text-white font-medium rounded-xl">
+              OK
+            </button>
+          )}
         </div>
       </Modal>
-
-
     </>
   );
 }

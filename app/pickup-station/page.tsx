@@ -3,107 +3,38 @@
 import { useState, useEffect } from "react";
 import { Check, Copy, MapPin } from "lucide-react";
 import PageHeader from "../components/PageHeader";
-import { usePickupStore, type PickupStation } from "../store/usePickupStore";
+import { usePickupStore } from "../store/usePickupStore";
 import { useRouter } from "next/navigation";
-
-const PICKUP_STATIONS: PickupStation[] = [
-  {
-    id: "1",
-    name: "Ireti Bakare Complex - Unilag",
-    address: "Unilag Main Shopping Complex, Dan Fodio St, University of Lagos Campus, Yaba, Lagos.",
-    contactName: "Ireti Bakare",
-    contactPhone: "07012345678",
-    openingHours: ["Mon - Fri: 8am - 6pm", "Sat: 9am - 5pm"],
-  },
-  {
-    id: "2",
-    name: "Gate Plaza - Unilag",
-    address: "Main Gate Area, University of Lagos, Akoka, Yaba, Lagos.",
-    contactName: "Emeka Chukwu",
-    contactPhone: "08034567890",
-    openingHours: ["Mon - Fri: 7am - 7pm", "Sat: 8am - 4pm"],
-  },
-  {
-    id: "3",
-    name: "Faculty of Science Hub",
-    address: "Faculty of Science Building, University of Lagos, Yaba, Lagos.",
-    contactName: "Amaka Osei",
-    contactPhone: "09011223344",
-    openingHours: ["Mon - Fri: 9am - 5pm", "Sat: Closed"],
-  },
-  {
-    id: "4",
-    name: "Student Union Hub",
-    address: "Student Union Building, University of Lagos, Akoka, Lagos.",
-    contactName: "Tunde Adeyemi",
-    contactPhone: "08123456789",
-    openingHours: ["Mon - Sat: 8am - 8pm", "Sun: 10am - 4pm"],
-  },
-  {
-    id: "5",
-    name: "Yaba Tech Station",
-    address: "Yaba College of Technology, Herbert Macaulay Way, Yaba, Lagos.",
-    contactName: "Ngozi Eze",
-    contactPhone: "07055667788",
-    openingHours: ["Mon - Fri: 8am - 5pm", "Sat: 9am - 1pm"],
-  },
-  {
-    id: "6",
-    name: "Moremi Hall Pickup Point",
-    address: "Moremi Hall of Residence, University of Lagos, Yaba, Lagos.",
-    contactName: "Fatima Bello",
-    contactPhone: "08099887766",
-    openingHours: ["Mon - Fri: 7am - 9pm", "Sat - Sun: 9am - 6pm"],
-  },
-  {
-    id: "7",
-    name: "Mariere Hall Pickup Point",
-    address: "Mariere Hall, University of Lagos Campus, Yaba, Lagos.",
-    contactName: "David Okonkwo",
-    contactPhone: "07033445566",
-    openingHours: ["Mon - Fri: 8am - 7pm", "Sat: 9am - 3pm"],
-  },
-  {
-    id: "8",
-    name: "Babs Fafunwa Multipurpose Centre",
-    address: "Babs Fafunwa Complex, University of Lagos, Akoka, Yaba, Lagos.",
-    contactName: "Chisom Nwachukwu",
-    contactPhone: "08144556677",
-    openingHours: ["Mon - Fri: 9am - 6pm", "Sat: 10am - 2pm"],
-  },
-  {
-    id: "9",
-    name: "Engineering Faculty Station",
-    address: "Faculty of Engineering, University of Lagos, Yaba, Lagos.",
-    contactName: "Seun Ajayi",
-    contactPhone: "08077889900",
-    openingHours: ["Mon - Fri: 8am - 6pm", "Sat: Closed"],
-  },
-];
+import { ApiError } from "@/lib/api/client";
+import type { PickupStation } from "@/lib/api/checkout";
+import { usePickupStations } from "@/lib/api/hooks/useBuyerOrders";
+import { summarizeOpeningHours } from "@/lib/openingHours";
 
 export default function PickupStationPage() {
   const router = useRouter();
-  const { selectedStation, setSelectedStation } = usePickupStore();
-  const [localSelected, setLocalSelected] = useState<PickupStation | null>(null);
+  const { selectedStationId, selectStation } = usePickupStore();
+  const stations = usePickupStations();
+  const [localSelectedId, setLocalSelectedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    setLocalSelected(selectedStation);
-  }, [selectedStation]);
+    setLocalSelectedId(selectedStationId);
+  }, [selectedStationId]);
 
   if (!mounted) return null;
 
+  const list = stations.data ?? [];
+  const localSelected = list.find((s) => s.id === localSelectedId) ?? null;
+
   const handleSelect = (station: PickupStation) => {
-    setLocalSelected((prev) =>
-      prev?.id === station.id ? null : station
-    );
+    setLocalSelectedId((prev) => (prev === station.id ? null : station.id));
   };
 
   const handleConfirm = () => {
     if (localSelected) {
-      setSelectedStation(localSelected);
+      selectStation(localSelected.id);
       router.back();
     }
   };
@@ -149,13 +80,44 @@ export default function PickupStationPage() {
 
         {/* Station list */}
         <div className="flex flex-col gap-3 px-5 pb-32">
-          {PICKUP_STATIONS.map((station) => {
+          {stations.isPending && (
+            <div className="flex flex-col gap-3" aria-busy="true" aria-label="Loading pickup stations">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-20 animate-pulse rounded-2xl bg-surface-muted" />
+              ))}
+            </div>
+          )}
+          {stations.isError && (
+            <div className="flex flex-col items-center gap-2 py-12 text-center">
+              <p className="font-medium text-foreground">We couldn&apos;t load the pickup stations</p>
+              <p className="text-sm text-foreground-muted">
+                {stations.error instanceof ApiError && stations.error.status === 403
+                  ? stations.error.message
+                  : "Check your connection and try again."}
+              </p>
+              <button type="button" onClick={() => stations.refetch()} className="text-sm font-semibold text-main">
+                Try again
+              </button>
+            </div>
+          )}
+          {stations.isSuccess && list.length === 0 && (
+            <div className="flex flex-col items-center gap-2 py-12 text-center">
+              <MapPin size={24} className="text-main" />
+              <p className="font-medium text-foreground">No pickup stations yet</p>
+              <p className="text-sm text-foreground-muted">
+                Your school doesn&apos;t have a pickup station on CampusMart yet, so orders can&apos;t be placed. Please check back soon.
+              </p>
+            </div>
+          )}
+          {list.map((station) => {
             const isSelected = localSelected?.id === station.id;
 
             return (
               <div
                 key={station.id}
                 role="button"
+                aria-pressed={isSelected}
+                aria-label={station.name}
                 tabIndex={0}
                 onClick={() => handleSelect(station)}
                 onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleSelect(station)}
@@ -233,11 +195,14 @@ export default function PickupStationPage() {
                         <p className="text-xs font-semibold text-foreground">
                           Opening Hours
                         </p>
-                        {station.openingHours.map((line, i) => (
-                          <p key={i} className="text-xs text-foreground-muted">
-                            {line}
+                        {summarizeOpeningHours(station.openingHours).map((line) => (
+                          <p key={line.days} className="text-xs text-foreground-muted">
+                            {line.days}: {line.hours}
                           </p>
                         ))}
+                        {station.openingHours.length < 7 && (
+                          <p className="text-xs text-foreground-muted">Closed on other days</p>
+                        )}
                       </div>
                     </div>
                   </div>
