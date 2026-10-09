@@ -10,6 +10,7 @@ import {
   TEST_PASSWORD,
   TestContext,
   truncateAll,
+  resetRateLimits,
 } from './utils';
 
 const PASSWORD = 'Campus2026';
@@ -58,6 +59,7 @@ describe('Phase 1 auth (e2e)', () => {
 
   beforeEach(async () => {
     await truncateAll(ctx.prisma);
+    resetRateLimits(ctx.app);
     mailSpy.mockClear();
     const institution = await ctx.prisma.institution.create({
       data: { name: 'University of Lagos', domains: ['unilag.edu.ng'] },
@@ -164,7 +166,6 @@ describe('Phase 1 auth (e2e)', () => {
       for (let i = 1; i <= 4; i++) {
         const res = await agent
           .post('/api/auth/verify-email')
-          .set('X-Forwarded-For', nextIp())
           .send({ code: wrong })
           .expect(400);
         expect(res.body).toMatchObject({
@@ -174,15 +175,16 @@ describe('Phase 1 auth (e2e)', () => {
       }
       const fifth = await agent
         .post('/api/auth/verify-email')
-        .set('X-Forwarded-For', nextIp())
         .send({ code: wrong })
         .expect(400);
       expect(fifth.body.code).toBe('CODE_LOCKED');
 
+      // Five verify attempts also used up this account's 5-a-minute limit; skip the minute
+      resetRateLimits(ctx.app);
+
       // Locked: even the right code is refused now
       const locked = await agent
         .post('/api/auth/verify-email')
-        .set('X-Forwarded-For', nextIp())
         .send({ code })
         .expect(400);
       expect(locked.body.code).toBe('CODE_LOCKED');
@@ -198,6 +200,33 @@ describe('Phase 1 auth (e2e)', () => {
         .send({ code: fresh })
         .expect(200);
       expect(ok.body.data.emailVerifiedAt).not.toBeNull();
+    });
+
+    it('code routes are limited per account, not per shared IP', async () => {
+      const campusIp = '102.89.1.10';
+      const { agent: a } = await register(
+        'a@unilag.edu.ng',
+        'BUYER',
+        client(ctx.app, campusIp),
+      );
+      const { agent: b } = await register(
+        'b@unilag.edu.ng',
+        'BUYER',
+        client(ctx.app, campusIp),
+      );
+      for (let i = 0; i < 5; i++) {
+        await a.post('/api/auth/verify-email').send({ code: '000000' });
+      }
+      const sixth = await a
+        .post('/api/auth/verify-email')
+        .send({ code: '000000' })
+        .expect(429);
+      expect(sixth.body.code).toBe('RATE_LIMITED');
+      // b shares the IP but not the limit
+      await b
+        .post('/api/auth/verify-email')
+        .send({ code: lastCode('b@unilag.edu.ng') })
+        .expect(200);
     });
 
     it('resend is limited to 1 a minute', async () => {

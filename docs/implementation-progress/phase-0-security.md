@@ -81,6 +81,9 @@ below says what was already there and what this phase changed.
   `trust proxy` were already present.
 - New `backend/src/app.setup.ts` (`configureApp`) holds helmet, trust proxy, cookie parser, `/api` prefix,
   validation pipe, filter, interceptor and CORS; `main.ts` and the e2e tests both call it.
+- Later change (2026-10-09, Collins): the limits are keyed per email/account instead of per IP, via
+  `AccountThrottlerGuard`. See phase-1-integration.md, "Rate limits per account". The checklist item below still
+  holds: the 6th login for the same email within a minute is a 429.
 
 ### 0.7 Error format and logging
 - `AllExceptionsFilter` already had the codes, Prisma P2002/P2003/P2025 mapping, 5xx `logger.error(exception)` and 4xx
@@ -174,7 +177,7 @@ Local Postgres 16; `DATABASE_URL=DIRECT_URL=postgresql://postgres:postgres@local
 
 ## 5. Needs from Collins
 
-- **GitHub push access**: see Phase 1. Nothing has been pushed yet.
+- **GitHub push access**: see Phase 1.
 - **Protect `master` and `develop`** so both CI jobs must pass (GitHub branch protection, guide Testing section).
 - **Trust proxy hops in production.** `trust proxy` is `1` as the guide says. If production traffic passes through
   Vercel and then a load balancer in front of the API, `req.ip` will be the Vercel egress IP. Rate limits and the

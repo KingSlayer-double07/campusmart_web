@@ -7,6 +7,7 @@ import {
   TEST_PASSWORD,
   TestContext,
   truncateAll,
+  resetRateLimits,
 } from './utils';
 
 // Phase 0 checklist, automated
@@ -19,6 +20,7 @@ describe('Phase 0 security (e2e)', () => {
 
   beforeEach(async () => {
     await truncateAll(ctx.prisma);
+    resetRateLimits(ctx.app);
   });
 
   afterAll(async () => {
@@ -118,6 +120,35 @@ describe('Phase 0 security (e2e)', () => {
       .send({ email: user.email, password: TEST_PASSWORD })
       .expect(429);
     expect(res.body.code).toBe('RATE_LIMITED');
+  });
+
+  it('the login limit follows the email, so another student behind the same IP can still sign in', async () => {
+    const throttled = await createUser(ctx.prisma);
+    const classmate = await createUser(ctx.prisma);
+    const campusIp = '102.89.1.10';
+
+    for (let i = 0; i < 5; i++) {
+      await client(ctx.app, campusIp)
+        .post('/api/auth/login')
+        .send({ email: throttled.email, password: 'WrongPass999' })
+        .expect(401);
+    }
+    await client(ctx.app, campusIp)
+      .post('/api/auth/login')
+      .send({ email: throttled.email, password: TEST_PASSWORD })
+      .expect(429);
+
+    // Same IP, different student: not blocked
+    await client(ctx.app, campusIp)
+      .post('/api/auth/login')
+      .send({ email: classmate.email, password: TEST_PASSWORD })
+      .expect(200);
+
+    // Different IP, same email: still blocked
+    await client(ctx.app, '197.210.5.5')
+      .post('/api/auth/login')
+      .send({ email: throttled.email, password: TEST_PASSWORD })
+      .expect(429);
   });
 
   it('rejects unknown body fields', async () => {

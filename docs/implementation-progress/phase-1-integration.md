@@ -134,6 +134,17 @@ Gate items:
 
 New env vars: none (Phase 1's `APP_URL` and `MAIL_*` were already in the schema). New migration: one (above).
 
+### Rate limits per account (Collins' decision, 2026-10-09)
+- `backend/src/common/guards/account-throttler.guard.ts`: `AccountThrottlerGuard` replaces `ThrottlerGuard` as the
+  global `APP_GUARD`. Same limits (120/min overall; 5/min on login, register, verify, resend, forgot, reset and
+  password change), but keyed by a *verified* access token's user id, else the request body's email, else the IP.
+  Students behind one campus NAT address no longer share a limit.
+- Trade-off: one IP can now try many different emails (password spraying isn't capped per IP). A loose per-IP
+  ceiling could be added later if abuse shows up.
+- Tests: unit `account-throttler.guard.spec.ts` (6); e2e `phase0-security` › "the login limit follows the email, so
+  another student behind the same IP can still sign in" and `phase1-auth` › "code routes are limited per account,
+  not per shared IP". e2e suites reset the in-memory throttler store between tests (`resetRateLimits`).
+
 ## 3. Verification evidence
 
 Backend tests ran against local Postgres `campusmart_test`. The browser smoke run used Chromium → `next start` (:3000,
@@ -214,14 +225,16 @@ Backend tests ran against local Postgres `campusmart_test`. The browser smoke ru
 
 ## 5. Needs from Collins
 
-- **GitHub push access (blocker).** Pushing any branch to `ArnoldMidalla/campusmart_web` returns 403 "Claude
-  doesn't have GitHub access". Reconnect at https://claude.ai/connect-github and make sure the Claude GitHub App is
-  installed on the repo. Until then every commit exists only in this session's container.
-- **Rate limits behind campus NAT.** Login, register and code routes allow 5 a minute per IP (guide 0.5). Campus
-  Wi-Fi often puts many students behind one public IP, so a busy hall could lock each other out. Options: key the
-  auth throttles by IP + email, or raise the limit. Your call.
+- **GitHub push access (blocker).** Pushes to `ArnoldMidalla/campusmart_web` return 403 "Claude doesn't have GitHub
+  access". The fork `KingSlayer-double07/campusmart_web` is pushable, but this session can't attach it because it
+  has the same repo name as the upstream already attached here. To fix: start a session with the fork as its source,
+  or push the bundle yourself (see the gate summary).
+- ~~Rate limits behind campus NAT~~ **Decided 2026-10-09:** limits follow the email/account, not the IP (see
+  "Rate limits per account" below).
 - **Middleware approach** (deviation 4): OK as is, or do you prefer a different cookie rule?
-- **Production SMTP:** `MAIL_HOST/PORT/USER/PASS/FROM` for the API host (required in production).
+- **Production SMTP:** `MAIL_HOST/PORT/USER/PASS/FROM`, pending the domain (Collins, 2026-10-09). Until it's set,
+  a `NODE_ENV=production` API refuses to boot (env schema), because nobody could receive a verification code.
+  Development and test print codes to the console, so local work is unaffected.
 - **Neon dev branch:** apply the new migration there (`npx prisma migrate deploy` against your dev `DIRECT_URL`). I
   only applied it to a local Postgres.
 - **Institutions for testing sign-up:** until the Phase 2 seed exists, create one with your school's domains

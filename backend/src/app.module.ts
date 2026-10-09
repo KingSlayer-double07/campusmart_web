@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from '@nestjs/config';
 import { envSchema } from './config/env';
 import { AppController } from './app.controller';
@@ -11,6 +11,7 @@ import { InstitutionsModule } from './institutions/institutions.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { MailModule } from './mail/mail.module';
+import { AccountThrottlerGuard } from './common/guards/account-throttler.guard';
 
 @Module({
   imports: [
@@ -27,6 +28,9 @@ import { MailModule } from './mail/mail.module';
     InstitutionsModule,
   ],
   controllers: [AppController],
-  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    AppService,
+    { provide: APP_GUARD, useClass: AccountThrottlerGuard },
+  ],
 })
 export class AppModule {}

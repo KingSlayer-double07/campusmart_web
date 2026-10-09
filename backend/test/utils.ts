@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { getStorageToken, ThrottlerStorageService } from '@nestjs/throttler';
 import { hash } from 'bcrypt';
 import request from 'supertest';
 import type { App } from 'supertest/types';
@@ -51,6 +52,12 @@ export async function truncateAll(prisma: PrismaService) {
   if (tables.length === 0) return;
   const list = tables.map((t) => `"public"."${t.tablename}"`).join(', ');
   await prisma.$executeRawUnsafe(`TRUNCATE ${list} RESTART IDENTITY CASCADE`);
+}
+
+// Rate limits follow the account (AccountThrottlerGuard), and tests reuse emails, so each test
+// starts with an empty in-memory throttler store.
+export function resetRateLimits(app: INestApplication<App>) {
+  app.get<ThrottlerStorageService>(getStorageToken()).storage.clear();
 }
 
 // Each test gets its own client IP (the app trusts one proxy hop), so per-IP rate limits
