@@ -10,7 +10,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { SubmitVerificationDto } from './dto/submit-verification.dto';
 import { safeUserSelect } from './user.select';
 
 @Injectable()
@@ -73,23 +72,6 @@ export class UsersService {
         data: { password: newHashedPassword },
       });
       await this.sessions.revokeOthers(userId, currentSessionId, tx);
-    });
-  }
-
-  async submitVerification(userId: string, dto: SubmitVerificationDto) {
-    return this.prisma.verificationRequest.create({
-      data: {
-        userId,
-        documentUrl: dto.verificationData,
-        status: 'PENDING',
-      },
-      select: {
-        id: true,
-        status: true,
-        documentUrl: true,
-        createdAt: true,
-        updatedAt: true,
-      },
     });
   }
 

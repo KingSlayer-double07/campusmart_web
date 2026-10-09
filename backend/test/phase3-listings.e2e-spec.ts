@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import request from 'supertest';
-import { UserRole } from '../src/generated/prisma/enums';
+import { UserRole, VerificationStatus } from '../src/generated/prisma/enums';
 import { recalculateListingStock } from '../src/listings/listing-stock';
 import { CloudinaryService } from '../src/uploads/cloudinary.service';
 import {
@@ -63,13 +63,16 @@ describe('Phase 3 listings (e2e)', () => {
     const schoolB = await ctx.prisma.institution.create({
       data: { name: 'Lagos State University', domains: ['lasu.edu.ng'] },
     });
+    // Verified by an admin, so they can publish (phase3-seller-verification covers the rest)
     const sellerA = await createUser(ctx.prisma, {
       role: UserRole.SELLER,
       institutionId: schoolA.id,
+      verificationStatus: VerificationStatus.VERIFIED,
     });
     const sellerB = await createUser(ctx.prisma, {
       role: UserRole.SELLER,
       institutionId: schoolB.id,
+      verificationStatus: VerificationStatus.VERIFIED,
     });
     const buyerA = await createUser(ctx.prisma, { institutionId: schoolA.id });
     const buyerB = await createUser(ctx.prisma, { institutionId: schoolB.id });

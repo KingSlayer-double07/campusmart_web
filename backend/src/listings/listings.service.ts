@@ -11,6 +11,7 @@ import { openSellerOrdersWithListing } from '../common/open-seller-orders';
 import { Prisma } from '../generated/prisma/client';
 import { ListingStatus } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
+import { assertCanPublish } from '../sellers/seller-verification';
 import { CloudinaryService } from '../uploads/cloudinary.service';
 import { isOwnUpload, uploadFolder } from '../uploads/cloudinary-urls';
 import type {
@@ -152,6 +153,7 @@ export class ListingsService {
         message: 'Your account is not linked to a school, so it cannot sell',
       });
     }
+    if (dto.status === ListingStatus.ACTIVE) assertCanPublish(user);
     this.assertImages(user.id, dto.images);
     const variants = dto.variants ?? [];
     this.assertVariants(variants);
@@ -267,6 +269,7 @@ export class ListingsService {
     status: OwnerStatus,
   ): Promise<ListingDto> {
     const current = await this.owned(user, id, { status: true, stock: true });
+    if (status === ListingStatus.ACTIVE) assertCanPublish(user);
     if (current.status === ListingStatus.FLAGGED) {
       throw new ConflictException({
         code: 'LISTING_UNDER_REVIEW',

@@ -1,7 +1,11 @@
 import { HttpException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { AuthUser } from '../auth/auth-user';
-import { ListingStatus, UserRole } from '../generated/prisma/enums';
+import {
+  ListingStatus,
+  UserRole,
+  VerificationStatus,
+} from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { CloudinaryService } from '../uploads/cloudinary.service';
 import { ListingsService } from './listings.service';
@@ -13,6 +17,7 @@ const seller = {
   id: 'seller-1',
   role: UserRole.SELLER,
   institutionId: 'school-a',
+  verificationStatus: VerificationStatus.VERIFIED,
 } as AuthUser;
 
 const image = (n: number, owner = seller.id) => ({
@@ -151,6 +156,33 @@ describe('ListingsService', () => {
       );
     });
 
+    it('lets an unverified seller save a draft but not publish', async () => {
+      for (const verificationStatus of [
+        VerificationStatus.UNVERIFIED,
+        VerificationStatus.PENDING,
+        VerificationStatus.REJECTED,
+      ]) {
+        const unverified = { ...seller, verificationStatus } as AuthUser;
+        const error = await service
+          .create(unverified, { ...createDto, stock: 1 })
+          .catch((e: unknown) => e);
+        expect(codeOf(error)).toBe('SELLER_NOT_VERIFIED');
+      }
+      expect(prisma.listing.create).not.toHaveBeenCalled();
+
+      prisma.listing.create.mockResolvedValue(fullRow);
+      await service.create(
+        {
+          ...seller,
+          verificationStatus: VerificationStatus.PENDING,
+        } as AuthUser,
+        { ...createDto, stock: 1, status: 'DRAFT' },
+      );
+      expect(prisma.listing.create.mock.calls[0][0].data.status).toBe(
+        ListingStatus.DRAFT,
+      );
+    });
+
     it('rejects a photo from another Cloudinary account with 400 INVALID_IMAGE', async () => {
       const foreign = {
         url: 'https://res.cloudinary.com/someone-else/image/upload/v1/campusmart/listings/seller-1/x.jpg',
@@ -275,6 +307,28 @@ describe('ListingsService', () => {
         .setStatus(seller, 'l1', 'ACTIVE')
         .catch((e: unknown) => e);
       expect(codeOf(error)).toBe('LISTING_UNDER_REVIEW');
+    });
+
+    it('an unverified seller cannot publish, but can archive', async () => {
+      const unverified = {
+        ...seller,
+        verificationStatus: VerificationStatus.UNVERIFIED,
+      } as AuthUser;
+      prisma.listing.findFirst.mockResolvedValue({
+        status: ListingStatus.DRAFT,
+        stock: 3,
+      });
+      const error = await service
+        .setStatus(unverified, 'l1', 'ACTIVE')
+        .catch((e: unknown) => e);
+      expect(codeOf(error)).toBe('SELLER_NOT_VERIFIED');
+      expect(prisma.listing.update).not.toHaveBeenCalled();
+
+      prisma.listing.findUniqueOrThrow.mockResolvedValue(fullRow);
+      await service.setStatus(unverified, 'l1', 'ARCHIVED');
+      expect(prisma.listing.update.mock.calls[0][0].data).toEqual({
+        status: ListingStatus.ARCHIVED,
+      });
     });
 
     it('publishing with no stock gives SOLDOUT', async () => {

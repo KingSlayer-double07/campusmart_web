@@ -49,6 +49,28 @@ export class CloudinaryService {
     );
   }
 
+  // A link to a private (authenticated) image that stops working after `ttlSeconds`. Used for
+  // student ID photos, which only admins see. Null until CLOUDINARY_* are set.
+  privateImageUrl(
+    publicId: string,
+    format: string,
+    ttlSeconds = 600,
+    now = Date.now(),
+  ): string | null {
+    const settings = this.settings;
+    if (!settings) return null;
+    // The SDK's types omit the account options it reads, so they ride on a plain object
+    const options = {
+      type: 'authenticated' as const,
+      resource_type: 'image' as const,
+      expires_at: Math.floor(now / 1000) + ttlSeconds,
+      cloud_name: settings.cloudName,
+      api_key: settings.apiKey,
+      api_secret: settings.apiSecret,
+    };
+    return cloudinary.utils.private_download_url(publicId, format, options);
+  }
+
   // Best effort: a failure is logged, never surfaced, so a listing edit never fails on cleanup
   async destroy(publicIds: string[]): Promise<void> {
     const settings = this.settings;

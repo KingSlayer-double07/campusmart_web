@@ -6,7 +6,7 @@ import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/app.setup';
-import { UserRole } from '../src/generated/prisma/enums';
+import { UserRole, VerificationStatus } from '../src/generated/prisma/enums';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 export interface TestContext {
@@ -85,6 +85,7 @@ export async function createUser(
     password?: string;
     institutionId?: string | null;
     emailVerifiedAt?: Date | null;
+    verificationStatus?: VerificationStatus;
   } = {},
 ) {
   ipCounter += 1;
@@ -100,6 +101,7 @@ export async function createUser(
         overrides.emailVerifiedAt === undefined
           ? new Date()
           : overrides.emailVerifiedAt,
+      verificationStatus: overrides.verificationStatus,
     },
   });
 }
