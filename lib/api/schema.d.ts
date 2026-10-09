@@ -523,6 +523,8 @@ export interface components {
              *     ]
              */
             domains: string[];
+            /** @description Switched by admins (Phase 9) */
+            isActive: boolean;
             /** Format: date-time */
             createdAt: string;
         };

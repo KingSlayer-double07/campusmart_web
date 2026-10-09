@@ -10,6 +10,9 @@ export class InstitutionDto {
   @ApiProperty({ type: [String], example: ['unilag.edu.ng'] })
   domains!: string[];
 
+  @ApiProperty({ description: 'Switched by admins (Phase 9)' })
+  isActive!: boolean;
+
   @ApiProperty({ type: String, format: 'date-time' })
   createdAt!: Date;
 }

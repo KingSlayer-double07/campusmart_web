@@ -101,17 +101,18 @@ describe('AuthService', () => {
       expect(data.institutionId).toBe('unilag');
       expect(data.role).toBe(UserRole.BUYER);
       expect(data.password).toMatch(/^\$2[aby]\$/);
+      expect(data.sellerProfile).toBeUndefined();
     });
 
-    it('gives a seller account the SELLER role', async () => {
+    it('gives a seller account the SELLER role and an empty SellerProfile', async () => {
       institutions.findForEmail.mockResolvedValue({ id: 'unilag' });
       prisma.user.findUnique.mockResolvedValue(null);
       prisma.user.create.mockResolvedValue({ ...user, role: UserRole.SELLER });
 
       await service.register({ ...dto, accountType: 'SELLER' }, {});
-      expect(prisma.user.create.mock.calls[0][0].data.role).toBe(
-        UserRole.SELLER,
-      );
+      const { data } = prisma.user.create.mock.calls[0][0];
+      expect(data.role).toBe(UserRole.SELLER);
+      expect(data.sellerProfile).toEqual({ create: {} });
     });
 
     it('emails a verification code and issues a session with {sub, sid, role}', async () => {

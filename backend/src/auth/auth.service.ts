@@ -71,9 +71,9 @@ export class AuthService {
     }
 
     const password = await hash(dto.password, BCRYPT_ROUNDS);
-    // D8: a seller account gets role SELLER; its SellerProfile arrives with Phase 2
-    const role =
-      dto.accountType === 'SELLER' ? UserRole.SELLER : UserRole.BUYER;
+    // D8: a seller account gets role SELLER and an empty SellerProfile (the store)
+    const isSeller = dto.accountType === 'SELLER';
+    const role = isSeller ? UserRole.SELLER : UserRole.BUYER;
 
     const { user, session } = await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
@@ -82,6 +82,7 @@ export class AuthService {
           password,
           role,
           institutionId: institution.id,
+          ...(isSeller && { sellerProfile: { create: {} } }),
         },
         select: safeUserSelect,
       });

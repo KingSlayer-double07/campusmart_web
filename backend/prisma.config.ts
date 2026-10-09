@@ -5,6 +5,10 @@ import { defineConfig, env } from 'prisma/config';
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
+  migrations: {
+    // `npx prisma db seed` (guide 2.3). Prisma 7's `migrate reset` no longer runs it on its own.
+    seed: 'ts-node prisma/seed.ts',
+  },
   datasource: {
     // Migrations use the direct (unpooled) connection; the app keeps the pooled DATABASE_URL.
     url: env('DIRECT_URL'),

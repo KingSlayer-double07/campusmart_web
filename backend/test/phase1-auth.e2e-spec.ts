@@ -108,10 +108,24 @@ describe('Phase 1 auth (e2e)', () => {
       await agent.get('/api/auth/me').expect(200);
     });
 
-    it('a seller account gets the SELLER role', async () => {
+    it('a seller account gets the SELLER role and an empty SellerProfile', async () => {
       const { res } = await register('shop@unilag.edu.ng', 'SELLER');
       expect(res.status).toBe(201);
       expect(res.body.data.role).toBe('SELLER');
+      const profile = await ctx.prisma.sellerProfile.findUnique({
+        where: { userId: res.body.data.id },
+      });
+      expect(profile).toMatchObject({ storeName: null, isOnline: false });
+    });
+
+    it('a buyer account gets no SellerProfile', async () => {
+      const { res } = await register('buyer@unilag.edu.ng');
+      expect(res.status).toBe(201);
+      await expect(
+        ctx.prisma.sellerProfile.count({
+          where: { userId: res.body.data.id },
+        }),
+      ).resolves.toBe(0);
     });
 
     it('rejects a client-sent institutionId or role (unknown fields)', async () => {
