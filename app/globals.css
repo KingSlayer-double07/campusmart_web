@@ -89,8 +89,6 @@
   
   --color-error: var(--error);
 
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
   --font-jost: var(--font-jost);
   --font-dmSans: var(--font-jost);
   --font-googleSans: var(--font-google-sans);

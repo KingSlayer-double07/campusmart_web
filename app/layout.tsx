@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Jost, Geist, Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -20,19 +19,12 @@ const satoshi = localFont({
   display: "swap", // Ensures text is visible during load
 });
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-const jost = Jost({
+const jost = localFont({
+  src: "./localFonts/Jost-Variable.woff2",
+  weight: "100 900",
+  style: "normal",
   variable: "--font-jost",
-  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -76,7 +68,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head />
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${jost.variable} ${satoshi.variable} antialiased`}
+        className={`${jost.variable} ${satoshi.variable} antialiased`}
       >
         <PWAInstallPrompt />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
