@@ -12,6 +12,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { MailModule } from './mail/mail.module';
 import { AccountThrottlerGuard } from './common/guards/account-throttler.guard';
+import { AuditModule } from './audit/audit.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { AccountThrottlerGuard } from './common/guards/account-throttler.guard';
     UsersModule,
     AuthModule,
     InstitutionsModule,
+    AuditModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [

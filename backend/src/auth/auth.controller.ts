@@ -44,6 +44,9 @@ const clientMeta = (req: Request): ClientMeta => ({
   ipAddress: req.ip,
 });
 
+const INACTIVE_DOC =
+  "INSTITUTION_INACTIVE: the user's institution is switched off. Only admins can sign in there.";
+
 const refreshCookie = (req: Request): unknown =>
   (req.cookies as Record<string, unknown> | undefined)?.[REFRESH_COOKIE];
 
@@ -71,6 +74,11 @@ export class AuthController {
     description: 'Email already registered',
   })
   @Throttle(STRICT)
+  @ApiResponse({
+    status: 403,
+    type: ErrorResponseDto,
+    description: INACTIVE_DOC,
+  })
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(
@@ -125,6 +133,11 @@ export class AuthController {
   @ApiOperation({ summary: 'Sign in', description: 'Sets both auth cookies.' })
   @ApiOkEnvelope(UserDto)
   @ApiResponse({ status: 401, type: ErrorResponseDto })
+  @ApiResponse({
+    status: 403,
+    type: ErrorResponseDto,
+    description: INACTIVE_DOC,
+  })
   @Throttle(STRICT)
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -146,6 +159,11 @@ export class AuthController {
   })
   @ApiNoContentResponse({ description: 'Both cookies rotated' })
   @ApiResponse({ status: 401, type: ErrorResponseDto })
+  @ApiResponse({
+    status: 403,
+    type: ErrorResponseDto,
+    description: INACTIVE_DOC,
+  })
   @Post('refresh')
   @HttpCode(HttpStatus.NO_CONTENT)
   async refresh(

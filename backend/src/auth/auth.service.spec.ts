@@ -91,8 +91,22 @@ describe('AuthService', () => {
       expect(prisma.user.create).not.toHaveBeenCalled();
     });
 
+    it('returns 403 INSTITUTION_INACTIVE when the school is switched off', async () => {
+      institutions.findForEmail.mockResolvedValue({
+        id: 'unilag',
+        isActive: false,
+      });
+      const error = await service.register(dto, {}).catch((e: unknown) => e);
+      expect((error as HttpException).getStatus()).toBe(403);
+      expect(responseCode(error)).toBe('INSTITUTION_INACTIVE');
+      expect(prisma.user.create).not.toHaveBeenCalled();
+    });
+
     it('takes the institution from the email domain, never from the client', async () => {
-      institutions.findForEmail.mockResolvedValue({ id: 'unilag' });
+      institutions.findForEmail.mockResolvedValue({
+        id: 'unilag',
+        isActive: true,
+      });
       prisma.user.findUnique.mockResolvedValue(null);
       prisma.user.create.mockResolvedValue(user);
 
@@ -105,7 +119,10 @@ describe('AuthService', () => {
     });
 
     it('gives a seller account the SELLER role and an empty SellerProfile', async () => {
-      institutions.findForEmail.mockResolvedValue({ id: 'unilag' });
+      institutions.findForEmail.mockResolvedValue({
+        id: 'unilag',
+        isActive: true,
+      });
       prisma.user.findUnique.mockResolvedValue(null);
       prisma.user.create.mockResolvedValue({ ...user, role: UserRole.SELLER });
 
@@ -116,7 +133,10 @@ describe('AuthService', () => {
     });
 
     it('emails a verification code and issues a session with {sub, sid, role}', async () => {
-      institutions.findForEmail.mockResolvedValue({ id: 'unilag' });
+      institutions.findForEmail.mockResolvedValue({
+        id: 'unilag',
+        isActive: true,
+      });
       prisma.user.findUnique.mockResolvedValue(null);
       prisma.user.create.mockResolvedValue(user);
 
@@ -138,7 +158,10 @@ describe('AuthService', () => {
     });
 
     it('still registers when the email fails to send', async () => {
-      institutions.findForEmail.mockResolvedValue({ id: 'unilag' });
+      institutions.findForEmail.mockResolvedValue({
+        id: 'unilag',
+        isActive: true,
+      });
       prisma.user.findUnique.mockResolvedValue(null);
       prisma.user.create.mockResolvedValue(user);
       mail.send.mockRejectedValue(new Error('SMTP down'));
@@ -152,7 +175,10 @@ describe('AuthService', () => {
     });
 
     it('rejects an email that is already registered with 409', async () => {
-      institutions.findForEmail.mockResolvedValue({ id: 'unilag' });
+      institutions.findForEmail.mockResolvedValue({
+        id: 'unilag',
+        isActive: true,
+      });
       prisma.user.findUnique.mockResolvedValue({ id: 'existing' });
       await expect(service.register(dto, {})).rejects.toBeInstanceOf(
         ConflictException,
@@ -190,6 +216,50 @@ describe('AuthService', () => {
       ).rejects.toBeInstanceOf(UnauthorizedException);
     });
 
+    it.each([UserRole.BUYER, UserRole.SELLER, UserRole.PICKUP_AGENT])(
+      'refuses a %s at a switched-off institution with 403 INSTITUTION_INACTIVE',
+      async (role) => {
+        prisma.user.findUnique.mockResolvedValue({
+          ...user,
+          role,
+          institution: { isActive: false },
+          password: await hash('Campus2026', 4),
+        });
+        const error = await service
+          .login({ email: user.email, password: 'Campus2026' }, {})
+          .catch((e: unknown) => e);
+        expect((error as HttpException).getStatus()).toBe(403);
+        expect(responseCode(error)).toBe('INSTITUTION_INACTIVE');
+        expect(sessions.create).not.toHaveBeenCalled();
+      },
+    );
+
+    it('lets an admin sign in at a switched-off institution', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...user,
+        role: UserRole.ADMIN,
+        institution: { isActive: false },
+        password: await hash('Campus2026', 4),
+      });
+      const result = await service.login(
+        { email: user.email, password: 'Campus2026' },
+        {},
+      );
+      expect(result.user.role).toBe(UserRole.ADMIN);
+      expect(result.user).not.toHaveProperty('institution');
+    });
+
+    it('checks the password before the institution, so status is not probed', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...user,
+        institution: { isActive: false },
+        password: await hash('Campus2026', 4),
+      });
+      await expect(
+        service.login({ email: user.email, password: 'Wrong2026x' }, {}),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+
     it('never returns the password hash', async () => {
       prisma.user.findUnique.mockResolvedValue({
         ...user,
@@ -215,6 +285,42 @@ describe('AuthService', () => {
         UnauthorizedException,
       );
       expect(sessions.revokeAll).toHaveBeenCalledWith('u1');
+    });
+
+    it('cuts off a non-admin whose institution was switched off', async () => {
+      sessions.rotate.mockResolvedValue({
+        userId: 'u1',
+        sessionId: 's1',
+        refreshToken: 's1.new',
+      });
+      prisma.user.findUnique.mockResolvedValue({
+        ...user,
+        institution: { isActive: false },
+      });
+      const error = await service
+        .refresh('s1.old', {})
+        .catch((e: unknown) => e);
+      expect((error as HttpException).getStatus()).toBe(403);
+      expect(responseCode(error)).toBe('INSTITUTION_INACTIVE');
+      expect(sessions.revokeAll).toHaveBeenCalledWith('u1');
+    });
+
+    it('keeps an admin signed in when their institution is switched off', async () => {
+      sessions.rotate.mockResolvedValue({
+        userId: 'u1',
+        sessionId: 's1',
+        refreshToken: 's1.new',
+      });
+      prisma.user.findUnique.mockResolvedValue({
+        ...user,
+        role: UserRole.ADMIN,
+        institution: { isActive: false },
+      });
+      await expect(service.refresh('s1.old', {})).resolves.toEqual({
+        accessToken: 'jwt',
+        refreshToken: 's1.new',
+      });
+      expect(sessions.revokeAll).not.toHaveBeenCalled();
     });
   });
 

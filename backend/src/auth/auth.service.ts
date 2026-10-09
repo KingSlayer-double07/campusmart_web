@@ -8,6 +8,10 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { compare, hash } from 'bcrypt';
 import { EmailCodePurpose, UserRole } from '../generated/prisma/enums';
+import {
+  blockedByInstitution,
+  institutionInactive,
+} from '../institutions/institution-access';
 import { InstitutionsService } from '../institutions/institutions.service';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -61,6 +65,7 @@ export class AuthService {
         message: "CampusMart isn't available for your school yet",
       });
     }
+    if (!institution.isActive) throw institutionInactive();
 
     const existing = await this.prisma.user.findUnique({
       where: { email: dto.email },
@@ -122,7 +127,11 @@ export class AuthService {
   async login(dto: LoginDto, meta: ClientMeta) {
     const found = await this.prisma.user.findUnique({
       where: { email: dto.email },
-      select: { ...safeUserSelect, password: true },
+      select: {
+        ...safeUserSelect,
+        password: true,
+        institution: { select: { isActive: true } },
+      },
     });
 
     const passwordMatches = await compare(
@@ -132,8 +141,11 @@ export class AuthService {
     if (!found || !found.password || !passwordMatches) {
       throw new UnauthorizedException('Invalid email or password');
     }
-    const { password: _password, ...user } = found;
+    const { password: _password, institution, ...user } = found;
     this.assertCanSignIn(user);
+    if (blockedByInstitution({ role: user.role, institution })) {
+      throw institutionInactive();
+    }
 
     const session = await this.sessions.create(user.id, meta);
     return {
@@ -147,13 +159,22 @@ export class AuthService {
     meta: ClientMeta,
   ): Promise<IssuedTokens> {
     const rotated = await this.sessions.rotate(refreshCookie, meta);
-    const user = await this.prisma.user.findUnique({
+    const found = await this.prisma.user.findUnique({
       where: { id: rotated.userId },
-      select: safeUserSelect,
+      select: {
+        ...safeUserSelect,
+        institution: { select: { isActive: true } },
+      },
     });
-    if (!user || user.isSuspended || !user.isActive) {
+    if (!found || found.isSuspended || !found.isActive) {
       await this.sessions.revokeAll(rotated.userId);
       throw new UnauthorizedException('Your session has ended. Sign in again.');
+    }
+    const { institution, ...user } = found;
+    // A switched-off institution cuts its users off here, within one access-token lifetime
+    if (blockedByInstitution({ role: user.role, institution })) {
+      await this.sessions.revokeAll(user.id);
+      throw institutionInactive();
     }
     return this.tokens(user, rotated.sessionId, rotated.refreshToken);
   }

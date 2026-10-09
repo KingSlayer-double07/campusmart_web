@@ -1,26 +1,7 @@
-import {
-  Controller,
-  Get,
-  Param,
-  UseGuards,
-  Body,
-  Post,
-  ParseUUIDPipe,
-} from '@nestjs/common';
-import {
-  ApiCookieAuth,
-  ApiOperation,
-  ApiParam,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { Controller, Get, Param, ParseUUIDPipe } from '@nestjs/common';
+import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ApiOkEnvelope } from '../common/swagger/api-envelope.decorator';
 import { ErrorResponseDto } from '../common/swagger/error-response.dto';
-import { UserRole } from '../generated/prisma/enums';
-import { CreateInstitutionDto } from './dto/create-institution.dto';
 import { InstitutionDto } from './dto/institution.dto';
 import { InstitutionsService } from './institutions.service';
 
@@ -31,7 +12,8 @@ export class InstitutionsController {
 
   @ApiOperation({
     summary: 'Get all institutions',
-    description: 'Public: used by the sign-up and waitlist pages',
+    description:
+      'Public: used by the sign-up and waitlist pages. Switched-off institutions are hidden.',
   })
   @ApiOkEnvelope([InstitutionDto])
   @Get()
@@ -48,21 +30,5 @@ export class InstitutionsController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ): Promise<InstitutionDto> {
     return this.institutionsService.getInstitutionById(id);
-  }
-
-  // Replaced by POST /admin/institutions in Phase 9
-  @ApiOperation({
-    summary: 'Create a new institution',
-    description: 'Admin only',
-  })
-  @ApiCookieAuth()
-  @ApiOkEnvelope(InstitutionDto, { status: 201 })
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @Post()
-  async createInstitution(
-    @Body() dto: CreateInstitutionDto,
-  ): Promise<InstitutionDto> {
-    return this.institutionsService.createInstitution(dto);
   }
 }
