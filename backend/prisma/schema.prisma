@@ -27,6 +27,7 @@ model User {
   isActive             Boolean               @default(true)
   isSuspended          Boolean               @default(false)
   institutionId        String?
+  pickupStationId      String? // set only for PICKUP_AGENT
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   emailVerifiedAt      DateTime?
@@ -35,140 +36,334 @@ model User {
   listings             Listing[]             @relation("SellerListings")
   moderationActions    ModerationAction[]
   orders               Order[]               @relation("BuyerOrders")
-  reviewsReceived      Review?               @relation("Reviewee")
+  sellerOrders         SellerOrder[]         @relation("SellerOrders")
+  sellerProfile        SellerProfile?
+  cartItems            CartItem[]
+  notifications        Notification[]
+  reviewsReceived      Review[]              @relation("Reviewee")
   reviewsGiven         Review[]              @relation("Reviewer")
   institution          Institution?          @relation(fields: [institutionId], references: [id])
+  pickupStation        PickupStation?        @relation("StationAgents", fields: [pickupStationId], references: [id])
   verificationRequests VerificationRequest[]
   wishlist             Wishlist[]
 }
 
 model Session {
-  id                  String      @id @default(uuid())
-  userId              String
-  refreshTokenHash    String
-  userAgent           String?
-  ipAddress           String?
-  lastUsedAt          DateTime    @default(now())
-  expiresAt           DateTime
-  revokedAt           DateTime?
-  createdAt           DateTime    @default(now())
-  user                User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String    @id @default(uuid())
+  userId           String
+  refreshTokenHash String
+  userAgent        String?
+  ipAddress        String?
+  lastUsedAt       DateTime  @default(now())
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, revokedAt])
 }
 
 model EmailCode {
-  id                String      @id @default(uuid())
-  userId            String
-  purpose           EmailCodePurpose
-  codeHash          String
-  attempts          Int         @default(0)
-  expiresAt         DateTime
-  usedAt            DateTime?
-  createdAt         DateTime    @default(now())
-  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String           @id @default(uuid())
+  userId    String
+  purpose   EmailCodePurpose
+  codeHash  String
+  attempts  Int              @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, purpose])
 }
 
 model Institution {
-  id        String    @id @default(uuid())
-  name      String    @unique
-  domains   String[]
-  createdAt DateTime  @default(now())
-  listings  Listing[]
-  users     User[]
+  id             String          @id @default(uuid())
+  name           String          @unique
+  domains        String[]
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  users          User[]
+  listings       Listing[]
+  pickupStations PickupStation[]
+  orders         Order[]
+}
+
+model SellerProfile {
+  userId                String   @id
+  storeName             String?
+  bio                   String?
+  logoUrl               String?
+  isOnline              Boolean  @default(false)
+  ratingAvg             Float    @default(0)
+  ratingCount           Int      @default(0)
+  payoutBankName        String?
+  payoutAccountLast4    String?
+  payoutAccountName     String?
+  paystackRecipientCode String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PickupStation {
+  id            String      @id @default(uuid())
+  institutionId String
+  name          String
+  address       String
+  contactName   String
+  contactPhone  String
+  openingHours  Json // [{ day: 'MON', open: '09:00', close: '17:00' }]
+  isActive      Boolean     @default(true)
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  agents        User[]      @relation("StationAgents")
+  orders        Order[]
+
+  @@index([institutionId, isActive])
 }
 
 model Listing {
   id             String             @id @default(uuid())
   title          String
   description    String
-  price          Decimal            @db.Decimal(10, 2)
-  quantity       Int
+  priceKobo      Int // was the naira `price` column
+  stock          Int // was quantity; sum of variants when present
   category       ListingCategory
-  status         ListingStatus      @default(DRAFT)
   condition      ProductCondition
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
+  status         ListingStatus      @default(DRAFT)
+  sellerId       String
+  institutionId  String // now required
+  ratingAvg      Float              @default(0)
+  ratingCount    Int                @default(0)
   isDeleted      Boolean            @default(false)
   isPromoted     Boolean            @default(false)
   isFlagged      Boolean            @default(false)
-  sellerId       String
-  institutionId  String?
-  institution    Institution?       @relation(fields: [institutionId], references: [id])
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  variants       ListingVariant[]
+  dailyStats     ListingDailyStat[]
   seller         User               @relation("SellerListings", fields: [sellerId], references: [id])
+  institution    Institution        @relation(fields: [institutionId], references: [id])
   images         ListingImage[]
-  moderationLogs ModerationAction[]
-  orderItems     OrderItem[]
   reviews        Review[]
   wishlistedBy   Wishlist[]
+  moderationLogs ModerationAction[]
+  orderItems     OrderItem[]
+  cartItems      CartItem[]
 
-  @@index([sellerId, status, institutionId])
+  @@index([institutionId, status, isDeleted, createdAt])
+  @@index([sellerId, status])
 }
 
 model ListingImage {
   id        String  @id @default(uuid())
   url       String
+  publicId  String
+  position  Int
   listingId String
-  listing   Listing @relation(fields: [listingId], references: [id])
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
+
+model ListingVariant {
+  id        String  @id @default(uuid())
+  listingId String
+  label     String // e.g. 'M', 'Black / XL', '500 ml'
+  priceKobo Int? // null = listing price
+  stock     Int
+  isActive  Boolean @default(true)
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, label])
+}
+
+model ListingDailyStat {
+  listingId String
+  date      DateTime @db.Date
+  views     Int      @default(0)
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@id([listingId, date])
+}
+
+model CartItem {
+  id         String   @id @default(uuid())
+  userId     String
+  listingId  String
+  variantKey String   @default("") // variantId, or '' for none; keeps the unique index strict
+  variantId  String?
+  quantity   Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing    Listing  @relation(fields: [listingId], references: [id])
+
+  @@unique([userId, listingId, variantKey])
 }
 
 model Order {
-  id                String             @id @default(uuid())
-  status            OrderStatus        @default(CART)
-  fulfillmentStatus FulfillmentStatus?
-  totalAmount       Decimal            @db.Decimal(10, 2)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  buyerId           String
-  buyer             User               @relation("BuyerOrders", fields: [buyerId], references: [id])
-  items             OrderItem[]
-  payment           Payment?
-  review            Review?
+  id              String        @id @default(uuid())
+  buyerId         String
+  institutionId   String
+  pickupStationId String
+  status          OrderStatus   @default(PENDING_PAYMENT)
+  paymentMethod   PaymentMethod
+  subtotalKobo    Int
+  totalKobo       Int
+  idempotencyKey  String        @unique
+  expiresAt       DateTime // unpaid orders expire (Phase 4)
+  paidAt          DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  sellerOrders    SellerOrder[]
+  payment         Payment?
+  buyer           User          @relation("BuyerOrders", fields: [buyerId], references: [id])
+  institution     Institution   @relation(fields: [institutionId], references: [id])
+  pickupStation   PickupStation @relation(fields: [pickupStationId], references: [id])
 
-  @@index([buyerId, status])
+  @@index([buyerId, createdAt])
+}
+
+model SellerOrder {
+  id                 String            @id @default(uuid())
+  orderId            String
+  sellerId           String
+  code               String            @unique // 'CM-7F3K2Q', printed on the parcel
+  collectionCode     String // 6 digits, shown only to the buyer
+  collectionAttempts Int               @default(0)
+  fulfillmentStatus  FulfillmentStatus @default(PENDING)
+  escrowStatus       EscrowStatus      @default(PENDING)
+  subtotalKobo       Int
+  platformFeeKobo    Int               @default(0)
+  sellerPayoutKobo   Int
+  dropOffDeadline    DateTime?
+  droppedOffAt       DateTime?
+  collectedAt        DateTime?
+  releaseAt          DateTime? // collectedAt + dispute window
+  cancelledAt        DateTime?
+  cancelReason       String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  order              Order             @relation(fields: [orderId], references: [id])
+  seller             User              @relation("SellerOrders", fields: [sellerId], references: [id])
+  items              OrderItem[]
+  payout             Payout?
+  dispute            Dispute?
+  reviews            Review[]
+
+  @@index([sellerId, fulfillmentStatus, createdAt])
+  @@index([fulfillmentStatus, escrowStatus, releaseAt])
 }
 
 model OrderItem {
-  id        String  @id @default(uuid())
-  quantity  Int
-  price     Decimal @db.Decimal(10, 2)
-  orderId   String
-  listingId String
-  listing   Listing @relation(fields: [listingId], references: [id])
-  order     Order   @relation(fields: [orderId], references: [id])
-
-  @@unique([orderId, listingId])
+  id            String      @id @default(uuid())
+  sellerOrderId String
+  listingId     String
+  variantId     String?
+  titleSnapshot String
+  variantLabel  String?
+  imageUrl      String?
+  unitPriceKobo Int
+  quantity      Int
+  sellerOrder   SellerOrder @relation(fields: [sellerOrderId], references: [id])
+  listing       Listing     @relation(fields: [listingId], references: [id])
 }
 
 model Payment {
-  id        String        @id @default(uuid())
-  amount    Decimal       @db.Decimal(10, 2)
-  status    PaymentStatus @default(PENDING)
-  provider  String?
-  reference String?       @unique
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  orderId   String        @unique
-  order     Order         @relation(fields: [orderId], references: [id])
+  id         String        @id @default(uuid())
+  orderId    String        @unique
+  provider   String        @default("PAYSTACK")
+  reference  String        @unique
+  amountKobo Int
+  status     PaymentStatus @default(PENDING)
+  channel    String?
+  paidAt     DateTime?
+  rawEvent   Json?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  order      Order         @relation(fields: [orderId], references: [id])
+}
+
+model Payout {
+  id            String       @id @default(uuid())
+  sellerOrderId String       @unique
+  sellerId      String
+  amountKobo    Int
+  status        PayoutStatus @default(PENDING)
+  reference     String       @unique
+  failureReason String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  sellerOrder   SellerOrder  @relation(fields: [sellerOrderId], references: [id])
+}
+
+model Dispute {
+  id             String        @id @default(uuid())
+  sellerOrderId  String        @unique
+  openedById     String
+  reason         String
+  evidenceUrls   String[]
+  status         DisputeStatus @default(OPEN)
+  resolutionNote String?
+  resolvedById   String?
+  createdAt      DateTime      @default(now())
+  resolvedAt     DateTime?
+  sellerOrder    SellerOrder   @relation(fields: [sellerOrderId], references: [id])
 }
 
 model Review {
-  id         String   @id @default(uuid())
-  rating     Int
-  comment    String?
-  createdAt  DateTime @default(now())
-  reviewerId String
-  revieweeId String   @unique
-  listingId  String
-  orderId    String   @unique
-  listing    Listing  @relation(fields: [listingId], references: [id])
-  order      Order    @relation(fields: [orderId], references: [id])
-  reviewee   User     @relation("Reviewee", fields: [revieweeId], references: [id])
-  reviewer   User     @relation("Reviewer", fields: [reviewerId], references: [id])
+  id            String      @id @default(uuid())
+  rating        Int // 1 to 5, checked in the DTO
+  comment       String?
+  reviewerId    String
+  revieweeId    String // the seller; no longer @unique
+  listingId     String
+  sellerOrderId String
+  createdAt     DateTime    @default(now())
+  sellerOrder   SellerOrder @relation(fields: [sellerOrderId], references: [id])
+  reviewer      User        @relation("Reviewer", fields: [reviewerId], references: [id])
+  reviewee      User        @relation("Reviewee", fields: [revieweeId], references: [id])
+  listing       Listing     @relation(fields: [listingId], references: [id])
 
+  @@unique([sellerOrderId, listingId])
   @@index([revieweeId])
+  @@index([listingId, createdAt])
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  type      String // 'ORDER_PAID', 'READY_FOR_PICKUP', ...
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+}
+
+model SupportReport {
+  id            String   @id @default(uuid())
+  userId        String
+  type          String // 'BUG', 'ORDER', 'PAYMENT', 'LISTING', 'OTHER'
+  message       String
+  screenshotUrl String?
+  listingId     String?
+  status        String   @default("OPEN")
+  createdAt     DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String? // null = system job
+  action     String // 'ESCROW_RELEASED', 'USER_SUSPENDED', ...
+  entityType String
+  entityId   String
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
 }
 
 model Wishlist {
@@ -180,7 +375,6 @@ model Wishlist {
   user      User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, listingId])
-  @@index([userId, listingId])
 }
 
 model VerificationRequest {
@@ -194,14 +388,15 @@ model VerificationRequest {
 }
 
 model ModerationAction {
-  id          String               @id @default(uuid())
-  type        ModerationActionType
-  reason      String?
-  createdAt   DateTime             @default(now())
-  listingId   String?
-  moderatorId String
-  listing     Listing?             @relation(fields: [listingId], references: [id])
-  moderator   User                 @relation(fields: [moderatorId], references: [id])
+  id           String               @id @default(uuid())
+  type         ModerationActionType
+  reason       String?
+  createdAt    DateTime             @default(now())
+  listingId    String?
+  targetUserId String? // the user acted on, e.g. SUSPEND_USER
+  moderatorId  String
+  listing      Listing?             @relation(fields: [listingId], references: [id])
+  moderator    User                 @relation(fields: [moderatorId], references: [id])
 }
 
 enum UserRole {
@@ -212,19 +407,47 @@ enum UserRole {
 }
 
 enum OrderStatus {
-  CART
-  AWAITING_PAYMENT
+  PENDING_PAYMENT
   PAID
-  DISPUTED
   CANCELLED
+  EXPIRED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  OPAY
+  PALMPAY
 }
 
 enum FulfillmentStatus {
+  PENDING
   AWAITING_DROPOFF
   DROPPED_OFF
   COLLECTED
   CANCELLED
   DISPUTED
+}
+
+enum EscrowStatus {
+  PENDING
+  HELD
+  RELEASED
+  REFUNDED
+}
+
+enum PayoutStatus {
+  AWAITING_ACCOUNT
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+}
+
+enum DisputeStatus {
+  OPEN
+  RESOLVED_REFUND
+  RESOLVED_RELEASE
 }
 
 enum ListingStatus {
@@ -261,6 +484,8 @@ enum ModerationActionType {
   REJECT
   SUSPEND
   FLAG
+  UNFLAG
+  SUSPEND_USER
 }
 
 enum ListingCategory {
