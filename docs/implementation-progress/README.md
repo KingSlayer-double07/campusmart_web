@@ -46,6 +46,11 @@ Your decisions that change or extend the guide. Each phase file has the detail.
 - **Phase 9 timing (2026-10-09):** the institutions and pickup-station admin screens come right after Phase 2, then
   Phase 3.
 
+## What you need to set up
+
+[setup-checklist.md](setup-checklist.md): accounts, keys, dashboard settings and decisions for Phases 5–10 and
+launch, plus everything still open from Phases 0–4 and 9.
+
 ## Phase files
 
 - [Phase 0](phase-0-security.md)

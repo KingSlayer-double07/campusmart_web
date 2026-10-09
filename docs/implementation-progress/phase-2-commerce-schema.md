@@ -150,8 +150,9 @@ Local Postgres 16. Unless stated, `DATABASE_URL=DIRECT_URL=postgresql://postgres
   seed data). Until then everything runs on the local Postgres.
 - ~~**What should `Institution.isActive = false` do?**~~ **Decided 2026-10-09:** new sign-ups with its domains are
   blocked with a friendly message, it is hidden from the public `GET /institutions` list, and existing sellers can't
-  sign in (same friendly message). Built with the Phase 9 institutions screen. Open detail: do existing buyers
-  (and already signed-in sessions) keep access?
+  sign in (same friendly message). Built with the Phase 9 institutions screen. Also decided: only admins can sign in
+  there, and anyone already signed in is cut off on their next token refresh.
 - ~~**Phase 9 timing**~~ **Decided 2026-10-09:** build the Phase 9 institutions and pickup-station admin screens right
   after Phase 2, then Phase 3.
-- Still open from Phase 1: the middleware silent-refresh approach, branch protection for `master`/`develop`.
+- Still open from Phase 1: branch protection for `master`/`develop` (the middleware approach was decided: keep it).
+  The full list of open items is in [setup-checklist.md](setup-checklist.md).
