@@ -225,10 +225,9 @@ Backend tests ran against local Postgres `campusmart_test`. The browser smoke ru
 
 ## 5. Needs from Collins
 
-- **GitHub push access (blocker).** Pushes to `ArnoldMidalla/campusmart_web` return 403 "Claude doesn't have GitHub
-  access". The fork `KingSlayer-double07/campusmart_web` is pushable, but this session can't attach it because it
-  has the same repo name as the upstream already attached here. To fix: start a session with the fork as its source,
-  or push the bundle yourself (see the gate summary).
+- ~~GitHub push access (blocker)~~ **Resolved 2026-10-09:** a session on the fork `KingSlayer-double07/campusmart_web`
+  pushed `backend`, `feat/phase-0-security` and `feat/phase-1-integration` from the bundle (`backend` at `99d5b3c`).
+  Phase work now branches off `backend` instead of `develop`.
 - ~~Rate limits behind campus NAT~~ **Decided 2026-10-09:** limits follow the email/account, not the IP (see
   "Rate limits per account" below).
 - **Middleware approach** (deviation 4): OK as is, or do you prefer a different cookie rule?

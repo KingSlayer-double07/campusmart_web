@@ -61,6 +61,20 @@ generates the client as part of `migrate dev`, so run `generate` afterwards. The
 To change the schema, edit `prisma/schema.prisma` and run `npx prisma migrate dev --name <short_description>`.
 CI fails when the schema and the migrations disagree.
 
+Then seed the database:
+
+```bash
+npx prisma db seed
+```
+
+[`prisma/seed.ts`](prisma/seed.ts) creates one institution (sign-up only accepts emails on its domains), two pickup
+stations, and an admin from `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`. The password must meet the normal password
+policy. Running it again keeps existing rows and never changes an existing admin's password.
+
+To start a development database from scratch, `npx prisma migrate reset` drops everything and re-applies every
+migration. Prisma 7 no longer seeds as part of `reset`, so run `npx prisma db seed` after it. Never point either
+command at a shared or production database.
+
 ### 4. Start the server
 
 ```bash

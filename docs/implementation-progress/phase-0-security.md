@@ -177,7 +177,7 @@ Local Postgres 16; `DATABASE_URL=DIRECT_URL=postgresql://postgres:postgres@local
 
 ## 5. Needs from Collins
 
-- **GitHub push access**: see Phase 1.
+- ~~**GitHub push access**~~: resolved 2026-10-09, see Phase 1.
 - **Protect `master` and `develop`** so both CI jobs must pass (GitHub branch protection, guide Testing section).
 - **Trust proxy hops in production.** `trust proxy` is `1` as the guide says. If production traffic passes through
   Vercel and then a load balancer in front of the API, `req.ip` will be the Vercel egress IP. Rate limits and the

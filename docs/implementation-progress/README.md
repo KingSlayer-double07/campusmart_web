@@ -7,7 +7,7 @@ its checklist, changes, verification evidence, deviations and open asks.
 |---|---|---|---|
 | 0 Security and hygiene | DONE | `feat/phase-0-security` | 2026-10-08 |
 | 1 Integration foundation | DONE pending manual checks | `feat/phase-1-integration` | 2026-10-08 |
-| 2 Commerce schema | NOT STARTED | | |
+| 2 Commerce schema | IN PROGRESS (waiting on the dev reset confirmation) | `feat/phase-2-commerce-schema` | 2026-10-09 |
 | 3 Listings, variants, uploads | NOT STARTED | | |
 | 4 Cart and checkout | NOT STARTED | | |
 | 5 Payments and escrow | NOT STARTED | | |
@@ -23,6 +23,7 @@ Status values: NOT STARTED / IN PROGRESS / BLOCKED / DONE / DONE pending manual 
 
 - [Phase 0](phase-0-security.md)
 - [Phase 1](phase-1-integration.md) (browser smoke evidence in [`evidence/`](evidence/))
+- [Phase 2](phase-2-commerce-schema.md)
 
 ## Working setup used for verification
 
