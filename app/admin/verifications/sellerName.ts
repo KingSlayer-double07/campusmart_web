@@ -1,7 +1,13 @@
 import type { AdminVerificationRequest } from "@/lib/api/admin";
 
-// "Amaka Obi", or the email when the account has no name yet
-export function sellerName(seller: AdminVerificationRequest["seller"]) {
-  const name = [seller.firstName, seller.lastName].filter(Boolean).join(" ").trim();
-  return name || seller.email;
+type Seller = AdminVerificationRequest["seller"];
+
+// The name on the account ("Amaka Obi"), or null when the seller never gave one
+export function accountName(seller: Seller): string | null {
+  return [seller.firstName, seller.lastName].filter(Boolean).join(" ").trim() || null;
+}
+
+// What to call the seller in a list or a toast: their name, else their store, else their email
+export function sellerName(seller: Seller): string {
+  return accountName(seller) ?? seller.storeName ?? seller.email;
 }

@@ -43,6 +43,7 @@ describe("ReviewDialog", () => {
     open();
     const photo = await screen.findByRole("img", { name: "Student ID sent by Amaka Obi" });
     expect(photo.getAttribute("src")).toBe(request.documentViewUrl);
+    expect(screen.getByText("Amaka Obi")).toBeTruthy();
     expect(screen.getByText("amaka@unilag.edu.ng")).toBeTruthy();
     expect(screen.getByText("Amaka Styles")).toBeTruthy();
     expect(screen.getByText("University of Lagos")).toBeTruthy();
@@ -86,6 +87,13 @@ describe("ReviewDialog", () => {
     expect(await screen.findByText("The photo can't be shown")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Reload photo" }));
     expect(onReloadPhoto).toHaveBeenCalled();
+  });
+
+  it("says when the account has no name, instead of repeating the email", async () => {
+    open({ seller: { ...request.seller, firstName: null, lastName: null } });
+    expect(await screen.findByRole("img", { name: "Student ID sent by Amaka Styles" })).toBeTruthy();
+    expect(screen.getByText("Not given")).toBeTruthy();
+    expect(screen.getAllByText("amaka@unilag.edu.ng")).toHaveLength(1);
   });
 
   it("is read-only once decided", async () => {

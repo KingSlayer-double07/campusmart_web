@@ -9,7 +9,7 @@ import type { AdminVerificationRequest } from "@/lib/api/admin";
 import { ApiError } from "@/lib/api/client";
 import { useDecideVerification } from "@/lib/api/hooks/useAdminVerifications";
 import { Field, TextArea } from "../components/fields";
-import { sellerName } from "./sellerName";
+import { accountName, sellerName } from "./sellerName";
 
 const when = new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short" });
 const MIN_NOTE = 3;
@@ -155,7 +155,7 @@ export default function ReviewDialog({
         )}
 
         <dl className="divide-y divide-border-default rounded-xl border border-border-default px-4">
-          <Detail label="Name" value={name} />
+          <Detail label="Name on account" value={accountName(request.seller) ?? "Not given"} />
           <Detail label="Email" value={request.seller.email} />
           <Detail label="Store" value={request.seller.storeName ?? "Not named yet"} />
           <Detail label="School" value={request.seller.institutionName ?? "None"} />

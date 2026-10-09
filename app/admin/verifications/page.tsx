@@ -39,8 +39,10 @@ function columnsFor(queue: ReviewQueue): Column<AdminVerificationRequest>[] {
       header: "Seller",
       cell: (r) => (
         <div className="min-w-0">
-          <p className="font-semibold text-foreground">{sellerName(r.seller)}</p>
-          <p className="mt-0.5 truncate text-xs text-foreground-muted">{r.seller.email}</p>
+          <p className="font-semibold text-foreground break-words">{sellerName(r.seller)}</p>
+          {sellerName(r.seller) !== r.seller.email && (
+            <p className="mt-0.5 truncate text-xs text-foreground-muted">{r.seller.email}</p>
+          )}
           <p className="mt-0.5 text-xs text-foreground-muted md:hidden">
             {[r.seller.storeName, r.seller.institutionName].filter(Boolean).join(" · ")}
           </p>
