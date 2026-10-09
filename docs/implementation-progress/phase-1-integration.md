@@ -230,7 +230,7 @@ Backend tests ran against local Postgres `campusmart_test`. The browser smoke ru
   Phase work now branches off `backend` instead of `develop`.
 - ~~Rate limits behind campus NAT~~ **Decided 2026-10-09:** limits follow the email/account, not the IP (see
   "Rate limits per account" below).
-- **Middleware approach** (deviation 4): OK as is, or do you prefer a different cookie rule?
+- ~~**Middleware approach**~~ **Decided 2026-10-09:** keep it as is (deviation 4).
 - **Production SMTP:** `MAIL_HOST/PORT/USER/PASS/FROM`, pending the domain (Collins, 2026-10-09). Until it's set,
   a `NODE_ENV=production` API refuses to boot (env schema), because nobody could receive a verification code.
   Development and test print codes to the console, so local work is unaffected.

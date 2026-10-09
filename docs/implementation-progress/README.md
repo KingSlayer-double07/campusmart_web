@@ -14,7 +14,7 @@ its checklist, changes, verification evidence, deviations and open asks.
 | 6 Fulfilment and pickup stations | NOT STARTED | | |
 | 7 Seller analytics | NOT STARTED | | |
 | 8 Wishlist, stores, reviews | NOT STARTED | | |
-| 9 Admin UI and moderation | NOT STARTED (institutions and stations screens next, by Collins' decision) | | |
+| 9 Admin UI and moderation | IN PROGRESS (slice A, institutions and pickup stations: DONE pending manual checks) | `feat/phase-9-admin-institutions-stations` | 2026-10-09 |
 | 10 Remaining features | NOT STARTED | | |
 
 Status values: NOT STARTED / IN PROGRESS / BLOCKED / DONE / DONE pending manual checks.
@@ -33,8 +33,9 @@ Collins' calls that change or extend the guide. Each phase file has the detail.
   after all phases are complete.
 - **Seed data (2026-10-09):** the seed's institution and stations stay placeholders until Collins edits them.
 - **Inactive institutions (2026-10-09):** new sign-ups with its domains are blocked with a friendly message, it is
-  hidden from the public institutions list, and existing sellers can't sign in (same message). Built with the
-  Phase 9 institutions screen.
+  hidden from the public institutions list, and only admins can sign in there; buyers, sellers and pickup agents get
+  the same message. Anyone signed in is cut off on their next token refresh. Built in Phase 9 slice A.
+- **Middleware and cookies (2026-10-09):** keep the Phase 1 approach as is (sign-in page refreshes silently).
 - **Phase 9 timing (2026-10-09):** the institutions and pickup-station admin screens come right after Phase 2, then
   Phase 3.
 
@@ -43,10 +44,12 @@ Collins' calls that change or extend the guide. Each phase file has the detail.
 - [Phase 0](phase-0-security.md)
 - [Phase 1](phase-1-integration.md) (browser smoke evidence in [`evidence/`](evidence/))
 - [Phase 2](phase-2-commerce-schema.md)
+- [Phase 9](phase-9-admin.md) (built in slices; browser evidence in [`evidence/phase9-admin/`](evidence/phase9-admin/))
 
 ## Working setup used for verification
 
 - Local Postgres 16 (`campusmart_dev` for migrations and manual runs, `campusmart_test` for e2e), never Neon.
+- If the container restarted and Postgres is down: `su postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D /var/lib/postgresql/cm-data -l /var/lib/postgresql/cm-pg.log -o '-p 5432 -k /tmp' start"`.
 - `backend/.env` is local and git-ignored. Placeholder values only; no real credentials are committed.
 - Gate commands: backend `npx tsc --noEmit`, `npm run lint -- --max-warnings 0`, `npm test`, `npm run test:e2e`;
   frontend `npm run lint`, `npx tsc --noEmit`, `npx vitest run`, `npm run build`.
