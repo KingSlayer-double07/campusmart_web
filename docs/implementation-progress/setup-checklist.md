@@ -140,7 +140,7 @@ Without staging I still build and test Phase 5 fully against mocks. The real tes
 | 3 | Cloudinary (section 1.5), then two MANUAL checks: a real listing upload, and a student-ID photo that only admins can open, through a link that stops working after 10 minutes | you |
 | 4 | Platform fee, OPay / PalmPay (section 1) | you |
 | 9 | MANUAL: look over the admin console on a phone and a laptop | you |
-| – | **Two lockfiles in each app**: `pnpm-lock.yaml` and `backend/pnpm-lock.yaml` (added on `backend`) sit next to `package-lock.json` and `backend/package-lock.json`. Hosts pick a package manager from the lockfile, so a deploy could install with pnpm while CI (`npm ci`) uses npm, and the two lockfiles drift whenever a dependency changes (Phase 4 added `@nestjs/schedule` to the npm one only). Pick one: if you're moving to pnpm, I switch CI to pnpm and delete the npm lockfiles; otherwise I delete the pnpm ones. | you decide, I do it |
+| – | **Two lockfiles in each app**: `pnpm-lock.yaml` and `backend/pnpm-lock.yaml` (added on `backend`) sit next to `package-lock.json` and `backend/package-lock.json`. Hosts pick a package manager from the lockfile, so a deploy could install with pnpm while CI (`npm ci`) uses npm, and the two lockfiles drift whenever a dependency is added with only one of the tools. Pick one: if you're moving to pnpm, I switch CI to pnpm and delete the npm lockfiles; otherwise I delete the pnpm ones. | you decide, I do it |
 
 Resolved since the earlier notes: CI now runs on GitHub on every push (the latest run on `backend` is green).
 
