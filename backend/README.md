@@ -14,7 +14,7 @@ Next.js app rewrites `/api/*` to this server (decision D1 in [the implementation
 
 ```bash
 cd backend
-npm install
+pnpm install
 ```
 
 ### 2. Configure the environment
@@ -50,35 +50,35 @@ the source of truth when this table and `.env.example` disagree.
 ### 3. Set up the database
 
 ```bash
-npx prisma migrate dev
-npx prisma generate
+pnpm exec prisma migrate dev
+pnpm exec prisma generate
 ```
 
 `migrate dev` applies the migrations in `prisma/migrations` to the database named by `DIRECT_URL`. Prisma 7 no longer
 generates the client as part of `migrate dev`, so run `generate` afterwards. The client is written to
 `src/generated/prisma`, which is git-ignored; run `generate` again after every pull that touches `prisma/schema.prisma`.
 
-To change the schema, edit `prisma/schema.prisma` and run `npx prisma migrate dev --name <short_description>`.
+To change the schema, edit `prisma/schema.prisma` and run `pnpm exec prisma migrate dev --name <short_description>`.
 CI fails when the schema and the migrations disagree.
 
 Then seed the database:
 
 ```bash
-npx prisma db seed
+pnpm exec prisma db seed
 ```
 
 [`prisma/seed.ts`](prisma/seed.ts) creates one institution (sign-up only accepts emails on its domains), two pickup
 stations, and an admin from `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`. The password must meet the normal password
 policy. Running it again keeps existing rows and never changes an existing admin's password.
 
-To start a development database from scratch, `npx prisma migrate reset` drops everything and re-applies every
-migration. Prisma 7 no longer seeds as part of `reset`, so run `npx prisma db seed` after it. Never point either
+To start a development database from scratch, `pnpm exec prisma migrate reset` drops everything and re-applies every
+migration. Prisma 7 no longer seeds as part of `reset`, so run `pnpm exec prisma db seed` after it. Never point either
 command at a shared or production database.
 
 ### 4. Start the server
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 This starts the server in watch mode at `http://localhost:4000/api`. Every route is under the `/api` prefix.
@@ -115,8 +115,8 @@ throw new ConflictException({ code: 'OUT_OF_STOCK', message: 'Only 2 left', deta
 ## Tests
 
 ```bash
-npm test            # unit tests, Prisma mocked
-npm run test:e2e    # supertest against a real Postgres
+pnpm test            # unit tests, Prisma mocked
+pnpm test:e2e    # supertest against a real Postgres
 ```
 
 The e2e suites truncate every table, so they refuse to run unless the database name in `DATABASE_URL` contains
@@ -125,16 +125,16 @@ The e2e suites truncate every table, so they refuse to run unless the database n
 ```bash
 export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/campusmart_test
 export DIRECT_URL=$DATABASE_URL
-npx prisma migrate deploy
-npm run test:e2e
+pnpm exec prisma migrate deploy
+pnpm test:e2e
 ```
 
 ## Scripts
 
 | Command | Purpose |
 | :--- | :--- |
-| `npm run dev` | Run in watch mode |
-| `npm run debug` | Watch mode with the Node inspector attached |
-| `npm run build` / `npm run prod` | Compile to `dist/` and run it |
-| `npm run lint` | ESLint (checks only; `npx eslint --fix` to fix) |
-| `npm test` / `npm run test:e2e` | Unit and end-to-end tests |
+| `pnpm dev` | Run in watch mode |
+| `pnpm debug` | Watch mode with the Node inspector attached |
+| `pnpm build` / `pnpm prod` | Compile to `dist/` and run it |
+| `pnpm lint` | ESLint (checks only; `pnpm exec eslint --fix` to fix) |
+| `pnpm test` / `pnpm test:e2e` | Unit and end-to-end tests |

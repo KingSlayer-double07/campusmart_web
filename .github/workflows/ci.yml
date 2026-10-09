@@ -20,34 +20,38 @@ jobs:
       NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
+      # pnpm version comes from the packageManager field in package.json
+      - uses: pnpm/action-setup@v4
+        with: { package_json_file: backend/package.json }
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm, cache-dependency-path: backend/package-lock.json }
-      - run: npm ci
-      - run: npx prisma generate
-      - run: npx prisma migrate deploy
-      - run: npx prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code
-      - run: npm run lint -- --max-warnings 0
-      - run: npx tsc --noEmit
-      - run: npm test
-      - run: npm run test:e2e
+        with: { node-version: 22, cache: pnpm, cache-dependency-path: backend/pnpm-lock.yaml }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prisma generate
+      - run: pnpm exec prisma migrate deploy
+      - run: pnpm exec prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code
+      - run: pnpm run lint --max-warnings 0
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm test
+      - run: pnpm run test:e2e
       # lib/api/schema.d.ts must be current (guide 1.5): regenerate it from the same OpenAPI
       # document /api/docs-json serves and fail on any diff
-      - run: npm run openapi:export -- openapi.json
-      - name: npm run gen:api produces no diff
+      - run: pnpm run openapi:export openapi.json
+      - name: pnpm run gen:api produces no diff
         working-directory: .
         run: |
-          npm ci
-          npx openapi-typescript backend/openapi.json -o lib/api/schema.d.ts
+          pnpm install --frozen-lockfile
+          pnpm exec openapi-typescript backend/openapi.json -o lib/api/schema.d.ts
           git diff --exit-code lib/api/schema.d.ts
   frontend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
-      - run: npm ci
-      - run: npm run lint
-      - run: npx tsc --noEmit
-      - run: npx vitest run
-      - run: npm run build
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm exec vitest run
+      - run: pnpm run build
         env: { API_ORIGIN: http://localhost:4000 }

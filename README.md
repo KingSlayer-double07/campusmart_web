@@ -24,12 +24,12 @@ Follow these steps to set up the development environment locally:
 
 2. **Install Dependencies**
    ```bash
-   npm install
+   pnpm install
    ```
 
 3. **Run the Development Server**
    ```bash
-   npm run dev
+   pnpm dev
    ```
    The application will be available at `http://localhost:3000`.
 
