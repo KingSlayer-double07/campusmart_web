@@ -31,7 +31,8 @@ export const envSchema = z
     MAIL_PASS: optional,
     MAIL_FROM: optional,
 
-    // Cloudinary (image uploads), Phase 3
+    // Cloudinary (image uploads), Phase 3. Required in production; without it in development,
+    // POST /uploads/signature answers 503 UPLOADS_NOT_CONFIGURED.
     CLOUDINARY_CLOUD_NAME: optional,
     CLOUDINARY_API_KEY: optional,
     CLOUDINARY_API_SECRET: optional,
@@ -58,12 +59,16 @@ export const envSchema = z
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production') {
+      // Mail sends verification codes; Cloudinary signs image uploads (Phase 3)
       for (const key of [
         'MAIL_HOST',
         'MAIL_PORT',
         'MAIL_USER',
         'MAIL_PASS',
         'MAIL_FROM',
+        'CLOUDINARY_CLOUD_NAME',
+        'CLOUDINARY_API_KEY',
+        'CLOUDINARY_API_SECRET',
       ] as const) {
         if (env[key] === undefined) {
           ctx.addIssue({

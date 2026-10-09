@@ -16,6 +16,12 @@ const mail = {
   MAIL_FROM: 'CampusMart <noreply@example.com>',
 };
 
+const cloudinary = {
+  CLOUDINARY_CLOUD_NAME: 'campusmart',
+  CLOUDINARY_API_KEY: '123456789012345',
+  CLOUDINARY_API_SECRET: 'secret',
+};
+
 describe('envSchema', () => {
   it('accepts the CI environment and fills in defaults', () => {
     const env = envSchema.parse(ciEnv);
@@ -46,16 +52,29 @@ describe('envSchema', () => {
     expect(envSchema.safeParse(rest).success).toBe(false);
   });
 
-  it('requires the SMTP settings in production', () => {
+  it('requires the SMTP and Cloudinary settings in production', () => {
     const result = envSchema.safeParse({ ...ciEnv, NODE_ENV: 'production' });
     expect(result.success).toBe(false);
     expect(result.error?.issues.map((i) => i.path[0])).toEqual(
-      expect.arrayContaining(['MAIL_HOST', 'MAIL_FROM']),
+      expect.arrayContaining([
+        'MAIL_HOST',
+        'MAIL_FROM',
+        'CLOUDINARY_CLOUD_NAME',
+        'CLOUDINARY_API_SECRET',
+      ]),
     );
     expect(
-      envSchema.safeParse({ ...ciEnv, ...mail, NODE_ENV: 'production' })
-        .success,
+      envSchema.safeParse({
+        ...ciEnv,
+        ...mail,
+        ...cloudinary,
+        NODE_ENV: 'production',
+      }).success,
     ).toBe(true);
+  });
+
+  it('boots without Cloudinary outside production', () => {
+    expect(envSchema.safeParse(ciEnv).success).toBe(true);
   });
 
   it('requires PAYSTACK_SECRET_KEY once payments are enabled', () => {
