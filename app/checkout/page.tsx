@@ -14,6 +14,7 @@ import { useCheckout, usePickupStations } from "@/lib/api/hooks/useBuyerOrders";
 import { blockingIssues, useCart } from "@/lib/api/hooks/useCart";
 import { PAYMENT_OPTIONS } from "@/lib/constants/payments";
 import { formatNaira, type PaymentMethod } from "@/lib/labels";
+import { randomUUID } from "@/lib/uuid";
 
 function Divider() {
   return <div className="w-full h-0.5 rounded-full bg-neutral-200" />;
@@ -50,7 +51,7 @@ export default function CheckoutPage() {
   const [payMethod, setPayMethod] = useState<PaymentMethod | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
   // Made once per visit: retrying a request that may have reached the server returns the same order
-  const [idempotencyKey] = useState(() => crypto.randomUUID());
+  const [idempotencyKey] = useState(() => randomUUID());
 
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
