@@ -17,6 +17,7 @@ import { AdminModule } from './admin/admin.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { ListingsModule } from './listings/listings.module';
 import { SellersModule } from './sellers/sellers.module';
+import { CartModule } from './cart/cart.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { SellersModule } from './sellers/sellers.module';
     UploadsModule,
     ListingsModule,
     SellersModule,
+    CartModule,
   ],
   controllers: [AppController],
   providers: [
