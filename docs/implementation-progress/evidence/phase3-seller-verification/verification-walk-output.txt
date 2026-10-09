@@ -1,0 +1,19 @@
+PASS  An unverified seller sees "Get verified to start selling" on their store profile
+PASS  Add product explains drafts and offers no Publish button
+PASS  Saving as a draft works before verification
+PASS  The draft's menu has no Publish yet
+PASS  The ID photo goes up as a private upload into the seller's verification folder  (authenticated campusmart/verification/cd0f66a1-6be3-4579-af72-c5d11e6cef82)
+PASS  The overview counts sellers waiting  (waiting=1)
+PASS  The Waiting tab lists the seller with their store and school
+PASS  The ID photo loads from a signed link that expires within 10 minutes
+PASS  Rejecting needs a note
+PASS  The Rejected tab shows the note
+PASS  The seller sees the admin's note
+PASS  The seller can send a new photo
+PASS  The admin queue and dialog fit a phone (no sideways scrolling)
+PASS  Approving shows "Seller approved"
+PASS  The "Get verified" notice is gone from products
+PASS  After approval the draft publishes ("In stock")
+PASS  The profile shows the verified badge and no verification card
+
+17/17 passed

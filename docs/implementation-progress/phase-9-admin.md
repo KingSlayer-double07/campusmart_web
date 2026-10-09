@@ -6,7 +6,8 @@ Phase 2 ... Add the rest as each phase lands").
 | Slice | Branch | Status |
 |---|---|---|
 | A. Institutions and pickup stations (after Phase 2, decided 2026-10-09) | `feat/phase-9-admin-institutions-stations` | DONE pending manual checks |
-| B. Users and roles, verifications, listings, disputes, payouts, reports, audit, overview metrics | later, as Phases 3 to 10 land | NOT STARTED |
+| B. Seller verification (with Phase 3, decided 2026-10-09) | `feat/phase-3-seller-verification` | DONE pending manual checks; logged in [Phase 3, 3.3](phase-3-listings.md) |
+| C. Users and roles, listings, disputes, payouts, reports, audit, overview metrics | later, as Phases 3 to 10 land | NOT STARTED |
 
 ## 1. Checklist
 
