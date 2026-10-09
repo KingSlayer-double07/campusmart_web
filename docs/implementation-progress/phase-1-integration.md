@@ -234,10 +234,8 @@ Backend tests ran against local Postgres `campusmart_test`. The browser smoke ru
 - **Production SMTP:** `MAIL_HOST/PORT/USER/PASS/FROM`, pending the domain (Collins, 2026-10-09). Until it's set,
   a `NODE_ENV=production` API refuses to boot (env schema), because nobody could receive a verification code.
   Development and test print codes to the console, so local work is unaffected.
-- **Neon dev branch:** apply the new migration there (`npx prisma migrate deploy` against your dev `DIRECT_URL`). I
-  only applied it to a local Postgres.
-- **Institutions for testing sign-up:** until the Phase 2 seed exists, create one with your school's domains
-  (admin `POST /api/institutions`).
+- ~~**Neon dev branch**~~ **Decided 2026-10-09:** Collins migrates Neon himself after all phases are complete.
+- ~~**Institutions for testing sign-up**~~ Resolved by the Phase 2 seed (`npx prisma db seed`).
 - **FYI, strict refresh rotation:** with reuse detection as specified, two tabs refreshing at the same instant can
   trip it and sign that device out. The client shares one refresh per tab; cross-tab coordination could come later
   if it shows up in practice.

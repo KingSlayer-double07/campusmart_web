@@ -19,6 +19,25 @@ its checklist, changes, verification evidence, deviations and open asks.
 
 Status values: NOT STARTED / IN PROGRESS / BLOCKED / DONE / DONE pending manual checks.
 
+## Decisions since the guide
+
+Collins' calls that change or extend the guide. Each phase file has the detail.
+
+- **Branching (2026-10-09):** phase branches come off `backend`, not `develop`; `backend` is fast-forwarded to each
+  phase branch at its gate. Nothing is merged to `develop` or `master`.
+- **Rate limits per account (2026-10-09):** `AccountThrottlerGuard` keys limits by verified user id, else request
+  email, else IP (campus NAT). See Phase 1.
+- **Mail (2026-10-09):** `MAIL_*` waits for the domain. Development and test print codes to the console; a production
+  API won't boot without `MAIL_*`.
+- **Local Postgres, Neon later (2026-10-09):** all work runs on a local Postgres 16. Collins migrates Neon himself
+  after all phases are complete.
+- **Seed data (2026-10-09):** the seed's institution and stations stay placeholders until Collins edits them.
+- **Inactive institutions (2026-10-09):** new sign-ups with its domains are blocked with a friendly message, it is
+  hidden from the public institutions list, and existing sellers can't sign in (same message). Built with the
+  Phase 9 institutions screen.
+- **Phase 9 timing (2026-10-09):** the institutions and pickup-station admin screens come right after Phase 2, then
+  Phase 3.
+
 ## Phase files
 
 - [Phase 0](phase-0-security.md)

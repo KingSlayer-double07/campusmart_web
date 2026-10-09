@@ -144,13 +144,14 @@ Local Postgres 16. Unless stated, `DATABASE_URL=DIRECT_URL=postgresql://postgres
     `ListingImage → Listing` (now cascades on delete).
   - Plan: `npx prisma migrate reset --force` then `npx prisma db seed`, with `DIRECT_URL`/`DATABASE_URL` pointing at
     local `campusmart_dev` only.
-- **Real seed data:** your school's name and email domains, and the two stations' names, addresses, contacts and
-  opening hours (`prisma/seed.ts`, top of file).
-- **Neon:** when you're ready, create the `dev-phase2` branch (2.1), export anything you want to keep, then run
-  `npx prisma migrate reset --force` and `npx prisma db seed` against it with `SEED_ADMIN_EMAIL`/
-  `SEED_ADMIN_PASSWORD` set. I haven't touched Neon.
-- **What should `Institution.isActive = false` do?** Proposal for Phase 9: block new sign-ups from its domains and
-  hide it from `GET /institutions`; existing users keep access.
+- ~~**Real seed data**~~ **Decided 2026-10-09:** keep the placeholders; Collins edits `prisma/seed.ts` himself when
+  the time is right.
+- ~~**Neon**~~ **Decided 2026-10-09:** Collins migrates Neon himself after all phases are complete (after editing the
+  seed data). Until then everything runs on the local Postgres.
+- ~~**What should `Institution.isActive = false` do?**~~ **Decided 2026-10-09:** new sign-ups with its domains are
+  blocked with a friendly message, it is hidden from the public `GET /institutions` list, and existing sellers can't
+  sign in (same friendly message). Built with the Phase 9 institutions screen. Open detail: do existing buyers
+  (and already signed-in sessions) keep access?
 - ~~**Phase 9 timing**~~ **Decided 2026-10-09:** build the Phase 9 institutions and pickup-station admin screens right
   after Phase 2, then Phase 3.
 - Still open from Phase 1: the middleware silent-refresh approach, branch protection for `master`/`develop`.
