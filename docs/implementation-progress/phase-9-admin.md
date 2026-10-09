@@ -34,7 +34,7 @@ Slice A gate:
 - [x] Every new endpoint meets the definition of done.
 - [x] Admin screens follow the existing frontend patterns, are mobile-responsive and have loading, empty and error
   states.
-- [ ] MANUAL: you look over the console on a phone and a laptop and confirms it's easy to understand (steps below).
+- [ ] MANUAL: you look over the console on a phone and a laptop and confirm it's easy to understand (steps below).
 
 ## 2. Changes
 

@@ -29,7 +29,7 @@ Your decisions that change or extend the guide. Each phase file has the detail.
   email, else IP (campus NAT). See Phase 1.
 - **Mail (2026-10-09):** `MAIL_*` waits for the domain. Development and test print codes to the console; a production
   API won't boot without `MAIL_*`.
-- **Local Postgres, Neon later (2026-10-09):** all work runs on a local Postgres 16. you migrate Neon
+- **Local Postgres, Neon later (2026-10-09):** all work runs on a local Postgres 16. You migrate Neon
   after all phases are complete.
 - **Seed data (2026-10-09):** the seed's institution and stations stay placeholders until you edit them.
 - **Inactive institutions (2026-10-09):** new sign-ups with its domains are blocked with a friendly message, it is
