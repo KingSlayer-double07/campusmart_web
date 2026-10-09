@@ -9,7 +9,7 @@ its checklist, changes, verification evidence, deviations and open asks.
 | 1 Integration foundation | DONE pending manual checks | `feat/phase-1-integration` | 2026-10-08 |
 | 2 Commerce schema | DONE | `feat/phase-2-commerce-schema` | 2026-10-09 |
 | 3 Listings, variants, uploads | DONE pending manual checks (real Cloudinary upload) | `feat/phase-3-listings`, `feat/phase-3-seller-verification` | 2026-10-09 |
-| 4 Cart and checkout | NOT STARTED | | |
+| 4 Cart and checkout | IN PROGRESS | `feat/phase-4-cart-checkout` | 2026-10-09 |
 | 5 Payments and escrow | NOT STARTED | | |
 | 6 Fulfilment and pickup stations | NOT STARTED | | |
 | 7 Seller analytics | NOT STARTED | | |
@@ -51,6 +51,7 @@ Your decisions that change or extend the guide. Each phase file has the detail.
 - [Phase 2](phase-2-commerce-schema.md)
 - [Phase 3](phase-3-listings.md) (browser evidence in [`evidence/phase3-listings/`](evidence/phase3-listings/) and
   [`evidence/phase3-seller-verification/`](evidence/phase3-seller-verification/))
+- [Phase 4](phase-4-cart-checkout.md)
 - [Phase 9](phase-9-admin.md) (built in slices; browser evidence in [`evidence/phase9-admin/`](evidence/phase9-admin/))
 
 ## Working setup used for verification
