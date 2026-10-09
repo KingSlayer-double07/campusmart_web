@@ -9,9 +9,9 @@ import Image from "next/image";
 import PageHeader from "../components/PageHeader";
 import { useEffect, useState } from "react";
 import SectionHeader from "../components/SectionHeader";
-import ProductCarousel from "../components/ProductCarousel";
-import { products } from "../components/data";
+import ListingsCarousel from "../components/ListingsCarousel";
 import Nav from "../components/nav";
+import { formatPriceRange } from "@/lib/labels";
 import Link from "next/link";
 import { Heart } from "lucide-react";
 
@@ -76,28 +76,30 @@ export default function Favourites() {
                       <div className="flex gap-4">
                         <Link
                           href={`/productItem/${item.id}`}
-                          className="size-24 relative overflow-hidden rounded-sm shrink-0"
+                          className="size-24 relative overflow-hidden rounded-sm shrink-0 bg-surface-muted"
                         >
-                          <Image
-                            src={item.image}
-                            alt={item.name}
-                            fill
-                            className="object-cover"
-                          />
+                          {item.imageUrl && (
+                            <Image
+                              src={item.imageUrl}
+                              alt={item.title}
+                              fill
+                              className="object-cover"
+                            />
+                          )}
                         </Link>
 
                         <div className="flex flex-col justify-between flex-1">
                           <div>
-                            <p className="text-xs text-foreground">{item.category}</p>
+                            <p className="text-xs text-foreground">{item.categoryLabel}</p>
                             <Link href={`/productItem/${item.id}`}>
                               <h2 className="font-medium text-sm leading-tight hover:text-main transition-colors">
-                                {item.name}
+                                {item.title}
                               </h2>
                             </Link>
                           </div>
 
                           <div className="flex justify-between items-end">
-                            <p className="text-main text-lg font-bold">₦{item.price}</p>
+                            <p className="text-main text-lg font-bold">{formatPriceRange(item.minPriceKobo, item.maxPriceKobo)}</p>
 
                             <button
                               onClick={() => removeFavourite(item.id)}
@@ -119,7 +121,7 @@ export default function Favourites() {
             {/* Suggestions */}
             <section className="flex flex-col gap-3 bg-card py-1">
               <SectionHeader title="New in Stock" href="/new" />
-              <ProductCarousel products={products} />
+              <ListingsCarousel filters={{ sort: "newest" }} />
             </section>
           </div>
 

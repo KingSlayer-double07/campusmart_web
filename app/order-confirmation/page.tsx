@@ -5,8 +5,8 @@ import { Info } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import SectionHeader from "../components/SectionHeader";
 import ProductCarousel from "../components/ProductCarousel";
-import { products } from "../components/data";
-import { useFavouritesStore, type FavouriteItem } from "../store/useFavouritesStore";
+import ListingsCarousel from "../components/ListingsCarousel";
+import { useFavouritesStore } from "../store/useFavouritesStore";
 
 // Generate a random order number once per session
 function generateOrderNo() {
@@ -23,13 +23,6 @@ export default function OrderConfirmationPage() {
   }, []);
 
   if (!mounted) return null;
-
-  const favouriteProducts = products.filter((p) =>
-    favourites.some((f: FavouriteItem) => f.id === String(p.id))
-  );
-
-  // Fallback: show all products if no favourites
-  const favouritesToShow = favouriteProducts.length > 0 ? favouriteProducts : products;
 
   return (
     <main className="pb-28 pt-8">
@@ -87,13 +80,13 @@ export default function OrderConfirmationPage() {
       {/* ── Continue Shopping ── */}
       <section className="flex flex-col gap-3 pt-5 pb-2">
         <SectionHeader title="Continue Shopping" href="/" linkText="See all" />
-        <ProductCarousel products={products} />
+        <ListingsCarousel filters={{ sort: "newest" }} />
       </section>
 
       {/* ── Favourites ── */}
       <section className="flex flex-col gap-3 pt-3 pb-6">
         <SectionHeader title="Favourites" href="/favourites" linkText="See all" />
-        <ProductCarousel products={favouritesToShow} hearted={true} />
+        <ProductCarousel items={favourites} emptyText="Tap the heart on a product to save it here." />
       </section>
     </main>
   );

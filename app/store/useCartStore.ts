@@ -2,14 +2,16 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { ordersApi } from "@/lib/api/orders";
 
-type CartItem = {
-  id: string;
+// The guest cart. Phase 4 adds the server cart for signed-in users and merges this into it.
+export type CartItem = {
+  id: string; // listing id
+  variantId: string | null;
   name: string;
-  price: number;
-  image: string;
+  priceKobo: number; // D3: whole kobo
+  image: string | null;
   quantity: number;
   category: string;
-  size: string;
+  size: string; // the option's label, or "default" without options
   stockCount: number;
 };
 
@@ -111,10 +113,13 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: "campus-mart-cart",
+      // v0 held the mock catalogue's items (numeric ids, naira prices); they point nowhere now
+      version: 1,
+      migrate: () => ({ cart: [] }),
     }
   )
 );
 
 // Pure selector for total price calculation
 export const selectTotalPrice = (state: CartStore) =>
-  state.cart.reduce((total, item) => total + item.price * item.quantity, 0);
+  state.cart.reduce((total, item) => total + item.priceKobo * item.quantity, 0);

@@ -1,30 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { categories } from "../components/data";
+import { useRouter } from "next/navigation";
 import CategoryItem from "./CategoryItem";
+import { CATEGORY_ITEMS } from "./categoryIcons";
 
+// Home page strip: a tap opens that category's listings
 export default function CategoryList() {
-  const [pressed, setPressed] = useState<any>(null);
-
-  const handlePress = (name: any) => {
-    setPressed((prev: any) => (prev === name ? null : name));
-  };
-
+  const router = useRouter();
   return (
     <div className="flex justify-between">
-      {categories.map((category) => {
-        const isActive = pressed === category.name;
-
-        return (
-          <CategoryItem
-            key={category.name}
-            category={category}
-            isActive={isActive}
-            onClick={() => handlePress(category.name)}
-          />
-        );
-      })}
+      {CATEGORY_ITEMS.map((category) => (
+        <CategoryItem
+          key={category.value}
+          category={category}
+          isActive={false}
+          onClick={() => router.push(`/categories?category=${category.value}`)}
+        />
+      ))}
     </div>
   );
 }

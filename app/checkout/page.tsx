@@ -13,6 +13,7 @@ import {
 import { useCartStore, selectTotalPrice } from "../store/useCartStore";
 import { usePickupStore } from "../store/usePickupStore";
 import Image from "next/image";
+import { formatNaira } from "@/lib/labels";
 import Link from "next/link";
 import PageHeader from "../components/PageHeader";
 import Modal from "../components/Modal";
@@ -91,13 +92,15 @@ export default function Checkout() {
                 {cart.map((cartItem) => (
                   <div key={`${cartItem.id}-${cartItem.size}`} className="flex flex-col items-center gap-1">
                     {/* Thumbnail with optional stock badge */}
-                    <div className="relative overflow-hidden rounded-sm size-22">
-                      <Image
-                        src={cartItem.image}
-                        alt={cartItem.name}
-                        fill
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="relative overflow-hidden rounded-sm size-22 bg-surface-muted">
+                      {cartItem.image && (
+                        <Image
+                          src={cartItem.image}
+                          alt={cartItem.name}
+                          fill
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                       {/* Stock badge — shown when quantity is low (<10). Real data would drive this. */}
                       {cartItem.stockCount !== undefined && cartItem.stockCount < 10 && (
                         <div className="absolute bottom-0 left-0 right-0 bg-main text-white text-[10px] font-semibold text-center py-0.5">
@@ -107,7 +110,7 @@ export default function Checkout() {
                     </div>
 
                     <p className="text-main font-semibold text-sm tracking-normal">
-                      ₦{cartItem.price.toLocaleString()}
+                      {formatNaira(cartItem.priceKobo)}
                     </p>
 
                     <div className="w-20 px-2 h-6.5 rounded-full border bg-card border-neutral-500 flex justify-between items-center">
@@ -135,7 +138,7 @@ export default function Checkout() {
               <div className="flex flex-col gap-2 text-sm">
                 <div className="flex justify-between text-foreground/70">
                   <span>Cost of Items</span>
-                  <span className="font-medium text-foreground">₦{totalPrice.toLocaleString()}</span>
+                  <span className="font-medium text-foreground">{formatNaira(totalPrice)}</span>
                 </div>
                 <div className="flex justify-between text-foreground/70 items-center">
                   <span>Coupon codes</span>
@@ -153,7 +156,7 @@ export default function Checkout() {
                 <Divider />
                 <div className="flex justify-between font-bold text-base">
                   <span>Amount to Pay</span>
-                  <span>₦{totalPrice.toLocaleString()}</span>
+                  <span>{formatNaira(totalPrice)}</span>
                 </div>
               </div>
             </div>
@@ -231,7 +234,7 @@ export default function Checkout() {
               </div>
               <div className="backdrop-blur-xs flex justify-center items-center py-2 px-3 rounded-full border border-border-default w-[95%] sm:w-[88%] bg-card/30 max-w-sm sm:max-w-md gap-3">
                 <p className="text-main font-bold text-base whitespace-nowrap shrink-0">
-                  ₦{totalPrice.toLocaleString()}
+                  {formatNaira(totalPrice)}
                 </p>
                 <button
                   className="w-full h-10 rounded-full bg-main border border-transparent disabled:opacity-40 transition-all duration-300 hover:brightness-105 active:scale-[0.98]"

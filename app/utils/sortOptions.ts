@@ -1,37 +1,25 @@
+import type { ListingSort } from "@/lib/api/listings";
+
 /**
- * Sort options and labels for the search page
+ * Sort options for the categories page, in the API's own sort values (guide 3.2.5).
  */
-
-export type SortOption = "relevant" | "price-low" | "price-high" | "rating";
-
 export interface SortLabel {
-  value: SortOption;
+  value: ListingSort;
   label: string;
 }
 
+export const DEFAULT_SORT: ListingSort = "newest";
+
 export const SORT_OPTIONS: SortLabel[] = [
-  {
-    value: "relevant",
-    label: "Relevant",
-  },
-  {
-    value: "price-low",
-    label: "Price: Low to High",
-  },
-  {
-    value: "price-high",
-    label: "Price: High to Low",
-  },
-  {
-    value: "rating",
-    label: "Highest Rated",
-  },
+  { value: "newest", label: "Newest" },
+  { value: "popular", label: "Popular" },
+  { value: "price_asc", label: "Price: Low to High" },
+  { value: "price_desc", label: "Price: High to Low" },
 ];
 
-/**
- * Get the label for a sort option
- */
-export const getSortLabel = (sortBy: SortOption): string => {
-  const option = SORT_OPTIONS.find((opt) => opt.value === sortBy);
-  return option?.label || "Relevant";
-};
+// Anything unknown in the URL falls back to the default
+export const parseSort = (value: string | null): ListingSort =>
+  SORT_OPTIONS.some((o) => o.value === value) ? (value as ListingSort) : DEFAULT_SORT;
+
+export const getSortLabel = (sortBy: ListingSort): string =>
+  SORT_OPTIONS.find((opt) => opt.value === sortBy)?.label ?? "Newest";

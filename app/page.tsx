@@ -1,14 +1,12 @@
 "use client";
 
-import { products, featuredStores } from "./components/data";
 import Nav from "./components/nav";
 import SearchBar from "./components/SearchBar";
 import CategoryList from "./components/CategoryList";
 import SectionHeader from "./components/SectionHeader";
-import ProductCarousel from "./components/ProductCarousel";
+import ListingsCarousel from "./components/ListingsCarousel";
 import FeaturedBanner from "./components/FeaturedBanner";
 import SectionDivider from "./components/SectionDivider";
-import FeaturedStoreCard from "./components/FeaturedStoreCard";
 import { useRequireAuth } from "./hooks/useRequireAuth";
 
 export default function Home() {
@@ -24,15 +22,15 @@ export default function Home() {
 
         <SectionDivider />
 
-        {/* Section 2: Featured */}
+        {/* Section 2: Featured (marketing content, static for now) */}
         <FeaturedBanner />
 
         <SectionDivider />
 
-        {/* Section 3: Recommendations */}
+        {/* Section 3: Recommendations: most viewed this week */}
         <section className="flex flex-col gap-3 bg-card py-5">
           <SectionHeader title="You Might Need" href="/recommendations" />
-          <ProductCarousel products={products} />
+          <ListingsCarousel filters={{ sort: "popular" }} emptyText="No listings at your school yet. Check back soon." />
         </section>
 
         <SectionDivider />
@@ -40,23 +38,10 @@ export default function Home() {
         {/* Section 4: New Stocks */}
         <section className="flex flex-col gap-3 bg-card py-5">
           <SectionHeader title="New in Stock" href="/new" />
-          <ProductCarousel products={products} />
+          <ListingsCarousel filters={{ sort: "newest" }} emptyText="No listings at your school yet. Check back soon." />
         </section>
 
-        <SectionDivider />
-
-        {/* Section 5: Featured Store */}
-        <section className="flex flex-col gap-3 bg-card py-5">
-          <SectionHeader title="Featured Store" href="/stores" />
-          {/* Carousel layout */}
-          <div className="flex gap-4 sm:gap-5 overflow-x-scroll pb-2 no-scrollbar px-4 sm:px-6">
-            {featuredStores.map((store, index) => (
-              <div key={index} className="shrink-0">
-                <FeaturedStoreCard store={store} />
-              </div>
-            ))}
-          </div>
-        </section>
+        {/* The Featured Store row returns in Phase 8, fed by GET /stores?featured=true */}
       </main>
 
       {/* Mobile bottom nav */}

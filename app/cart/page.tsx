@@ -16,15 +16,16 @@ import PageHeader from "../components/PageHeader";
 import { useEffect, useState } from "react";
 import SectionHeader from "../components/SectionHeader";
 import ProductCarousel from "../components/ProductCarousel";
-import { products } from "../components/data";
+import ListingsCarousel from "../components/ListingsCarousel";
 import Nav from "../components/nav";
+import { formatNaira } from "@/lib/labels";
 
 import { AnimatePresence, motion } from "framer-motion";
 import SwipeToDismiss from "../components/SwipeToDismiss";
 
 export default function Cart() {
   const { cart, increaseQty, decreaseQty, removeFromCart, removeMultipleFromCart } = useCartStore();
-  const { addFavourite } = useFavouritesStore();
+  const { addFavourite, favourites } = useFavouritesStore();
   const totalPrice = useCartStore(selectTotalPrice);
 
   const [mounted, setMounted] = useState(false);
@@ -52,10 +53,11 @@ export default function Cart() {
       if (item) {
         addFavourite({
           id: item.id,
-          name: item.name,
-          price: item.price,
-          image: item.image,
-          category: item.category,
+          title: item.name,
+          minPriceKobo: item.priceKobo,
+          maxPriceKobo: item.priceKobo,
+          imageUrl: item.image,
+          categoryLabel: item.category,
         });
       }
     });
@@ -133,13 +135,15 @@ export default function Cart() {
                             )}
                           </button>
 
-                          <div className="size-24 relative overflow-hidden rounded-sm">
-                            <Image
-                              src={item.image}
-                              alt={item.name}
-                              fill
-                              className="object-cover"
-                            />
+                          <div className="size-24 relative overflow-hidden rounded-sm bg-surface-muted">
+                            {item.image && (
+                              <Image
+                                src={item.image}
+                                alt={item.name}
+                                fill
+                                className="object-cover"
+                              />
+                            )}
                           </div>
                         </div>
 
@@ -147,12 +151,12 @@ export default function Cart() {
                           <p className="text-xs text-foreground">{item.category}</p>
                           <h2 className="font-medium text-sm leading-tight">{item.name}</h2>
 
-                          {item.size && (
-                            <p className="text-xs text-foreground">Size: {item.size}</p>
+                          {item.variantId && (
+                            <p className="text-xs text-foreground">Option: {item.size}</p>
                           )}
 
                           <div className="flex justify-between items-end">
-                            <p className="text-main text-lg font-bold">₦{item.price}</p>
+                            <p className="text-main text-lg font-bold">{formatNaira(item.priceKobo)}</p>
 
                             <div className="w-21 px-2 h-7 rounded-full border-[1.9px] bg-card border-neutral-400 flex justify-between items-center">
                               <button onClick={() => decreaseQty(item.id, item.size)}>
@@ -180,12 +184,12 @@ export default function Cart() {
             {/* Suggestions — full-width inside the left column */}
             <section className="flex flex-col gap-3 bg-card py-1">
               <SectionHeader title="New in Stock" href="/new" />
-              <ProductCarousel products={products} />
+              <ListingsCarousel filters={{ sort: "newest" }} />
             </section>
 
             <section className="flex flex-col gap-3 bg-card py-1">
-              <SectionHeader title="Favorites" href="/new" />
-              <ProductCarousel products={products} hearted={true} />
+              <SectionHeader title="Favorites" href="/favourites" />
+              <ProductCarousel items={favourites} emptyText="Tap the heart on a product to save it here." />
             </section>
           </div>
 

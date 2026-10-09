@@ -2,6 +2,7 @@
 import BottomFloatingBar, { BottomFloatingBarContainer } from './BottomFloatingBar';
 import { useRouter } from "next/navigation";
 import { useCartStore, selectTotalPrice } from "../store/useCartStore";
+import { formatNaira } from "@/lib/labels";
 import { useEffect, useState } from "react";
 
 export default function CheckoutNav({
@@ -27,7 +28,7 @@ export default function CheckoutNav({
     <BottomFloatingBar zIndex={50}>
       <BottomFloatingBarContainer className="gap-2">
         <div className="w-full flex justify-center">
-          <p className="text-main font-semibold text-lg">₦{totalPrice}</p>
+          <p className="text-main font-semibold text-lg">{formatNaira(totalPrice)}</p>
         </div>
         <button
           className="w-full h-10 rounded-full border bg-main border-border-default disabled:opacity-40 transition-all duration-300"

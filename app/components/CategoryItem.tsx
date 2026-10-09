@@ -1,7 +1,9 @@
 "use client";
 
+import type { CategoryItemData } from "./categoryIcons";
+
 type Props = {
-  category: any;
+  category: Pick<CategoryItemData, "name" | "Icon">;
   isActive: boolean;
   onClick: () => void;
 };
@@ -9,8 +11,9 @@ type Props = {
 export default function CategoryItem({ category, isActive, onClick }: Props) {
   return (
     <button
-      key={category.name}
+      type="button"
       onClick={onClick}
+      aria-pressed={isActive}
       className="flex flex-col items-center gap-2 transition-all duration-150 active:scale-95 active:opacity-80"
     >
       <div
