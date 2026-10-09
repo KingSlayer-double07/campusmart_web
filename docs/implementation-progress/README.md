@@ -35,6 +35,8 @@ Collins' calls that change or extend the guide. Each phase file has the detail.
 - **Inactive institutions (2026-10-09):** new sign-ups with its domains are blocked with a friendly message, it is
   hidden from the public institutions list, and only admins can sign in there; buyers, sellers and pickup agents get
   the same message. Anyone signed in is cut off on their next token refresh. Built in Phase 9 slice A.
+- **Switching off needs a quiet school (2026-10-09):** an institution with orders in progress can't be switched off;
+  the admin dialog says how many orders are open.
 - **Middleware and cookies (2026-10-09):** keep the Phase 1 approach as is (sign-in page refreshes silently).
 - **Phase 9 timing (2026-10-09):** the institutions and pickup-station admin screens come right after Phase 2, then
   Phase 3.

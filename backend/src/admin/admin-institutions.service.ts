@@ -8,6 +8,7 @@ import { cursorArgs, toPage } from '../common/pagination';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { activeWhere, AdminListQueryDto } from './dto/active-toggle.dto';
+import { openSellerOrdersWhere } from './open-orders';
 import { toggleAction } from './toggle-action';
 import {
   AdminInstitutionDto,
@@ -116,6 +117,22 @@ export class AdminInstitutionsService {
     if (changes.domains) await this.assertDomainsFree(next.domains!, id);
 
     return this.prisma.$transaction(async (tx) => {
+      // Switched off, its buyers and agents can't sign in, so nothing in progress could finish
+      if (changes.isActive && next.isActive === false) {
+        const openOrders = await tx.sellerOrder.count({
+          where: openSellerOrdersWhere(id),
+        });
+        if (openOrders > 0) {
+          throw new ConflictException({
+            code: 'INSTITUTION_HAS_OPEN_ORDERS',
+            message:
+              `${current.name} has ${openOrders} order${openOrders === 1 ? '' : 's'} in progress. ` +
+              'Switch it off once every order has been collected and its 48-hour dispute window has passed.',
+            details: { openOrders },
+          });
+        }
+      }
+
       const updated = await tx.institution.update({
         where: { id },
         data: {

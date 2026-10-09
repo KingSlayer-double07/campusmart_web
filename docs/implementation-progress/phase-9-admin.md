@@ -60,6 +60,13 @@ Slice A gate:
   Opening hours DTO and validator: `src/admin/dto/opening-hours.dto.ts`.
 - Removed `POST /institutions` and `src/institutions/dto/create-institution.dto.ts` (endpoint index: replaced by
   `/admin/institutions`).
+- **Orders in progress block switching off (Collins, 2026-10-09).** `src/admin/open-orders.ts`
+  `openSellerOrdersWhere()` counts seller orders at the school that are: unpaid and not yet expired; paid and
+  waiting for drop-off, at the station or disputed; or collected with escrow still held (48-hour dispute window).
+  Switching off with any of them → 409 `INSTITUTION_HAS_OPEN_ORDERS`, "University of Lagos has 3 orders in progress.
+  Switch it off once every order has been collected and its 48-hour dispute window has passed.",
+  `details.openOrders`. The count runs in the same transaction as the update. The `ConfirmDialog` shows API refusals
+  in a "Couldn't switch off" banner, and the switch-off dialog lists the rule up front.
 
 ### Inactive institutions (Collins' rule)
 - `src/institutions/institution-access.ts`: `institutionInactive()` → 403 `INSTITUTION_INACTIVE`, "CampusMart isn't
@@ -99,7 +106,8 @@ Slice A gate:
   not shown on `/admin`.
 - `lib/api/schema.d.ts` regenerated.
 
-New migrations: none. New env vars: none. New error codes: `INSTITUTION_INACTIVE` (403), `DOMAIN_IN_USE` (409).
+New migrations: none. New env vars: none. New error codes: `INSTITUTION_INACTIVE` (403), `DOMAIN_IN_USE` (409),
+`INSTITUTION_HAS_OPEN_ORDERS` (409).
 
 ## 3. Verification evidence
 
@@ -110,9 +118,10 @@ Local Postgres 16; e2e on `campusmart_test`; browser walk on `campusmart_dev` (s
 | Admin routes 401 / 403 | e2e `test/phase9-admin.e2e-spec.ts` › access: "every /api/admin/* route returns 401 when signed out", "every /api/admin/* route returns 403 for a SELLER" (and BUYER, PICKUP_AGENT). The routes come from `buildOpenApiDocument(app).paths`; "lists the admin routes it checks" asserts at least 6. |
 | Audit log: who, what, when | e2e › "an admin adds an institution; it is audited with who, what and when" (`actorId` = admin, `action`, `createdAt`), "switching one off needs a reason, and logs INSTITUTION_DEACTIVATED", "an admin adds a station…; it is audited", "edits a station… lists by institution" (`meta.changes` from/to), "switching a station off needs a reason and is audited". Unit `admin-institutions.service.spec.ts`, `admin-pickup-stations.service.spec.ts`, `audit.service.spec.ts`. |
 | Inactive institution | e2e › "an inactive institution": "blocks sign-up with its domains, with a friendly message" (403, no user created), "is hidden from the public list and lookup", "stops a BUYER/SELLER/PICKUP_AGENT signing in, with the same message", "still lets an admin of that institution sign in", "cuts off a signed-in user on their next token refresh" (403, 0 live sessions, cookies cleared → `/auth/me` 401), "lets everyone back in once it is switched on again". Unit `auth.service.spec.ts` (register/login/refresh cases), `institution-access.spec.ts`, `institutions.service.spec.ts`. Vitest `SignUpForm.test.tsx` › "shows the friendly message for a switched-off school instead of the waitlist". Browser: `PASS Sign-up with a switched-off school shows the friendly message (not the waitlist)` + `evidence/phase9-admin/phone-signup-switched-off.png`. |
+| Orders in progress block switching off | e2e › "switching off a school with orders in progress": "is refused with the number of orders in progress" (unpaid + at station + in dispute window = 3; a released and an expired order don't count; the school stays active and nothing is audited), "ignores other schools' orders". Unit `admin-institutions.service.spec.ts` › "refuses to switch off a school with orders in progress, and says how many", "does not count orders when only renaming". Vitest `ConfirmDialog.test.tsx` › "shows why the API refused (e.g. orders in progress) and stays open". Browser `evidence/phase9-admin/open-orders-walk.mjs`: `PASS desktop/phone: switching off is refused and the dialog says "has 1 order in progress"`; `desktop-switch-off-blocked.png`, `phone-switch-off-blocked.png`. |
 | Definition of done | Unknown fields → 400 (e2e "rejects unknown fields and bad domains"; `institutionId` in a station PATCH → 400). Role checks on the controller class. Response DTOs in `schema.d.ts`, with no emails or secrets. Shared codes (`VALIDATION_FAILED`, `CONFLICT`, `DOMAIN_IN_USE`, `INVALID_REFERENCE`, `NOT_FOUND`, `FORBIDDEN`, `UNAUTHENTICATED`). Unit tests for every service rule; e2e happy paths and forbidden paths. Frontend loading, empty and error states in `DataTable` (Vitest `DataTable.test.tsx`). |
 | Frontend patterns, mobile, states | Browser walk `evidence/phase9-admin/admin-walk.mjs` → `admin-walk-output.txt`: **17/17 PASS**, including no sideways scrolling at 390 px, cards on phones, pill nav visible, form as a bottom sheet, inline errors for a bad domain and for hours that close before they open, a reason required to switch off, filters in the URL. Screenshots: `desktop-overview.png`, `desktop-institution-added.png`, `desktop-switch-off-dialog.png`, `desktop-station-form.png`, `desktop-station-added.png`, `phone-overview.png`, `phone-institutions.png`, `phone-stations-viewport.png`, `phone-station-form.png`. Vitest: `DataTable`, `ConfirmDialog`, `DomainsInput`, `FilterBar` (300 ms debounce, keeps a trailing space while typing), `InstitutionForm`, `StationForm`, `AppFrame` (wide only on `/admin`), `openingHours`, `institution` validations. |
-| Backend gate | `npx tsc --noEmit` exit 0; `npm run lint -- --max-warnings 0` exit 0; `npm run build` exit 0; `npm test` → 20 suites, 146 tests passed; `npm run test:e2e` → 5 suites, 65 tests passed. |
+| Backend gate | `npx tsc --noEmit` exit 0; `npm run lint -- --max-warnings 0` exit 0; `npm run build` exit 0; `npm test` → 20 suites, 148 tests passed; `npm run test:e2e` → 5 suites, 67 tests passed. |
 | Frontend gate | `npm run lint` exit 0 (0 errors, the 2 pre-existing warnings); `npx tsc --noEmit` exit 0; `npx vitest run` → 19 files, 100 tests passed; `API_ORIGIN=http://localhost:4000 npm run build` exit 0 (`/admin`, `/admin/institutions`, `/admin/stations` built). |
 | `gen:api` / migrate diff | CI path (`npm run openapi:export` + `openapi-typescript`) and `npm run gen:api` against the running API produce byte-identical files (`diff -q`). `migrate diff --from-migrations … --exit-code` → exit 0 (no schema change in this slice). |
 
@@ -160,13 +169,16 @@ Local Postgres 16; e2e on `campusmart_test`; browser walk on `campusmart_dev` (s
 14. **Local dev data.** The browser walk left demo rows in `campusmart_dev`: institutions Lagos State University,
     Yaba College of Technology, Federal College of Education and Lagos City Polytechnic (all switched off), and
     University of Lagos stations "Faculty of Science Pickup Point", "Library Pickup Point" and "Hostel Gate Pickup
-    Point". Local only; a reset plus seed clears them.
+    Point", plus a demo unpaid order `CM-DEMO01` (buyer `demo-buyer@unilag.edu.ng`, seller
+    `demo-seller@unilag.edu.ng`, no passwords) that expires 3 hours after it was made, at which point it stops
+    counting. Local only; a reset plus seed clears them.
+15. **Orders in progress** (Collins' decision) include unpaid checkouts until they expire and collected orders until
+    escrow leaves `HELD`, since the buyer must be able to sign in to dispute. Phase 4's checkout must also refuse a
+    buyer whose institution is switched off, because an access token stays valid for up to 15 minutes after the
+    switch.
 
 ## 5. Needs from Collins
 
 - **MANUAL check** above: the console on a phone and a laptop.
-- **Switching off a school with orders in progress (decide before Phase 6).** Under the inactive-institution rule,
-  that school's pickup agents can't sign in, so parcels already dropped off can't be handed over and their escrow
-  stays held until the school is switched back on. Options: (a) block switching off while any seller order there is
-  open; (b) let pickup agents keep signing in; (c) leave it as is and handle it by hand. My suggestion is (a),
-  showing the count of open orders in the dialog.
+- ~~**Switching off a school with orders in progress**~~ **Decided 2026-10-09:** blocked, with the count shown in the
+  dialog. Done.

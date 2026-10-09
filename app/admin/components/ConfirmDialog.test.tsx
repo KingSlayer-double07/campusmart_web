@@ -46,13 +46,18 @@ describe("ConfirmDialog", () => {
     expect(screen.queryByText(/Please give a reason/)).toBeNull();
   });
 
-  it("shows the API's message and stays open when it fails", async () => {
+  it("shows why the API refused (e.g. orders in progress) and stays open", async () => {
+    const message =
+      "University of Lagos has 3 orders in progress. Switch it off once every order has been collected and its 48-hour dispute window has passed.";
     const { onClose } = open({
-      onConfirm: vi.fn().mockRejectedValue(new ApiError(409, "CONFLICT", "Already switched off")),
+      onConfirm: vi
+        .fn()
+        .mockRejectedValue(new ApiError(409, "INSTITUTION_HAS_OPEN_ORDERS", message, { openOrders: 3 })),
     });
     fireEvent.change(await screen.findByLabelText("Reason"), { target: { value: "Term break" } });
     fireEvent.click(screen.getByRole("button", { name: "Switch off" }));
-    expect(await screen.findByText("Already switched off")).toBeTruthy();
+    expect(await screen.findByText(message)).toBeTruthy();
+    expect(screen.getByText("Couldn't switch off")).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();
   });
 

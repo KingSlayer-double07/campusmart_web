@@ -68,7 +68,12 @@ export class AdminInstitutionsController {
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkEnvelope(AdminInstitutionDto)
   @ApiResponse({ status: 404, type: ErrorResponseDto })
-  @ApiResponse({ status: 409, type: ErrorResponseDto })
+  @ApiResponse({
+    status: 409,
+    type: ErrorResponseDto,
+    description:
+      'CONFLICT, DOMAIN_IN_USE, or INSTITUTION_HAS_OPEN_ORDERS (details.openOrders) when switching off a school with orders in progress',
+  })
   @Patch(':id')
   update(
     @Param('id', new ParseUUIDPipe()) id: string,

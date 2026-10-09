@@ -351,6 +351,127 @@ describe('Phase 9 admin: institutions and pickup stations (e2e)', () => {
     });
   });
 
+  describe('switching off a school with orders in progress', () => {
+    // One seller order at the school in the given state
+    async function orderAt(
+      institutionId: string,
+      state: {
+        status: 'PENDING_PAYMENT' | 'PAID' | 'EXPIRED';
+        fulfillmentStatus:
+          | 'PENDING'
+          | 'AWAITING_DROPOFF'
+          | 'DROPPED_OFF'
+          | 'COLLECTED'
+          | 'CANCELLED'
+          | 'DISPUTED';
+        escrowStatus?: 'PENDING' | 'HELD' | 'RELEASED' | 'REFUNDED';
+      },
+    ) {
+      const station = await ctx.prisma.pickupStation.create({
+        data: { ...STATION, name: `Station ${randomUUID()}`, institutionId },
+      });
+      const buyer = await createUser(ctx.prisma, { institutionId });
+      const seller = await createUser(ctx.prisma, {
+        role: UserRole.SELLER,
+        institutionId,
+      });
+      const order = await ctx.prisma.order.create({
+        data: {
+          buyerId: buyer.id,
+          institutionId,
+          pickupStationId: station.id,
+          paymentMethod: 'CARD',
+          subtotalKobo: 100_00,
+          totalKobo: 100_00,
+          idempotencyKey: randomUUID(),
+          status: state.status,
+          expiresAt: new Date(Date.now() + 30 * 60_000),
+        },
+      });
+      return ctx.prisma.sellerOrder.create({
+        data: {
+          orderId: order.id,
+          sellerId: seller.id,
+          code: `CM-${randomUUID().slice(0, 6).toUpperCase()}`,
+          collectionCode: '123456',
+          subtotalKobo: 100_00,
+          sellerPayoutKobo: 100_00,
+          fulfillmentStatus: state.fulfillmentStatus,
+          escrowStatus: state.escrowStatus ?? 'PENDING',
+        },
+      });
+    }
+
+    it('is refused with the number of orders in progress', async () => {
+      const { agent } = await signInAdmin();
+      const school = await ctx.prisma.institution.create({
+        data: { name: 'University of Lagos', domains: ['unilag.edu.ng'] },
+      });
+      await orderAt(school.id, {
+        status: 'PENDING_PAYMENT',
+        fulfillmentStatus: 'PENDING',
+      });
+      await orderAt(school.id, {
+        status: 'PAID',
+        fulfillmentStatus: 'DROPPED_OFF',
+        escrowStatus: 'HELD',
+      });
+      await orderAt(school.id, {
+        status: 'PAID',
+        fulfillmentStatus: 'COLLECTED',
+        escrowStatus: 'HELD', // dispute window still open
+      });
+      // Finished or dead orders don't count
+      await orderAt(school.id, {
+        status: 'PAID',
+        fulfillmentStatus: 'COLLECTED',
+        escrowStatus: 'RELEASED',
+      });
+      await orderAt(school.id, {
+        status: 'EXPIRED',
+        fulfillmentStatus: 'CANCELLED',
+      });
+
+      const res = await agent
+        .patch(`/api/admin/institutions/${school.id}`)
+        .send({ isActive: false, reason: 'Term break' })
+        .expect(409);
+      expect(res.body).toMatchObject({
+        code: 'INSTITUTION_HAS_OPEN_ORDERS',
+        details: { openOrders: 3 },
+      });
+      expect(res.body.message).toContain(
+        'University of Lagos has 3 orders in progress',
+      );
+      const after = await ctx.prisma.institution.findUniqueOrThrow({
+        where: { id: school.id },
+      });
+      expect(after.isActive).toBe(true);
+      expect((await auditRows(school.id)).map((r) => r.action)).not.toContain(
+        'INSTITUTION_DEACTIVATED',
+      );
+    });
+
+    it("ignores other schools' orders", async () => {
+      const { agent } = await signInAdmin();
+      const school = await ctx.prisma.institution.create({
+        data: { name: 'University of Lagos', domains: ['unilag.edu.ng'] },
+      });
+      const other = await ctx.prisma.institution.create({
+        data: { name: 'Lagos State University', domains: ['lasu.edu.ng'] },
+      });
+      await orderAt(other.id, {
+        status: 'PAID',
+        fulfillmentStatus: 'AWAITING_DROPOFF',
+        escrowStatus: 'HELD',
+      });
+      await agent
+        .patch(`/api/admin/institutions/${school.id}`)
+        .send({ isActive: false, reason: 'Term break' })
+        .expect(200);
+    });
+  });
+
   describe('pickup stations', () => {
     async function setup() {
       const { admin, agent } = await signInAdmin();

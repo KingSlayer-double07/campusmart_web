@@ -1709,6 +1709,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
+            /** @description CONFLICT, DOMAIN_IN_USE, or INSTITUTION_HAS_OPEN_ORDERS (details.openOrders) when switching off a school with orders in progress */
             409: {
                 headers: {
                     [name: string]: unknown;

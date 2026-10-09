@@ -17,6 +17,7 @@ describe('AdminInstitutionsService', () => {
       create: jest.fn(),
       update: jest.fn(),
     },
+    sellerOrder: { count: jest.fn() },
     $transaction: jest.fn(),
   };
   const audit = { record: jest.fn() };
@@ -153,8 +154,33 @@ describe('AdminInstitutionsService', () => {
       expect(audit.record).not.toHaveBeenCalled();
     });
 
+    it('refuses to switch off a school with orders in progress, and says how many', async () => {
+      prisma.institution.findUnique.mockResolvedValue(row);
+      prisma.sellerOrder.count.mockResolvedValue(3);
+      const error = await service
+        .update('i1', { isActive: false, reason: 'Term break' }, 'admin-1')
+        .catch((e: unknown) => e);
+      expect((error as HttpException).getStatus()).toBe(409);
+      expect((error as HttpException).getResponse()).toMatchObject({
+        code: 'INSTITUTION_HAS_OPEN_ORDERS',
+        message: expect.stringContaining('has 3 orders in progress'),
+        details: { openOrders: 3 },
+      });
+      expect(prisma.institution.update).not.toHaveBeenCalled();
+      expect(audit.record).not.toHaveBeenCalled();
+    });
+
+    it('does not count orders when only renaming', async () => {
+      prisma.institution.findUnique.mockResolvedValue(row);
+      prisma.institution.findFirst.mockResolvedValue(null);
+      prisma.institution.update.mockResolvedValue({ ...row, name: 'UNILAG' });
+      await service.update('i1', { name: 'UNILAG' }, 'a');
+      expect(prisma.sellerOrder.count).not.toHaveBeenCalled();
+    });
+
     it('switching it off logs INSTITUTION_DEACTIVATED with the reason', async () => {
       prisma.institution.findUnique.mockResolvedValue(row);
+      prisma.sellerOrder.count.mockResolvedValue(0);
       prisma.institution.update.mockResolvedValue({ ...row, isActive: false });
       const result = await service.update(
         'i1',

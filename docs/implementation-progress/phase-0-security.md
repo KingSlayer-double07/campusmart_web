@@ -182,4 +182,4 @@ Local Postgres 16; `DATABASE_URL=DIRECT_URL=postgresql://postgres:postgres@local
 - **Trust proxy hops in production.** `trust proxy` is `1` as the guide says. If production traffic passes through
   Vercel and then a load balancer in front of the API, `req.ip` will be the Vercel egress IP. Rate limits and the
   Active Sessions IP would then be per-proxy, not per-user. Confirm the hop count once the API host is chosen.
-- **Should `summary_diff.patch` be deleted from `develop`?**
+- ~~**Should `summary_diff.patch` be deleted from `develop`?**~~ Dropped by Collins (2026-10-09): leave it.

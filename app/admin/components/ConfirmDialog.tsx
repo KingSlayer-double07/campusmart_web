@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, Info } from "lucide-react";
 import Button from "@/app/components/Button";
+import InfoBanner from "@/app/components/InfoBanner";
 import Modal from "@/app/components/Modal";
 import { ApiError } from "@/lib/api/client";
 import { Field, TextArea } from "./fields";
@@ -34,29 +35,32 @@ export default function ConfirmDialog({
   onConfirm,
 }: ConfirmDialogProps) {
   const [reason, setReason] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [reasonError, setReasonError] = useState<string | null>(null);
+  // Why the API refused, e.g. "University of Lagos has 3 orders in progress…"
+  const [apiError, setApiError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setReason("");
-      setError(null);
+      setReasonError(null);
+      setApiError(null);
     }
   }, [isOpen]);
 
   const confirm = async () => {
     const trimmed = reason.trim();
     if (requireReason && trimmed.length < MIN_REASON) {
-      setError("Please give a reason. It's saved in the audit log.");
+      setReasonError("Please give a reason. It's saved in the audit log.");
       return;
     }
     setPending(true);
-    setError(null);
+    setApiError(null);
     try {
       await onConfirm(requireReason ? trimmed : undefined);
       onClose();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+      setApiError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
     } finally {
       setPending(false);
     }
@@ -95,25 +99,25 @@ export default function ConfirmDialog({
       <div className="flex flex-col gap-4 text-sm text-foreground-muted">
         <div>{description}</div>
         {requireReason && (
-          <Field label="Reason" htmlFor="confirm-reason" error={error}>
+          <Field label="Reason" htmlFor="confirm-reason" error={reasonError}>
             <TextArea
               id="confirm-reason"
               rows={3}
               maxLength={500}
               value={reason}
-              invalid={!!error}
+              invalid={!!reasonError}
               placeholder={reasonPlaceholder}
               onChange={(e) => {
                 setReason(e.target.value);
-                setError(null);
+                setReasonError(null);
               }}
             />
           </Field>
         )}
-        {!requireReason && error && (
-          <p role="alert" className="text-xs font-medium text-red-500">
-            {error}
-          </p>
+        {apiError && (
+          <div role="alert">
+            <InfoBanner variant="error" title={`Couldn't ${confirmLabel.toLowerCase()}`} text={apiError} />
+          </div>
         )}
       </div>
     </Modal>

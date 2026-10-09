@@ -206,6 +206,7 @@ function InstitutionsScreen() {
                   minutes.
                 </li>
                 <li>Admins keep access. You can switch it back on at any time.</li>
+                <li>A school with orders in progress can&apos;t be switched off until they&apos;re settled.</li>
               </ul>
             </div>
           ) : (
