@@ -53,6 +53,20 @@ describe("SignUpForm", () => {
     });
   });
 
+  it("shows the friendly message for a switched-off school instead of the waitlist", async () => {
+    register.mockRejectedValue(
+      new ApiError(
+        403,
+        "INSTITUTION_INACTIVE",
+        "CampusMart isn't available at your school right now. Please check back soon.",
+      ),
+    );
+    render(<SignUpForm accountType="BUYER" />);
+    fill("ada@unilag.edu.ng");
+    expect(await screen.findByText(/isn't available at your school right now/)).toBeTruthy();
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
   it("goes to verify-email after a school-email sign-up", async () => {
     const user = { id: "u1", email: "ada@unilag.edu.ng", role: "SELLER", emailVerifiedAt: null };
     register.mockResolvedValue(user);

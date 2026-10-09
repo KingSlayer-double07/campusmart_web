@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Download, X, Share } from "lucide-react";
+import { isWideRoute } from "./AppFrame";
 
 export default function PWAInstallPrompt() {
+  // The admin console isn't the shopping app, so it never asks to be installed
+  const onAdmin = isWideRoute(usePathname());
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -59,7 +63,7 @@ export default function PWAInstallPrompt() {
     localStorage.setItem("pwa_prompt_dismissed", "true");
   };
 
-  if (!showPrompt) return null;
+  if (!showPrompt || onAdmin) return null;
 
   return (
     <div className="fixed bottom-6 left-4 right-4 bg-card rounded-3xl shadow-2xl border border-border-default p-5 z-[100] animate-in fade-in slide-in-from-bottom-10 duration-500 font-satoshi">

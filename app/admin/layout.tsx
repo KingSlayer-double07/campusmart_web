@@ -1,6 +1,11 @@
 import RoleGate from "@/app/components/RoleGate";
+import AdminShell from "./components/AdminShell";
 
-// The full desktop admin console (sidebar, max-w-6xl) arrives in Phase 9 (D16)
+// The admin console (D16): full width, its own navigation, admins only. The API enforces the role.
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return <RoleGate allow={["ADMIN"]}>{children}</RoleGate>;
+  return (
+    <RoleGate allow={["ADMIN"]}>
+      <AdminShell>{children}</AdminShell>
+    </RoleGate>
+  );
 }

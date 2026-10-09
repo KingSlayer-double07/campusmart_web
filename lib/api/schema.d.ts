@@ -323,15 +323,11 @@ export interface paths {
         };
         /**
          * Get all institutions
-         * @description Public: used by the sign-up and waitlist pages
+         * @description Public: used by the sign-up and waitlist pages. Switched-off institutions are hidden.
          */
         get: operations["InstitutionsController_getAllInstitutions"];
         put?: never;
-        /**
-         * Create a new institution
-         * @description Admin only
-         */
-        post: operations["InstitutionsController_createInstitution"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -353,6 +349,91 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/admin/institutions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List institutions
+         * @description Every institution, active or not, by name. `q` matches the name or an exact domain.
+         */
+        get: operations["AdminInstitutionsController_list"];
+        put?: never;
+        /**
+         * Add an institution
+         * @description Students can sign up with emails on its domains straight away.
+         */
+        post: operations["AdminInstitutionsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/institutions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edit or switch an institution on or off
+         * @description Switching it off (isActive: false, with a reason) blocks sign-ups, hides it from the public list and stops everyone but admins signing in; signed-in users are cut off at their next refresh.
+         */
+        patch: operations["AdminInstitutionsController_update"];
+        trace?: never;
+    };
+    "/api/admin/pickup-stations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List pickup stations
+         * @description Every station, active or not, by institution then name. `q` matches the name or address.
+         */
+        get: operations["AdminPickupStationsController_list"];
+        put?: never;
+        /** Add a pickup station */
+        post: operations["AdminPickupStationsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pickup-stations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edit or switch a pickup station on or off
+         * @description The institution cannot change. Switching it off (isActive: false) needs a reason.
+         */
+        patch: operations["AdminPickupStationsController_update"];
         trace?: never;
     };
 }
@@ -528,20 +609,127 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
-        CreateInstitutionDto: {
-            /**
-             * @description Name of the institution
-             * @example University of Example
-             */
+        AdminInstitutionDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example University of Lagos */
             name: string;
             /**
-             * @description Email domains for the institution, e.g. student and staff addresses
              * @example [
-             *       "example.edu",
-             *       "students.example.edu"
+             *       "unilag.edu.ng"
+             *     ]
+             */
+            domains: string[];
+            /** @description When false: sign-ups are blocked, it is hidden from the public list, and only admins can sign in */
+            isActive: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Pickup stations, active or not */
+            stationCount: number;
+            /** @description Accounts that belong to this institution */
+            userCount: number;
+        };
+        AdminInstitutionPageDto: {
+            items: components["schemas"]["AdminInstitutionDto"][];
+            /** Format: uuid */
+            nextCursor: string | null;
+        };
+        /** @enum {string} */
+        ActiveFilter: "ACTIVE" | "INACTIVE";
+        CreateInstitutionDto: {
+            /** @example University of Lagos */
+            name: string;
+            /**
+             * @description Email domains students sign up with. Sub-domains match too (students.unilag.edu.ng matches unilag.edu.ng).
+             * @example [
+             *       "unilag.edu.ng"
+             *     ]
+             */
+            domains: string[];
+        };
+        UpdateInstitutionDto: {
+            /** @example University of Lagos */
+            name?: string;
+            /**
+             * @description Email domains students sign up with. Sub-domains match too (students.unilag.edu.ng matches unilag.edu.ng).
+             * @example [
+             *       "unilag.edu.ng"
              *     ]
              */
             domains?: string[];
+            /** @description false switches it off (needs a reason) */
+            isActive?: boolean;
+            /** @description Required when isActive is false. Kept in the audit log. */
+            reason?: string;
+        };
+        /** @enum {string} */
+        Weekday: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+        OpeningHoursDto: {
+            day: components["schemas"]["Weekday"];
+            /**
+             * @description 24-hour HH:MM
+             * @example 09:00
+             */
+            open: string;
+            /**
+             * @description 24-hour HH:MM, after open
+             * @example 17:00
+             */
+            close: string;
+        };
+        StationInstitutionDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            isActive: boolean;
+        };
+        AdminPickupStationDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            address: string;
+            contactName: string;
+            contactPhone: string;
+            openingHours: components["schemas"]["OpeningHoursDto"][];
+            isActive: boolean;
+            institution: components["schemas"]["StationInstitutionDto"];
+            /** @description Pickup agents assigned to this station */
+            agentCount: number;
+        };
+        AdminPickupStationPageDto: {
+            items: components["schemas"]["AdminPickupStationDto"][];
+            /** Format: uuid */
+            nextCursor: string | null;
+        };
+        CreatePickupStationDto: {
+            /** Format: uuid */
+            institutionId: string;
+            /** @example Main Gate Pickup Point */
+            name: string;
+            /** @example Main Gate, University Road */
+            address: string;
+            /** @example Bola Ade */
+            contactName: string;
+            /** @example +234 801 234 5678 */
+            contactPhone: string;
+            /** @description One entry per open day; days not listed are closed */
+            openingHours: components["schemas"]["OpeningHoursDto"][];
+        };
+        UpdatePickupStationDto: {
+            /** @example Main Gate Pickup Point */
+            name?: string;
+            /** @example Main Gate, University Road */
+            address?: string;
+            /** @example Bola Ade */
+            contactName?: string;
+            /** @example +234 801 234 5678 */
+            contactPhone?: string;
+            /** @description One entry per open day; days not listed are closed */
+            openingHours?: components["schemas"]["OpeningHoursDto"][];
+            /** @description false switches it off (needs a reason) */
+            isActive?: boolean;
+            /** @description Required when isActive is false. Kept in the audit log. */
+            reason?: string;
         };
     };
     responses: never;
@@ -911,6 +1099,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description INSTITUTION_INACTIVE: the user's institution is switched off. Only admins can sign in there. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
             /** @description Email already registered */
             409: {
                 headers: {
@@ -1057,6 +1254,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
+            /** @description INSTITUTION_INACTIVE: the user's institution is switched off. Only admins can sign in there. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -1085,6 +1291,15 @@ export interface operations {
                 content?: never;
             };
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description INSTITUTION_INACTIVE: the user's institution is switched off. Only admins can sign in there. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1274,44 +1489,6 @@ export interface operations {
             };
         };
     };
-    InstitutionsController_createInstitution: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateInstitutionDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["InstitutionDto"];
-                        /** Format: date-time */
-                        timestamp: string;
-                    };
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
     InstitutionsController_getInstitutionById: {
         parameters: {
             query?: never;
@@ -1338,6 +1515,406 @@ export interface operations {
                 };
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminInstitutionsController_list: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+                /** @description Search text */
+                q?: string;
+                status?: components["schemas"]["ActiveFilter"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminInstitutionPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminInstitutionsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInstitutionDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminInstitutionDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description CONFLICT (name taken) or DOMAIN_IN_USE (details.domain) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminInstitutionsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateInstitutionDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminInstitutionDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminPickupStationsController_list: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+                /** @description Search text */
+                q?: string;
+                status?: components["schemas"]["ActiveFilter"];
+                institutionId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminPickupStationPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminPickupStationsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePickupStationDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminPickupStationDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description VALIDATION_FAILED, or INVALID_REFERENCE for an unknown institution */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description The institution already has a station with this name */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminPickupStationsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePickupStationDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminPickupStationDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

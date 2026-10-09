@@ -71,6 +71,9 @@ export default function Modal({
 
       {/* Modal Content / Bottom Sheet */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
         className={cn(
           "relative w-full max-w-md bg-card rounded-t-[32px] sm:rounded-[32px] h-auto max-h-[90dvh] mt-auto overflow-hidden flex flex-col shadow-[0_-8px_30px_rgba(0,0,0,0.12)] transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)]",
           isOpen ? "translate-y-0" : "translate-y-full",
