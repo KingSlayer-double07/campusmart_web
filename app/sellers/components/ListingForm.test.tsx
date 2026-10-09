@@ -108,4 +108,17 @@ describe("ListingForm", () => {
     expect(uploadImages.mock.calls[0][0]).toEqual([file]);
     expect(uploadImages.mock.calls[0][1]).toBe("LISTING");
   });
+
+  it("offers drafts only until the seller is verified", async () => {
+    uploadImages.mockResolvedValue([]);
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(
+      <ListingForm mode="create" canPublish={false} initialValues={{ ...emptyValues(), photos: [existing] }} onSubmit={onSubmit} />,
+    );
+    expect(screen.queryByRole("button", { name: "Publish" })).toBeNull();
+    fillBasics();
+    // Enter in a field submits too, as a draft
+    fireEvent.submit(screen.getByLabelText("Product name").closest("form")!);
+    await waitFor(() => expect(onSubmit.mock.calls[0]?.[2]).toBe("DRAFT"));
+  });
 });

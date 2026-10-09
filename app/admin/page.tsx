@@ -1,14 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { CheckCircle2, ChevronRight, Circle, Clock, MapPin, School, type LucideIcon } from "lucide-react";
+import { CheckCircle2, ChevronRight, Circle, Clock, MapPin, School, ShieldCheck, type LucideIcon } from "lucide-react";
 import { useAdminInstitutions } from "@/lib/api/hooks/useAdminInstitutions";
 import { useAdminStations } from "@/lib/api/hooks/useAdminStations";
+import { useAdminVerifications } from "@/lib/api/hooks/useAdminVerifications";
 import { cn } from "@/lib/utils/cn";
 import AdminPageHeader from "./components/AdminPageHeader";
 
 // "12", or "100+" when there's another page
-function activeCount(query: ReturnType<typeof useAdminInstitutions> | ReturnType<typeof useAdminStations>) {
+function activeCount(
+  query:
+    | ReturnType<typeof useAdminInstitutions>
+    | ReturnType<typeof useAdminStations>
+    | ReturnType<typeof useAdminVerifications>,
+) {
   if (query.isPending) return { label: null, count: 0, isError: false };
   if (query.isError) return { label: "—", count: 0, isError: true };
   const count = query.data.pages.reduce((sum, page) => sum + page.items.length, 0);
@@ -92,15 +98,16 @@ function Step({
 export default function AdminHomePage() {
   const institutions = activeCount(useAdminInstitutions({ status: "ACTIVE", limit: 100 }));
   const stations = activeCount(useAdminStations({ status: "ACTIVE", limit: 100 }));
+  const waiting = activeCount(useAdminVerifications("PENDING", 100));
 
   return (
     <div className="flex flex-col gap-6">
       <AdminPageHeader
         title="Admin console"
-        description="Bring schools onto CampusMart and set up where their orders are collected. More tools appear here as the marketplace grows."
+        description="Bring schools onto CampusMart, set up where their orders are collected and approve new sellers. More tools appear here as the marketplace grows."
       />
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <AreaCard
           href="/admin/institutions"
           icon={School}
@@ -114,6 +121,13 @@ export default function AdminHomePage() {
           title="Pickup stations"
           count={stations.label}
           description="Active places where sellers drop off and buyers collect"
+        />
+        <AreaCard
+          href="/admin/verifications"
+          icon={ShieldCheck}
+          title="Seller verification"
+          count={waiting.label}
+          description="Sellers waiting for you to check their student ID"
         />
       </div>
 

@@ -1,4 +1,4 @@
-import { LayoutGrid, MapPin, School, type LucideIcon } from "lucide-react";
+import { LayoutGrid, MapPin, School, ShieldCheck, type LucideIcon } from "lucide-react";
 
 export interface AdminNavItem {
   href: string;
@@ -6,12 +6,13 @@ export interface AdminNavItem {
   icon: LucideIcon;
 }
 
-// Only screens that exist are listed, so no link leads to a missing page. Users, verifications,
-// listings, disputes, payouts, reports and the audit log join as their phases land (guide 9.2.2).
+// Only screens that exist are listed, so no link leads to a missing page. Users, listings,
+// disputes, payouts, reports and the audit log join as their phases land (guide 9.2.2).
 export const ADMIN_NAV: AdminNavItem[] = [
   { href: "/admin", label: "Overview", icon: LayoutGrid },
   { href: "/admin/institutions", label: "Institutions", icon: School },
   { href: "/admin/stations", label: "Pickup stations", icon: MapPin },
+  { href: "/admin/verifications", label: "Verifications", icon: ShieldCheck },
 ];
 
 export function isActiveNav(pathname: string, href: string) {

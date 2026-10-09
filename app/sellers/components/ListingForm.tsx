@@ -29,6 +29,8 @@ interface ListingFormProps {
   initialValues: ListingFormValues;
   /** "create" shows Save as draft + Publish; "edit" shows Save changes */
   mode: "create" | "edit";
+  /** False until an admin verifies the seller: create mode then offers Save as draft only */
+  canPublish?: boolean;
   onSubmit: (fields: ListingFields, images: UploadedImage[], intent: SubmitIntent) => Promise<void>;
 }
 
@@ -97,7 +99,7 @@ function SelectField<T extends string>({
 }
 
 // Add product (guide 3.2.6) and its edit mode at /sellers/products/[id]/edit share this form
-export default function ListingForm({ initialValues, mode, onSubmit }: ListingFormProps) {
+export default function ListingForm({ initialValues, mode, canPublish = true, onSubmit }: ListingFormProps) {
   const [values, setValues] = useState<ListingFormValues>(initialValues);
   const [errors, setErrors] = useState<ListingFormErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -186,7 +188,7 @@ export default function ListingForm({ initialValues, mode, onSubmit }: ListingFo
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
-        void submit(mode === "edit" ? "SAVE" : "ACTIVE");
+        void submit(mode === "edit" ? "SAVE" : canPublish ? "ACTIVE" : "DRAFT");
       }}
       className="flex flex-col"
     >
@@ -454,7 +456,16 @@ export default function ListingForm({ initialValues, mode, onSubmit }: ListingFo
       {/* Actions */}
       <section className="flex flex-col gap-3 px-4 py-6">
         {uploading && <p className="text-center text-xs text-foreground-muted">Uploading photos… keep this page open</p>}
-        {mode === "create" ? (
+        {mode === "create" && !canPublish ? (
+          <button
+            type="button"
+            disabled={!!busy}
+            onClick={() => submit("DRAFT")}
+            className="w-full py-4 rounded-full bg-seller-main text-white font-bold text-sm hover:bg-seller-hover active:scale-[0.98] transition-all shadow-md disabled:opacity-60"
+          >
+            {busy === "DRAFT" ? "Saving…" : "Save as draft"}
+          </button>
+        ) : mode === "create" ? (
           <>
             <button
               type="button"

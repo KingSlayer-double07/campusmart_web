@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Search, X } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
+import Tabs from "./Tabs";
 
 const STATUS_TABS = [
   { value: "", label: "All" },
@@ -69,26 +69,7 @@ export default function FilterBar({
         </label>
         {children}
       </div>
-      <div role="tablist" aria-label="Status" className="flex gap-2 overflow-x-auto no-scrollbar">
-        {STATUS_TABS.map((tab) => {
-          const selected = status === tab.value;
-          return (
-            <button
-              key={tab.label}
-              type="button"
-              role="tab"
-              aria-selected={selected}
-              onClick={() => onStatus(tab.value)}
-              className={cn(
-                "shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition-all",
-                selected ? "border-main bg-main text-white" : "border-border-default bg-card text-foreground-muted",
-              )}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
+      <Tabs tabs={STATUS_TABS} value={status} onChange={onStatus} />
     </div>
   );
 }

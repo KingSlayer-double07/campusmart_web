@@ -103,23 +103,6 @@ export interface paths {
         patch: operations["UsersController_changeMyPassword"];
         trace?: never;
     };
-    "/api/users/me/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Submit a seller verification document */
-        post: operations["UsersController_submitVerification"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/users/{id}": {
         parameters: {
             query?: never;
@@ -436,6 +419,46 @@ export interface paths {
         patch: operations["AdminPickupStationsController_update"];
         trace?: never;
     };
+    "/api/admin/verification-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Seller verification requests
+         * @description PENDING (default) oldest first, or VERIFIED / REJECTED latest first. Each has a 10-minute link to the ID photo.
+         */
+        get: operations["AdminVerificationController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/verification-requests/{id}/decide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve or reject a seller
+         * @description VERIFIED lets the seller publish listings. REJECTED needs a note, which the seller sees. Audited.
+         */
+        post: operations["AdminVerificationController_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/uploads/signature": {
         parameters: {
             query?: never;
@@ -583,6 +606,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/users/me/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Your verification status and latest request
+         * @description Includes the admin's reason when the latest request was rejected
+         */
+        get: operations["SellerVerificationController_mine"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/me/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask to be verified
+         * @description documentUrl is a student ID photo uploaded with purpose VERIFICATION. Puts the seller in PENDING until an admin decides.
+         */
+        post: operations["SellerVerificationController_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -657,23 +720,6 @@ export interface components {
              * @example NewCampus2026
              */
             newPassword: string;
-        };
-        VerificationRequestDto: {
-            /** Format: uuid */
-            id: string;
-            status: components["schemas"]["VerificationStatus"];
-            documentUrl: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        SubmitVerificationDto: {
-            /**
-             * @description Verification URL or data associated with the verification
-             * @example https://example.com/verify
-             */
-            verificationData: string;
         };
         PublicProfileDto: {
             /** Format: uuid */
@@ -878,6 +924,43 @@ export interface components {
             /** @description Required when isActive is false. Kept in the audit log. */
             reason?: string;
         };
+        VerificationSellerDto: {
+            /** Format: uuid */
+            id: string;
+            firstName: string | null;
+            lastName: string | null;
+            /** @description Admins see it to match the ID card */
+            email: string;
+            storeName: string | null;
+            institutionName: string | null;
+        };
+        AdminVerificationRequestDto: {
+            /** Format: uuid */
+            id: string;
+            status: components["schemas"]["VerificationStatus"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            reviewedAt: string | null;
+            reviewNote: string | null;
+            /** @description A link to the private ID photo that expires after 10 minutes. Null when the document is not a CampusMart upload or uploads are not set up. */
+            documentViewUrl: string | null;
+            seller: components["schemas"]["VerificationSellerDto"];
+        };
+        AdminVerificationPageDto: {
+            items: components["schemas"]["AdminVerificationRequestDto"][];
+            /** Format: uuid */
+            nextCursor: string | null;
+        };
+        /** @enum {string} */
+        ReviewQueue: "PENDING" | "VERIFIED" | "REJECTED";
+        /** @enum {string} */
+        VerificationDecision: "VERIFIED" | "REJECTED";
+        DecideVerificationDto: {
+            decision: components["schemas"]["VerificationDecision"];
+            /** @description Required when rejecting. The seller sees it, so say what to fix. */
+            note?: string;
+        };
         UploadSignatureDto: {
             /** @example campusmart */
             cloudName: string;
@@ -1073,6 +1156,26 @@ export interface components {
             /** @description Uploaded with an AVATAR signature; null removes it */
             logoUrl?: string | null;
             isOnline?: boolean;
+        };
+        VerificationRequestDto: {
+            /** Format: uuid */
+            id: string;
+            status: components["schemas"]["VerificationStatus"];
+            /** @description The admin's reason, set when the request was rejected */
+            reviewNote: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            reviewedAt: string | null;
+        };
+        MyVerificationDto: {
+            /** @description Only VERIFIED sellers can publish listings */
+            status: components["schemas"]["VerificationStatus"];
+            latestRequest: components["schemas"]["VerificationRequestDto"] | null;
+        };
+        SubmitVerificationDto: {
+            /** @description secure_url of a student ID photo uploaded with purpose VERIFICATION (a private, authenticated upload) */
+            documentUrl: string;
         };
     };
     responses: never;
@@ -1311,44 +1414,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    UsersController_submitVerification: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SubmitVerificationDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["VerificationRequestDto"];
-                        /** Format: date-time */
-                        timestamp: string;
-                    };
                 };
             };
             /** @description Internal Server Error */
@@ -2277,6 +2342,137 @@ export interface operations {
             };
         };
     };
+    AdminVerificationController_list: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+                /** @description PENDING lists oldest first; decided requests newest first */
+                status?: components["schemas"]["ReviewQueue"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminVerificationPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminVerificationController_decide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecideVerificationDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminVerificationRequestDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description VERIFICATION_ALREADY_DECIDED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
     UploadsController_signature: {
         parameters: {
             query?: never;
@@ -2948,6 +3144,139 @@ export interface operations {
             };
             /** @description Internal Server Error */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SellerVerificationController_mine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["MyVerificationDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SellerVerificationController_submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitVerificationDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["MyVerificationDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description INVALID_DOCUMENT: not your private VERIFICATION upload */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description ALREADY_VERIFIED or VERIFICATION_PENDING */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description UPLOADS_NOT_CONFIGURED */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

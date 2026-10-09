@@ -4,9 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { Package, Plus } from "lucide-react";
 import { useSellerListings } from "@/lib/api/hooks/useListings";
+import { useCanPublish } from "@/lib/api/hooks/useSellerVerification";
 import { LISTING_STATUS_LABELS, type ListingStatus } from "@/lib/labels";
 import SellerProductCard from "@/app/sellers/components/SellerProductCard";
 import { useListingActions } from "@/app/sellers/components/useListingActions";
+import VerificationNotice from "@/app/sellers/components/VerificationNotice";
 
 // ─── Filter tabs (guide 3.2.7) ────────────────────────────────────────────────
 
@@ -22,6 +24,7 @@ export default function ProductsPage() {
   const query = useSellerListings(activeTab === "ALL" ? undefined : activeTab);
   const products = query.data?.pages.flatMap((p) => p.items) ?? [];
   const { actions, dialogs } = useListingActions();
+  const canPublish = useCanPublish();
 
   return (
     <main className="flex flex-col max-w-md w-full pb-32">
@@ -60,6 +63,7 @@ export default function ProductsPage() {
 
       {/* ── Product list ── */}
       <div className="flex flex-col gap-3 px-4 pt-1 mt-2">
+        <VerificationNotice />
         {query.isPending ? (
           <div className="flex flex-col gap-3" aria-busy="true" aria-label="Loading products">
             {[0, 1, 2].map((i) => (
@@ -91,7 +95,7 @@ export default function ProductsPage() {
           <>
             {products.map((product) => (
               <Link key={product.id} href={`/sellers/products/${product.id}`}>
-                <SellerProductCard product={product} actions={actions} />
+                <SellerProductCard product={product} actions={actions} canPublish={canPublish} />
               </Link>
             ))}
             {query.hasNextPage && (
