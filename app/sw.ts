@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { Serwist } from "serwist";
+import { NetworkOnly, Serwist } from "serwist";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -16,7 +16,15 @@ const serwist = new Serwist({
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: defaultCache,
+  runtimeCaching: [
+    // API responses are per-user (auth, orders, verification), so never cache them.
+    // Listed first because the first matching rule wins and defaultCache would cache /api/.
+    {
+      matcher: ({ url }) => url.pathname.startsWith("/api/"),
+      handler: new NetworkOnly(),
+    },
+    ...defaultCache,
+  ],
   fallbacks: {
     entries: [
       {
