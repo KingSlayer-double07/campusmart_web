@@ -76,7 +76,7 @@ await page.getByText('Switched off', { exact: true }).first().waitFor();
 await page.waitForTimeout(500);
 check('The row shows Switched off', await lasuRow.getByText('Switched off').count());
 
-// Collins' rule, seen by a student: a switched-off school's sign-up gets a friendly message
+// The inactive-school rule, seen by a student: a switched-off school's sign-up gets a friendly message
 const guest = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 const g = await guest.newPage();
 await g.goto(`${BASE}/onboarding/buyers/sign-up`);

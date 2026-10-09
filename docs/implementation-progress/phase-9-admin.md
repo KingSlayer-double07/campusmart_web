@@ -5,7 +5,7 @@ Phase 2 ... Add the rest as each phase lands").
 
 | Slice | Branch | Status |
 |---|---|---|
-| A. Institutions and pickup stations (after Phase 2, Collins' decision 2026-10-09) | `feat/phase-9-admin-institutions-stations` | DONE pending manual checks |
+| A. Institutions and pickup stations (after Phase 2, decided 2026-10-09) | `feat/phase-9-admin-institutions-stations` | DONE pending manual checks |
 | B. Users and roles, verifications, listings, disputes, payouts, reports, audit, overview metrics | later, as Phases 3 to 10 land | NOT STARTED |
 
 ## 1. Checklist
@@ -28,13 +28,13 @@ Slice A gate:
 - [x] Backend `npx tsc --noEmit`, `npm run lint -- --max-warnings 0`, `npm run build`, `npm test`, `npm run test:e2e` pass.
 - [x] Frontend `npm run lint`, `npx tsc --noEmit`, `npx vitest run`, `npm run build` pass.
 - [x] `npm run gen:api` produces no diff; `prisma migrate diff ... --exit-code` is clean.
-- [x] Inactive institution (Collins, 2026-10-09): sign-up with its domains is blocked with a friendly message; it is
+- [x] Inactive institution (decided 2026-10-09): sign-up with its domains is blocked with a friendly message; it is
   hidden from the public list; buyers, sellers and pickup agents can't sign in; only admins can; anyone already
   signed in is cut off on their next token refresh.
 - [x] Every new endpoint meets the definition of done.
 - [x] Admin screens follow the existing frontend patterns, are mobile-responsive and have loading, empty and error
   states.
-- [ ] MANUAL: Collins looks over the console on a phone and a laptop and confirms it's easy to understand (steps below).
+- [ ] MANUAL: you look over the console on a phone and a laptop and confirms it's easy to understand (steps below).
 
 ## 2. Changes
 
@@ -60,7 +60,7 @@ Slice A gate:
   Opening hours DTO and validator: `src/admin/dto/opening-hours.dto.ts`.
 - Removed `POST /institutions` and `src/institutions/dto/create-institution.dto.ts` (endpoint index: replaced by
   `/admin/institutions`).
-- **Orders in progress block switching off (Collins, 2026-10-09).** `src/admin/open-orders.ts`
+- **Orders in progress block switching off (decided 2026-10-09).** `src/admin/open-orders.ts`
   `openSellerOrdersWhere()` counts seller orders at the school that are: unpaid and not yet expired; paid and
   waiting for drop-off, at the station or disputed; or collected with escrow still held (48-hour dispute window).
   Switching off with any of them → 409 `INSTITUTION_HAS_OPEN_ORDERS`, "University of Lagos has 3 orders in progress.
@@ -68,7 +68,7 @@ Slice A gate:
   `details.openOrders`. The count runs in the same transaction as the update. The `ConfirmDialog` shows API refusals
   in a "Couldn't switch off" banner, and the switch-off dialog lists the rule up front.
 
-### Inactive institutions (Collins' rule)
+### Inactive institutions (your rule)
 - `src/institutions/institution-access.ts`: `institutionInactive()` → 403 `INSTITUTION_INACTIVE`, "CampusMart isn't
   available at your school right now. Please check back soon."; `blockedByInstitution()` (everyone but `ADMIN`).
 - `AuthService.register`: a matching but inactive institution → 403 (no account created).
@@ -125,7 +125,7 @@ Local Postgres 16; e2e on `campusmart_test`; browser walk on `campusmart_dev` (s
 | Frontend gate | `npm run lint` exit 0 (0 errors, the 2 pre-existing warnings); `npx tsc --noEmit` exit 0; `npx vitest run` → 19 files, 100 tests passed; `API_ORIGIN=http://localhost:4000 npm run build` exit 0 (`/admin`, `/admin/institutions`, `/admin/stations` built). |
 | `gen:api` / migrate diff | CI path (`npm run openapi:export` + `openapi-typescript`) and `npm run gen:api` against the running API produce byte-identical files (`diff -q`). `migrate diff --from-migrations … --exit-code` → exit 0 (no schema change in this slice). |
 
-### MANUAL: look over the admin console (for Collins)
+### MANUAL: look over the admin console (for you)
 
 1. `cd backend && npm run dev`, then in the repo root `API_ORIGIN=http://localhost:4000 npx next dev -H 0.0.0.0 -p 3000`.
 2. On a laptop, open `http://localhost:3000/onboarding/buyers/sign-in` and sign in as the seed admin
@@ -139,8 +139,8 @@ Local Postgres 16; e2e on `campusmart_test`; browser walk on `campusmart_dev` (s
 
 ## 4. Deviations and assumptions
 
-1. **Built out of order.** Slice A of Phase 9 came right after Phase 2, as the guide recommends and Collins chose.
-2. **Inactive institutions follow Collins' rule** (not in the guide). `INSTITUTION_INACTIVE` is a 403 on register,
+1. **Built out of order.** Slice A of Phase 9 came right after Phase 2, as the guide recommends and you chose.
+2. **Inactive institutions follow your rule** (not in the guide). `INSTITUTION_INACTIVE` is a 403 on register,
    login and refresh, because the school exists but is closed. `INSTITUTION_NOT_SUPPORTED` stays 422 → waitlist. The
    check isn't in `JwtStrategy`, so an access token keeps working for up to 15 minutes ("cut off on their next
    token refresh"). The refresh revokes all of that user's sessions.
@@ -172,12 +172,12 @@ Local Postgres 16; e2e on `campusmart_test`; browser walk on `campusmart_dev` (s
     Point", plus a demo unpaid order `CM-DEMO01` (buyer `demo-buyer@unilag.edu.ng`, seller
     `demo-seller@unilag.edu.ng`, no passwords) that expires 3 hours after it was made, at which point it stops
     counting. Local only; a reset plus seed clears them.
-15. **Orders in progress** (Collins' decision) include unpaid checkouts until they expire and collected orders until
+15. **Orders in progress** (your decision) include unpaid checkouts until they expire and collected orders until
     escrow leaves `HELD`, since the buyer must be able to sign in to dispute. Phase 4's checkout must also refuse a
     buyer whose institution is switched off, because an access token stays valid for up to 15 minutes after the
     switch.
 
-## 5. Needs from Collins
+## 5. Needs from you
 
 - **MANUAL check** above: the console on a phone and a laptop.
 - ~~**Switching off a school with orders in progress**~~ **Decided 2026-10-09:** blocked, with the count shown in the

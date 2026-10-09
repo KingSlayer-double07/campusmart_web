@@ -134,7 +134,7 @@ Gate items:
 
 New env vars: none (Phase 1's `APP_URL` and `MAIL_*` were already in the schema). New migration: one (above).
 
-### Rate limits per account (Collins' decision, 2026-10-09)
+### Rate limits per account (your decision, 2026-10-09)
 - `backend/src/common/guards/account-throttler.guard.ts`: `AccountThrottlerGuard` replaces `ThrottlerGuard` as the
   global `APP_GUARD`. Same limits (120/min overall; 5/min on login, register, verify, resend, forgot, reset and
   password change), but keyed by a *verified* access token's user id, else the request body's email, else the IP.
@@ -166,7 +166,7 @@ Backend tests ran against local Postgres `campusmart_test`. The browser smoke ru
 | migrate diff | `--exit-code` → "No difference detected", exit 0. |
 | Definition of done | Unknown fields: e2e "rejects a client-sent institutionId or role". Forbidden paths: verify-email and sessions need sign-in (401); another user's session → 404; reset with an unknown email gives the same 400 as a wrong code. Response DTOs are in `schema.d.ts`; no password, hash, session id or other users' emails. |
 
-### MANUAL: phone A / phone B (for Collins)
+### MANUAL: phone A / phone B (for you)
 
 1. On a laptop on the same Wi-Fi as both phones: `cd backend && npm run dev`, then in the repo root
    `API_ORIGIN=http://localhost:4000 npx next dev -H 0.0.0.0 -p 3000`. Cookies aren't `secure` outside production,
@@ -223,7 +223,7 @@ Backend tests ran against local Postgres `campusmart_test`. The browser smoke ru
     Nest's default text "ThrottlerException: Too Many Requests" in the UI. It's harmless but unfriendly; it could be
     changed with the `errorMessage` option if you want.
 
-## 5. Needs from Collins
+## 5. Needs from you
 
 - ~~GitHub push access (blocker)~~ **Resolved 2026-10-09:** a session on the fork `KingSlayer-double07/campusmart_web`
   pushed `backend`, `feat/phase-0-security` and `feat/phase-1-integration` from the bundle (`backend` at `99d5b3c`).
@@ -231,10 +231,10 @@ Backend tests ran against local Postgres `campusmart_test`. The browser smoke ru
 - ~~Rate limits behind campus NAT~~ **Decided 2026-10-09:** limits follow the email/account, not the IP (see
   "Rate limits per account" below).
 - ~~**Middleware approach**~~ **Decided 2026-10-09:** keep it as is (deviation 4).
-- **Production SMTP:** `MAIL_HOST/PORT/USER/PASS/FROM`, pending the domain (Collins, 2026-10-09). Until it's set,
+- **Production SMTP:** `MAIL_HOST/PORT/USER/PASS/FROM`, pending the domain (decided 2026-10-09). Until it's set,
   a `NODE_ENV=production` API refuses to boot (env schema), because nobody could receive a verification code.
   Development and test print codes to the console, so local work is unaffected.
-- ~~**Neon dev branch**~~ **Decided 2026-10-09:** Collins migrates Neon after all phases are complete.
+- ~~**Neon dev branch**~~ **Decided 2026-10-09:** You migrate Neon after all phases are complete.
 - ~~**Institutions for testing sign-up**~~ Resolved by the Phase 2 seed (`npx prisma db seed`).
 - **FYI, strict refresh rotation:** with reuse detection as specified, two tabs refreshing at the same instant can
   trip it and sign that device out. The client shares one refresh per tab; cross-tab coordination could come later

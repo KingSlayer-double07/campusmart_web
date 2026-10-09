@@ -10,7 +10,7 @@ type TrackedRequest = {
 };
 
 // Students share campus NAT addresses, so rate limits follow the account, not the IP
-// (decision by Collins, 2026-10-09):
+// (decided 2026-10-09):
 //   1. a valid access token        -> the user id (verify-email, resend, password change, ...)
 //   2. an email in the request body -> that email (login, register, forgot/reset password)
 //   3. anything else                -> the client IP

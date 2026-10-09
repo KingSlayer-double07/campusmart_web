@@ -20,7 +20,7 @@ Gate items:
 - [x] Frontend `npm run lint`, `npx tsc --noEmit`, `npx vitest run`, `npm run build` pass.
 - [x] `npm run gen:api` produces no diff; `prisma migrate diff ... --exit-code` is clean.
 - [x] Every new endpoint meets the definition of done.
-- [ ] **MANUAL:** a real upload to Cloudinary, once Collins has an account (see section 5).
+- [ ] **MANUAL:** a real upload to Cloudinary, once you have an account (see section 5).
 
 ## 2. Changes
 
@@ -111,7 +111,7 @@ Local Postgres 16; e2e on `campusmart_test`; browser walk on `campusmart_dev`.
 | Frontend gate | `npm run lint` exit 0 (0 errors, 1 pre-existing warning in `app/profile/page.tsx`); `npx tsc --noEmit` exit 0; `npx vitest run` → 30 files, 138 tests passed; `API_ORIGIN=http://localhost:4000 npm run build` exit 0 (`/categories`, `/productItem/[id]`, `/sellers/products`, `/sellers/products/[id]`, `/sellers/products/[id]/edit` built). |
 | `gen:api` / migrate diff | CI path (`npm run openapi:export` + `openapi-typescript`) and `openapi-typescript http://localhost:4000/api/docs-json` both match the committed `lib/api/schema.d.ts` (`diff -q`). `prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code` → exit 0 (no schema change in this phase). |
 
-### MANUAL: try the seller and buyer flows (for Collins)
+### MANUAL: try the seller and buyer flows (for you)
 
 Needs Cloudinary credentials in `backend/.env` (`CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`,
 `CLOUDINARY_API_SECRET`) and `res.cloudinary.com` allowed in `next.config` images (already there).
@@ -161,7 +161,7 @@ Needs Cloudinary credentials in `backend/.env` (`CLOUDINARY_CLOUD_NAME`, `CLOUDI
     (`ui.edu.ng`, added through the admin API), and the listing "UrbanFlex cargo pants" with placeholder image URLs
     in `campusmart_dev`. Local only; a reset plus seed clears them.
 
-## 5. Needs from Collins
+## 5. Needs from you
 
 - **Cloudinary account** (blocks real uploads): `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`,
   `CLOUDINARY_API_SECRET` for local `.env` and, later, the host's secrets. Production won't boot without them. Until

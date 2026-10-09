@@ -17,14 +17,14 @@ Gate items:
 - [x] Backend `npx tsc --noEmit`, `npm run lint -- --max-warnings 0`, `npm run build`, `npm test`, `npm run test:e2e` pass.
 - [x] Frontend `npm run lint`, `npx tsc --noEmit`, `npx vitest run`, `npm run build` pass.
 - [x] `npm run gen:api` produces no diff.
-- [x] `prisma migrate reset` + `prisma db seed` run on the local dev database only (after Collins confirmed the
+- [x] `prisma migrate reset` + `prisma db seed` run on the local dev database only (after you confirmed the
   migration SQL summary).
 
 ## 2. Changes
 
 ### 2.1 Before you start
-- No Neon branch: per Collins, all work runs on a local Postgres 16 (`campusmart_dev` for the migration and the reset,
-  `campusmart_test` for e2e, `campusmart_shadow` for diffs). Neon is listed under Needs from Collins.
+- No Neon branch: per your instruction, all work runs on a local Postgres 16 (`campusmart_dev` for the migration and the reset,
+  `campusmart_test` for e2e, `campusmart_shadow` for diffs). Neon is listed under Needs from you.
 - `campusmart_dev` held only the Phase 0/1 migrations applied at the start of this session, no data worth exporting.
 
 ### 2.2 Schema changes
@@ -51,7 +51,7 @@ Gate items:
   - `Wishlist`: redundant `@@index([userId, listingId])` removed. `ModerationAction`: optional `targetUserId`.
     `VerificationRequest` unchanged.
 - Migration: `backend/prisma/migrations/20261009145230_commerce_core/migration.sql` (summary under Needs from
-  Collins).
+  you).
 
 ### 2.3 Run it
 1. Migration created (see Deviations 2 for how).
@@ -63,7 +63,7 @@ Gate items:
 3. `backend/prisma/seed.ts`: one institution, two pickup stations (with `openingHours` JSON), and an admin from
    `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD`. Exported `seed(prisma, env)` so e2e runs the same code. Registered in
    `backend/prisma.config.ts` as `migrations.seed: 'ts-node prisma/seed.ts'`. Idempotent.
-4. `prisma migrate reset --force` on local `campusmart_dev` (Collins confirmed the SQL summary, then gave Prisma's
+4. `prisma migrate reset --force` on local `campusmart_dev` (you confirmed the SQL summary, then gave Prisma's
    AI-consent text "yes, reset campusmart_dev"), followed by `npx prisma db seed`.
 - `backend/README.md`: seed and reset steps.
 - Tests: `backend/src/prisma/schema.spec.ts` (no Decimal, every `*Kobo` field is `Int`),
@@ -90,8 +90,8 @@ Local Postgres 16. Unless stated, `DATABASE_URL=DIRECT_URL=postgresql://postgres
 
 ## 4. Deviations and assumptions
 
-1. **Local Postgres instead of a Neon branch (2.1).** Collins' instruction for this session. Neon still needs the
-   migration; see Needs from Collins.
+1. **Local Postgres instead of a Neon branch (2.1).** Your instruction for this session. Neon still needs the
+   migration; see Needs from you.
 2. **How the migration was created.** `npx prisma migrate dev --name commerce_core --create-only` refuses to run in a
    non-interactive shell ("Prisma Migrate has detected that the environment is non-interactive"). The SQL was
    produced by the same engine with `npx prisma migrate diff --from-migrations prisma/migrations --to-schema
@@ -112,7 +112,7 @@ Local Postgres 16. Unless stated, `DATABASE_URL=DIRECT_URL=postgresql://postgres
    column`, so `grep Decimal schema.prisma` is clean for the checklist.
 8. **Seed data is a placeholder.** The guide says "one institution with your real domains"; I don't have them. The
    seed uses University of Lagos / `unilag.edu.ng` (the domain the tests and Swagger examples already use) and two
-   placeholder stations, marked `TODO(Collins)` at the top of `prisma/seed.ts`.
+   placeholder stations, marked `TODO` at the top of `prisma/seed.ts`.
 9. **Seed admin details.** Email is trimmed and lowercased like every other email. `emailVerifiedAt` is set (no code
    can be delivered before SMTP exists, and the operator owns the address). The admin joins the seeded institution
    only when its email is on that institution's domain. The password must meet the password policy. Re-running the
@@ -120,13 +120,13 @@ Local Postgres 16. Unless stated, `DATABASE_URL=DIRECT_URL=postgresql://postgres
    `SEED_ADMIN_EMAIL` (the env var names who the admin is).
 10. **`ModerationActionType.SUSPEND` kept** next to the new `SUSPEND_USER`; the guide only says to add values.
 11. **`Institution.isActive` has no behaviour yet.** It's stored and returned (`InstitutionDto.isActive`), but sign-up
-    still accepts every institution. See Needs from Collins.
+    still accepts every institution. See Needs from you.
 12. **Seller sign-up creates the `SellerProfile`** (guide 1.4 rule 9, which deferred it to Phase 2).
 13. **Prisma's AI guard on `migrate reset`.** Prisma 7 refuses `migrate reset` when run by an AI agent unless
-    `PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION` holds the user's explicit consent message. Collins gave it in a
+    `PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION` holds the user's explicit consent message. You gave it in a
     separate message after reviewing the summary; the earlier approval didn't count for Prisma.
 
-## 5. Needs from Collins
+## 5. Needs from you
 
 - ~~**Confirm the migration before I reset the local dev database.**~~ Confirmed and done 2026-10-09. Summary of
   `20261009145230_commerce_core/migration.sql`:
@@ -144,9 +144,9 @@ Local Postgres 16. Unless stated, `DATABASE_URL=DIRECT_URL=postgresql://postgres
     `ListingImage → Listing` (now cascades on delete).
   - Plan: `npx prisma migrate reset --force` then `npx prisma db seed`, with `DIRECT_URL`/`DATABASE_URL` pointing at
     local `campusmart_dev` only.
-- ~~**Real seed data**~~ **Decided 2026-10-09:** keep the placeholders; Collins edits `prisma/seed.ts` when
+- ~~**Real seed data**~~ **Decided 2026-10-09:** keep the placeholders; you edit `prisma/seed.ts` when
   the time is right.
-- ~~**Neon**~~ **Decided 2026-10-09:** Collins migrates Neon after all phases are complete (after editing the
+- ~~**Neon**~~ **Decided 2026-10-09:** You migrate Neon after all phases are complete (after editing the
   seed data). Until then everything runs on the local Postgres.
 - ~~**What should `Institution.isActive = false` do?**~~ **Decided 2026-10-09:** new sign-ups with its domains are
   blocked with a friendly message, it is hidden from the public `GET /institutions` list, and existing sellers can't
