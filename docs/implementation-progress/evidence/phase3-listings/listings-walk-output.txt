@@ -1,0 +1,18 @@
+PASS  Delete (with a confirm step) removes earlier copies from the list  (deleted=1)
+PASS  The add form takes 3 photos and 2 options
+PASS  Publishing uploads 3 photos and lands on the products list  (uploads=3)
+PASS  The new listing shows "In stock" and "From ₦14,500"
+PASS  Adjust stock lists each option
+PASS  The edit form opens with the saved name, photos and options
+PASS  Saving the edit updates the price (no new uploads)  (uploads=3)
+PASS  The store profile saves a name and the online switch
+PASS  A buyer at the seller's school sees it on the home page
+PASS  Search puts q in the URL and finds it
+PASS  The product page shows the store name and that the seller is online
+PASS  Add to cart waits for an option
+PASS  Picking 'L' shows its own price and adds it to the cart
+PASS  The cart shows the option and ₦15,000
+PASS  A buyer at another school gets "not available" (API 404) for its ID
+PASS  …and an empty catalogue at their school
+
+16/16 passed

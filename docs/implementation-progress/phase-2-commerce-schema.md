@@ -144,9 +144,9 @@ Local Postgres 16. Unless stated, `DATABASE_URL=DIRECT_URL=postgresql://postgres
     `ListingImage → Listing` (now cascades on delete).
   - Plan: `npx prisma migrate reset --force` then `npx prisma db seed`, with `DIRECT_URL`/`DATABASE_URL` pointing at
     local `campusmart_dev` only.
-- ~~**Real seed data**~~ **Decided 2026-10-09:** keep the placeholders; Collins edits `prisma/seed.ts` himself when
+- ~~**Real seed data**~~ **Decided 2026-10-09:** keep the placeholders; Collins edits `prisma/seed.ts` when
   the time is right.
-- ~~**Neon**~~ **Decided 2026-10-09:** Collins migrates Neon himself after all phases are complete (after editing the
+- ~~**Neon**~~ **Decided 2026-10-09:** Collins migrates Neon after all phases are complete (after editing the
   seed data). Until then everything runs on the local Postgres.
 - ~~**What should `Institution.isActive = false` do?**~~ **Decided 2026-10-09:** new sign-ups with its domains are
   blocked with a friendly message, it is hidden from the public `GET /institutions` list, and existing sellers can't
