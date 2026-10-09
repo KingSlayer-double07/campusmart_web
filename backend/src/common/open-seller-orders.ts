@@ -5,15 +5,13 @@ import {
   OrderStatus,
 } from '../generated/prisma/enums';
 
-// Seller orders at an institution that still need its people (Collins, 2026-10-09): an unpaid
-// checkout that hasn't expired, a paid order waiting for drop-off, at the station or disputed, and a
-// collected order whose 48-hour dispute window is still open (escrow held).
-export function openSellerOrdersWhere(
-  institutionId: string,
+// A seller order that isn't finished yet (Collins, 2026-10-09): an unpaid checkout that hasn't
+// expired, a paid order waiting for drop-off, at the station or disputed, and a collected order
+// whose 48-hour dispute window is still open (escrow held).
+export function openSellerOrderWhere(
   now = new Date(),
 ): Prisma.SellerOrderWhereInput {
   return {
-    order: { institutionId },
     OR: [
       {
         order: { status: OrderStatus.PENDING_PAYMENT, expiresAt: { gt: now } },
@@ -37,3 +35,17 @@ export function openSellerOrdersWhere(
     ],
   };
 }
+
+// Open seller orders at one institution (switching it off is refused while there are any)
+export const openSellerOrdersAt = (
+  institutionId: string,
+): Prisma.SellerOrderWhereInput => ({
+  AND: [{ order: { institutionId } }, openSellerOrderWhere()],
+});
+
+// Open seller orders that include one listing (it can't be deleted while there are any, guide 3.1)
+export const openSellerOrdersWithListing = (
+  listingId: string,
+): Prisma.SellerOrderWhereInput => ({
+  AND: [{ items: { some: { listingId } } }, openSellerOrderWhere()],
+});

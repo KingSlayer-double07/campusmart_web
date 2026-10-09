@@ -14,6 +14,9 @@ import { MailModule } from './mail/mail.module';
 import { AccountThrottlerGuard } from './common/guards/account-throttler.guard';
 import { AuditModule } from './audit/audit.module';
 import { AdminModule } from './admin/admin.module';
+import { UploadsModule } from './uploads/uploads.module';
+import { ListingsModule } from './listings/listings.module';
+import { SellersModule } from './sellers/sellers.module';
 
 @Module({
   imports: [
@@ -30,6 +33,9 @@ import { AdminModule } from './admin/admin.module';
     InstitutionsModule,
     AuditModule,
     AdminModule,
+    UploadsModule,
+    ListingsModule,
+    SellersModule,
   ],
   controllers: [AppController],
   providers: [

@@ -8,7 +8,7 @@ import { cursorArgs, toPage } from '../common/pagination';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { activeWhere, AdminListQueryDto } from './dto/active-toggle.dto';
-import { openSellerOrdersWhere } from './open-orders';
+import { openSellerOrdersAt } from '../common/open-seller-orders';
 import { toggleAction } from './toggle-action';
 import {
   AdminInstitutionDto,
@@ -120,7 +120,7 @@ export class AdminInstitutionsService {
       // Switched off, its buyers and agents can't sign in, so nothing in progress could finish
       if (changes.isActive && next.isActive === false) {
         const openOrders = await tx.sellerOrder.count({
-          where: openSellerOrdersWhere(id),
+          where: openSellerOrdersAt(id),
         });
         if (openOrders > 0) {
           throw new ConflictException({
