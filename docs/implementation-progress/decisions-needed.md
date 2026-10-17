@@ -1,7 +1,7 @@
 # Decisions needed: Phases 5–10 and launch
 
-Written 2026-10-17, after Phase 4. **Status:** rounds 1–5 are answered; see [Answers](#answers-2026-10-17).
-Round 6, six questions about the automatic delivery job, is [open](#open-questions-round-6). None of them blocks Phase 4b. The plan built on these answers is in
+Written 2026-10-17, after Phase 4. **Status:** rounds 1–6 are answered; see [Answers](#answers-2026-10-17).
+One question about the code length is [open](#open-question-the-handover-code-length) (Phase 6). The plan built on these answers is in
 [execution-plan.md](execution-plan.md). Each row is a choice only you can make. The **Default** column is what I build if
 you leave the row unanswered, so nothing waits on a row unless its "Needed by" says it blocks.
 
@@ -119,7 +119,7 @@ is D11**. `ESCROW_DISPUTE_WINDOW_HOURS` stays a variable only so tests can set i
 ## Answers (2026-10-17)
 
 Your answers, as given. "Default" rows take the Default column above. Later rounds refine earlier rows where
-they say so; anything still undecided is in round 6.
+they say so; anything still undecided is listed at the end.
 
 ### Round 1
 
@@ -271,37 +271,25 @@ they say so; anything still undecided is in round 6.
 | DF8 | The job opens to riders automatically; sellers don't call the dispatch (this replaces "the seller calls the dispatch" in DL3 and DX2). Each seller gets a timeframe for the rider's arrival, so the item is ready for pickup. |
 | DF9 | No refund of the delivery fee once at least one item in the order has been picked up. |
 
-## Open questions (round 6)
+### Round 6
 
-The automatic job raises these. Phases 5 and 6 wait on them; Phase 4b doesn't.
+| ID | Answer |
+|---|---|
+| DF8a | Confirmed: the job opens automatically for every dispatch order, single-store ones included. |
+| DF8b | When accepting, the rider picks an arrival window for each store, and can update it. |
+| DF11 | A store isn't ready, or the seller isn't there: the rider reports it, delivers the rest now, and comes back for that store before its 3-day deadline at no extra fee. If it's still not ready, it's cancelled as the seller's fault. |
+| DF10 | One code per store, kept short (2–3 digits) so a rider entering several isn't worn out. |
+| C11 | Confirmed, replacing DL7d: no pickup within 3 days is the seller's fault only if the rider reported the store not ready or the seller not there; otherwise it's nobody's. |
+| DF9a | Confirmed: the delivery fee comes back only when the whole order is refunded before anything was picked up. |
 
-- **DF8a (Phase 6).** Confirm: the job opens automatically for every order delivered by dispatch, including orders
-  from a single store.
-- **DF8b (Phase 6). Who sets the seller's timeframe:** **a** the rider picks an arrival window for each store when
-  accepting, and can update it · **b** the app gives a fixed window after the rider accepts (say how many hours) ·
-  **c** other.
-- **DF11 (Phase 6). A store isn't ready, or the seller isn't there, when the rider arrives:** **a** the rider reports
-  it and carries on with the rest; that store's order is cancelled and refunded as the seller's fault · **b** the rider
-  reports it, delivers the rest now, and comes back for that store before its 3-day deadline, at no extra fee; if it's
-  still not ready by then, it's cancelled as the seller's fault · **c** the rider waits, and delivers everything
-  together once that store is ready, within its 3-day deadline.
-- **DF10 (Phase 6). The buyer's code when one delivery covers several stores:** **a** one code for the whole
-  delivery, shown once the rider has every parcel still in the order · **b** one code per store, each shown once the
-  rider has that store's parcel.
-- **C11 (Phase 5).** Confirm, replacing DL7d (which assumed sellers call the dispatch): when a store's parcel isn't
-  picked up within 3 days, it's the seller's fault only if the rider reported the store not ready or the seller not
-  there (DF11). Otherwise, for example when no rider accepted or the rider didn't come, it's nobody's fault: the
-  platform absorbs the fee and the seller keeps their points.
-- **DF9a (Phase 5).** Confirm: the delivery fee comes back only when the whole order is refunded before anything was
-  picked up. If one store is refunded and the rest is still delivered, the fee isn't refunded.
+## Open question: the handover code length
 
-### Reply block (round 6)
+- **DF10a (Phase 6).** The code is what proves delivery and starts the payout clock, so its length is a security
+  choice. After 5 wrong tries the order locks and admins are alerted (F5). Someone guessing therefore gets through
+  about 1 time in 200 with 3 digits, and 1 time in 20 with 2 digits. **a** 3 digits for every store, pickups from the
+  seller included (recommended) · **b** 2 digits · **c** 3 digits for dispatch, and today's 6 digits for pickup from
+  the seller, where only one code is typed.
 
 ```
-DF8a:
-DF8b:
-DF11:
-DF10:
-C11:
-DF9a:
+DF10a:
 ```

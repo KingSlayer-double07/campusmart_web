@@ -63,8 +63,8 @@ Your decisions that change or extend the guide. Each phase file has the detail.
 
 - [execution-plan.md](execution-plan.md): what Phases 4b–10 build, in order, with each phase's gate checklist and
   what it needs from you.
-- Round 6 in [decisions-needed.md](decisions-needed.md#open-questions-round-6): six questions about the automatic
-  delivery job. Phases 5 and 6 wait on them; Phase 4b doesn't.
+- One open question in [decisions-needed.md](decisions-needed.md#open-question-the-handover-code-length): the
+  length of the buyer's handover code (Phase 6).
 
 ## What you need to set up
 
