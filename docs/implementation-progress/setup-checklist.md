@@ -73,7 +73,7 @@ deadline). The 48-hour dispute window is locked (D11).
 Pickup stations are replaced by delivery (decisions F2 and DL1–DL10); see [execution-plan.md](execution-plan.md).
 
 - [ ] **Campus places** for UNILAG (halls, faculties, gates) and the **flat on-campus delivery fee**. You enter them
-      in `/admin` once Phase 4b lands; until then the seed has placeholders.
+      in `/admin/places` and `/admin/settings` (live since Phase 4b); until then the seed has placeholders.
 - [ ] **Riders**: the email of each person you want as a dispatch rider. An admin invites them from
       `/admin/riders` (Phase 6). The invite email prints to the console until email is set up (1.4).
 - [ ] **An Android phone with Chrome** to try the rider app's QR scanning (the browser's barcode reader). On an

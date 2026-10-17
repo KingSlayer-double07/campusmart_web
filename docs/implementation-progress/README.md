@@ -10,7 +10,7 @@ its checklist, changes, verification evidence, deviations and open asks.
 | 2 Commerce schema | DONE | `feat/phase-2-commerce-schema` | 2026-10-09 |
 | 3 Listings, variants, uploads | DONE pending manual checks (real Cloudinary upload) | `feat/phase-3-listings`, `feat/phase-3-seller-verification` | 2026-10-09 |
 | 4 Cart and checkout | DONE | `feat/phase-4-cart-checkout` | 2026-10-09 |
-| 4b Checkout with delivery | NOT STARTED (ready; starts on your "continue") | `feat/phase-4b-delivery-checkout` | |
+| 4b Checkout with delivery | DONE | `feat/phase-4b-delivery-checkout` | 2026-10-17 |
 | 5 Payments and escrow | NOT STARTED | | |
 | 6 Dispatch and handover (replaces pickup stations) | NOT STARTED | | |
 | 7 Seller analytics | NOT STARTED | | |
@@ -78,6 +78,7 @@ everything still open from Phases 0–4 and 9.
 - [Phase 3](phase-3-listings.md) (browser evidence in [`evidence/phase3-listings/`](evidence/phase3-listings/) and
   [`evidence/phase3-seller-verification/`](evidence/phase3-seller-verification/))
 - [Phase 4](phase-4-cart-checkout.md) (browser evidence in [`evidence/phase4-cart-checkout/`](evidence/phase4-cart-checkout/))
+- [Phase 4b](phase-4b-delivery-checkout.md) (browser evidence in [`evidence/phase4b-delivery-checkout/`](evidence/phase4b-delivery-checkout/))
 - [Phase 9](phase-9-admin.md) (built in slices; browser evidence in [`evidence/phase9-admin/`](evidence/phase9-admin/))
 
 ## Working setup used for verification
