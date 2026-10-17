@@ -93,6 +93,9 @@ export class AdminDeliveryJobDto {
   })
   unacceptedAlertAt!: Date | null;
 
+  @ApiProperty({ format: 'uuid' })
+  institutionId!: string;
+
   @ApiProperty()
   institutionName!: string;
 

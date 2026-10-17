@@ -37,7 +37,7 @@ const adminJobSelect = {
   createdAt: true,
   acceptedAt: true,
   unacceptedAlertAt: true,
-  institution: { select: { name: true } },
+  institution: { select: { id: true, name: true } },
   rider: { select: { id: true, firstName: true, lastName: true } },
   order: {
     select: {
@@ -85,6 +85,7 @@ const toDto = (row: AdminJobRow): AdminDeliveryJobDto => ({
   createdAt: row.createdAt,
   acceptedAt: row.acceptedAt,
   unacceptedAlertAt: row.unacceptedAlertAt,
+  institutionId: row.institution.id,
   institutionName: row.institution.name,
   rider: row.rider ? { id: row.rider.id, name: riderName(row.rider) } : null,
   buyerName: buyerDisplayName(row.order.buyer),

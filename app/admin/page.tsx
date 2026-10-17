@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { CheckCircle2, ChevronRight, Circle, Clock, MapPinned, School, ShieldCheck, type LucideIcon } from "lucide-react";
 import { useAdminCampusPlaces } from "@/lib/api/hooks/useAdminCampusPlaces";
+import { useAdminRiders } from "@/lib/api/hooks/useAdminDispatch";
 import { useAdminInstitutions } from "@/lib/api/hooks/useAdminInstitutions";
 import { useAdminVerifications } from "@/lib/api/hooks/useAdminVerifications";
 import { cn } from "@/lib/utils/cn";
@@ -13,7 +14,8 @@ function activeCount(
   query:
     | ReturnType<typeof useAdminInstitutions>
     | ReturnType<typeof useAdminCampusPlaces>
-    | ReturnType<typeof useAdminVerifications>,
+    | ReturnType<typeof useAdminVerifications>
+    | ReturnType<typeof useAdminRiders>,
 ) {
   if (query.isPending) return { label: null, count: 0, isError: false };
   if (query.isError) return { label: "—", count: 0, isError: true };
@@ -100,6 +102,7 @@ export default function AdminHomePage() {
   const institutions = activeCount(institutionsQuery);
   const places = activeCount(useAdminCampusPlaces({ status: "ACTIVE", limit: 100 }));
   const waiting = activeCount(useAdminVerifications("PENDING", 100));
+  const riders = activeCount(useAdminRiders({ status: "ACTIVE" }));
   const feeSet = !!institutionsQuery.data?.pages.some((page) => page.items.some((i) => i.deliveryFeeKobo !== null));
 
   return (
@@ -152,10 +155,11 @@ export default function AdminHomePage() {
             linkLabel={places.count > 0 ? "Set the delivery fee" : "Add a campus place"}
           />
           <Step
-            done={false}
-            pending
+            done={riders.count > 0}
             title="3. Invite the riders"
-            description="Coming with the dispatch screens: riders collect from sellers and deliver to buyers."
+            description="Riders collect from sellers and deliver to buyers. Each one belongs to one campus."
+            href="/admin/riders"
+            linkLabel="Invite a rider"
           />
         </ol>
       </section>

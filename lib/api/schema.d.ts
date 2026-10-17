@@ -2992,6 +2992,8 @@ export interface components {
              * @description When admins were told nobody accepted within 5 hours (DX2)
              */
             unacceptedAlertAt: string | null;
+            /** Format: uuid */
+            institutionId: string;
             institutionName: string;
             rider: components["schemas"]["AdminPersonDto"] | null;
             buyerName: string;
