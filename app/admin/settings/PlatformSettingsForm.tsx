@@ -10,6 +10,9 @@ import { Field, TextInput } from "../components/fields";
 // The API's limits (backend/src/settings/settings.service.ts)
 const MAX_FEE_PERCENT = 50;
 const DAYS = { min: 1, max: 14 };
+const LOW_STOCK = { min: 0, max: 100 };
+
+const wholeNumber = (input: string) => (/^\d+$/.test(input.trim()) ? Number(input.trim()) : NaN);
 
 // "2.5" -> 250 basis points; null when it isn't a percentage the API accepts
 export function percentToBps(input: string): number | null {
@@ -24,35 +27,44 @@ export const bpsToPercent = (bps: number) => String(bps / 100);
 interface Errors {
   fee?: string | null;
   days?: string | null;
+  lowStock?: string | null;
   form?: string | null;
 }
 
-// Decisions P1 and DL7b: the platform's cut of each seller order (0 to start) and how long a
-// seller has to hand a paid order to a rider. Changes apply to orders paid from now on.
+// Decisions P1, DL7b and A1: the platform's cut of each seller order (0 to start), how long a
+// seller has to hand a paid order to a rider, and when sellers hear an item is running low.
 export default function PlatformSettingsForm({ settings, onSaved }: { settings: PlatformSettings; onSaved: (saved: PlatformSettings) => void }) {
   const update = useUpdateSettings();
   const [fee, setFee] = useState("");
   const [days, setDays] = useState("");
+  const [lowStock, setLowStock] = useState("");
   const [errors, setErrors] = useState<Errors>({});
 
   useEffect(() => {
     setFee(bpsToPercent(settings.platformFeeBps));
     setDays(String(settings.pickupDeadlineDays));
+    setLowStock(String(settings.lowStockThreshold));
   }, [settings]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const platformFeeBps = percentToBps(fee);
-    const pickupDeadlineDays = /^\d+$/.test(days.trim()) ? Number(days.trim()) : NaN;
+    const pickupDeadlineDays = wholeNumber(days);
+    const lowStockThreshold = wholeNumber(lowStock);
     const found: Errors = {
       fee: platformFeeBps === null ? `Enter a percentage from 0 to ${MAX_FEE_PERCENT}, such as 2.5` : null,
       days: pickupDeadlineDays >= DAYS.min && pickupDeadlineDays <= DAYS.max ? null : `Enter a whole number of days from ${DAYS.min} to ${DAYS.max}`,
+      lowStock:
+        lowStockThreshold >= LOW_STOCK.min && lowStockThreshold <= LOW_STOCK.max
+          ? null
+          : `Enter a whole number from ${LOW_STOCK.min} to ${LOW_STOCK.max}`,
     };
     setErrors(found);
-    if (found.fee || found.days || platformFeeBps === null) return;
+    if (found.fee || found.days || found.lowStock || platformFeeBps === null) return;
     const body = {
       ...(platformFeeBps !== settings.platformFeeBps && { platformFeeBps }),
       ...(pickupDeadlineDays !== settings.pickupDeadlineDays && { pickupDeadlineDays }),
+      ...(lowStockThreshold !== settings.lowStockThreshold && { lowStockThreshold }),
     };
     if (Object.keys(body).length === 0) return setErrors({ form: "Nothing has changed." });
     try {
@@ -99,13 +111,30 @@ export default function PlatformSettingsForm({ settings, onSaved }: { settings: 
             }}
           />
         </Field>
+        <Field
+          label="Low stock alert at"
+          htmlFor="low-stock"
+          error={errors.lowStock}
+          hint="Sellers are told when an item has this many left or fewer."
+        >
+          <TextInput
+            id="low-stock"
+            inputMode="numeric"
+            value={lowStock}
+            invalid={!!errors.lowStock}
+            onChange={(e) => {
+              setLowStock(e.target.value);
+              setErrors({});
+            }}
+          />
+        </Field>
       </div>
       {errors.form && (
         <p role="alert" className="text-sm font-medium text-red-500">
           {errors.form}
         </p>
       )}
-      <p className="text-xs text-foreground-muted">Changes apply to orders paid from now on, and are kept in the audit log.</p>
+      <p className="text-xs text-foreground-muted">Fee and days apply to orders paid from now on. Every change is kept in the audit log.</p>
       <Button type="submit" className="sm:w-auto sm:self-end" loading={update.isPending}>
         Save settings
       </Button>

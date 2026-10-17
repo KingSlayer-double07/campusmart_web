@@ -1,246 +1,262 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Image from "next/image";
-import { ArrowUpRight, ArrowDownRight } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { PackageX } from "lucide-react";
 import PageHeader from "@/app/components/PageHeader";
-import RevenueBarChart from "./components/RevenueBarChart";
+import { useSellerStore } from "@/app/store/useSellerStore";
+import type { AnalyticsMetric, InventoryAlert, TopListing } from "@/lib/api/analytics";
+import { useInventoryAlerts, useSellerStats, useSellerTimeseries, useTopListings } from "@/lib/api/hooks/useSellerAnalytics";
+import { formatNaira } from "@/lib/labels";
+import ChangeBadge from "../components/ChangeBadge";
+import RangeSwitch, { rangeSince } from "../components/RangeSwitch";
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-// TODO: Replace with real API data once analytics endpoint is available.
+// recharts is loaded only here (guide 7.2.3)
+const TrendChart = dynamic(() => import("./components/TrendChart"), {
+  ssr: false,
+  loading: () => <ChartSkeleton />,
+});
 
-const REVENUE = 2_847_500;
-const REVENUE_CHANGE = 24.5;
-
-const STATS: {
-  label: string;
-  value: string;
-  changeLabel: string;
-  positive: boolean;
-}[] = [
-  { label: "Orders",   value: "156",  changeLabel: "12%", positive: true  },
-  { label: "Products", value: "48",   changeLabel: "6",   positive: true  },
-  { label: "Visitors", value: "2.4K", changeLabel: "3%",  positive: false },
+const METRICS: { value: AnalyticsMetric; label: string }[] = [
+  { value: "revenue", label: "Revenue" },
+  { value: "orders", label: "Orders" },
+  { value: "views", label: "Views" },
 ];
 
-const REVENUE_TREND = [
-  { label: "Jan", value: 320_000 },
-  { label: "Feb", value: 410_000 },
-  { label: "Mar", value: 360_000 },
-  { label: "Apr", value: 430_000 },
-  { label: "May", value: 480_000, active: true },
-  { label: "Jun", value: 380_000 },
-  { label: "Jul", value: 300_000 },
-];
+const card = "bg-card rounded-3xl p-5 border border-border-default";
 
-const TOP_PRODUCTS: {
-  id: number;
-  name: string;
-  sold: number;
-  revenue: string;
-  change: number;
-  image: string;
-}[] = [
-  {
-    id: 1,
-    name: "UrbanFlex Cargo Pants",
-    sold: 42,
-    revenue: "₦609K",
-    change: 18,
-    image:
-      "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=200&auto=format&fit=crop&q=60",
-  },
-  {
-    id: 2,
-    name: "The Ordinary Face Wash",
-    sold: 38,
-    revenue: "₦551K",
-    change: 12,
-    image:
-      "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=200&auto=format&fit=crop&q=60",
-  },
-  {
-    id: 3,
-    name: "Delicious Rice & Beans",
-    sold: 35,
-    revenue: "₦168K",
-    change: -5,
-    image:
-      "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=200&auto=format&fit=crop&q=60",
-  },
-];
+function ChartSkeleton() {
+  return <div className="h-[200px] w-full animate-pulse rounded-xl bg-surface-muted" aria-label="Loading" />;
+}
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-/** Mini sparkline path used in the revenue hero card */
-function Sparkline() {
-  const points = [
-    [0, 50], [30, 38], [60, 44], [90, 30], [120, 22], [150, 18], [180, 6],
-  ];
-  const d = points
-    .map(([x, y], i) => `${i === 0 ? "M" : "L"} ${x} ${y}`)
-    .join(" ");
-
+function Retry({ what, onRetry }: { what: string; onRetry: () => void }) {
   return (
-    <svg
-      viewBox="0 0 180 60"
-      width={120}
-      height={40}
-      fill="none"
-      aria-hidden="true"
-    >
-      <path d={d} stroke="white" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" opacity={0.6} />
-      {/* Terminal dot */}
-      <circle cx={180} cy={6} r={4} fill="white" opacity={0.9} />
-    </svg>
+    <p role="alert" className="flex items-center justify-between gap-3 text-sm text-foreground-muted">
+      Couldn&apos;t load {what}.
+      <button type="button" onClick={onRetry} className="font-semibold text-seller-main underline">
+        Try again
+      </button>
+    </p>
   );
 }
 
-interface StatCardProps {
-  label: string;
-  value: string;
-  changeLabel: string;
-  positive: boolean;
-}
-
-function StatCard({ label, value, changeLabel, positive }: StatCardProps) {
-  const Arrow = positive ? ArrowUpRight : ArrowDownRight;
-  const changeColor = positive ? "text-green-500" : "text-red-500";
-
+function Thumb({ src, alt }: { src: string | null; alt: string }) {
   return (
-    <div className="flex-1 flex flex-col gap-1.5 bg-card rounded-2xl p-4 border border-border-default">
-      <p className="text-foreground-muted text-[11px] font-medium uppercase tracking-wide">
-        {label}
-      </p>
-      <p className="text-[22px] font-bold text-foreground leading-none">
-        {value}
-      </p>
-      <span className={`flex items-center gap-0.5 text-xs font-semibold ${changeColor}`}>
-        <Arrow size={13} />
-        {changeLabel}
-      </span>
+    <div className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-surface-muted">
+      {src && <Image src={src} alt={alt} fill className="object-cover" sizes="48px" />}
     </div>
   );
 }
 
-interface TopProductRowProps {
-  product: (typeof TOP_PRODUCTS)[0];
-  rank: number;
-}
-
-function TopProductRow({ product, rank }: TopProductRowProps) {
-  const isPositive = product.change >= 0;
-  const Arrow = isPositive ? ArrowUpRight : ArrowDownRight;
-  const changeColor = isPositive ? "text-green-500" : "text-red-500";
-
+function TopRow({ item }: { item: TopListing }) {
   return (
-    <div className="flex items-center gap-3 py-3 border-b border-border-default last:border-b-0">
-      {/* Product image */}
-      <div className="relative size-12 rounded-xl overflow-hidden shrink-0 bg-surface-muted">
-        <Image
-          src={product.image}
-          alt={product.name}
-          fill
-          className="object-cover"
-          sizes="48px"
-        />
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-foreground truncate">
-          {product.name}
-        </p>
-        <p className="text-xs text-foreground-muted mt-0.5">
-          {product.sold} sold · {product.revenue}
+    <li className="flex items-center gap-3 border-b border-border-default py-3 last:border-b-0">
+      <Thumb src={item.imageUrl} alt={item.title} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-foreground">{item.title}</p>
+        <p className="mt-0.5 text-xs text-foreground-muted">
+          {item.unitsSold} sold · {formatNaira(item.revenueKobo)}
         </p>
       </div>
-
-      {/* Change badge */}
-      <span className={`flex items-center gap-0.5 text-sm font-bold shrink-0 ${changeColor}`}>
-        <Arrow size={14} />
-        {Math.abs(product.change)}%
-      </span>
-    </div>
+      <div className="shrink-0 text-right">
+        <p className="text-sm font-bold text-foreground">{item.conversionPct === null ? "—" : `${item.conversionPct}%`}</p>
+        <p className="text-[11px] text-foreground-muted">
+          of {item.views.toLocaleString("en-NG")} {item.views === 1 ? "view" : "views"}
+        </p>
+      </div>
+    </li>
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+function AlertRow({ item }: { item: InventoryAlert }) {
+  const name = item.variantLabel ? `${item.title} (${item.variantLabel})` : item.title;
+  return (
+    <li className="flex items-center gap-3 border-b border-border-default py-3 last:border-b-0">
+      <Thumb src={item.imageUrl} alt={item.title} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+        <p className={`mt-0.5 text-xs font-semibold ${item.stock === 0 ? "text-red-500" : "text-main"}`}>
+          {item.stock === 0 ? "Out of stock" : `${item.stock} left`}
+        </p>
+      </div>
+      <Link
+        href={`/sellers/products/${item.listingId}/edit`}
+        aria-label={`Restock ${name}`}
+        className="shrink-0 rounded-full border border-seller-main px-3 py-1.5 text-xs font-semibold text-seller-main"
+      >
+        Restock
+      </Link>
+    </li>
+  );
+}
 
+// Guide 7.2.3: the seller's sales, best sellers, items to restock and payouts for a range
 export default function AnalyticsPage() {
-  return (
-    <main className="flex flex-col w-full max-w-md pb-32 bg-surface-muted min-h-dvh">
+  const range = useSellerStore((s) => s.range);
+  const [metric, setMetric] = useState<AnalyticsMetric>("revenue");
+  const stats = useSellerStats(range);
+  const series = useSellerTimeseries(range, metric);
+  const top = useTopListings(range, 5);
+  const alerts = useInventoryAlerts();
+  const since = rangeSince(range);
+  const numbers = stats.data;
 
-      {/* ── Header ── */}
-      <div className="bg-card px-4 pt-10 pb-4">
-        <PageHeader
-          title="Analytics"
-          showBack
-          rightItems={
-            <button className="px-4 py-1.5 rounded-full bg-surface-muted text-foreground-muted text-sm font-medium border border-border-default">
-              This Month
-            </button>
-          }
-        />
+  return (
+    <main className="flex min-h-dvh w-full max-w-md flex-col bg-surface-muted pb-32">
+      <div className="flex flex-col gap-4 bg-card px-4 pb-4 pt-10">
+        <PageHeader title="Analytics" showBack />
+        <RangeSwitch />
       </div>
 
       <div className="flex flex-col gap-4 px-4 py-4">
-
-        {/* ── Revenue Hero Card ── */}
-        <div
-          className="relative rounded-3xl overflow-hidden p-5 flex flex-col gap-2"
-          style={{
-            background:
-              "linear-gradient(135deg, #1a2e6e 0%, #13368B 50%, #1a5276 100%)",
-          }}
+        {/* ── Revenue and counts ── */}
+        <section
+          aria-label="Revenue"
+          className="flex flex-col gap-2 rounded-3xl p-5"
+          style={{ background: "linear-gradient(135deg, #1a2e6e 0%, #13368B 50%, #1a5276 100%)" }}
         >
-          {/* Sparkline — top-right */}
-          <div className="absolute top-4 right-4">
-            <Sparkline />
-          </div>
+          <p className="text-xs font-medium uppercase tracking-wider text-white/60">Revenue in {since}</p>
+          {stats.isError ? (
+            <p role="alert" className="text-sm text-white">
+              Couldn&apos;t load your numbers.{" "}
+              <button type="button" onClick={() => stats.refetch()} className="font-semibold underline">
+                Try again
+              </button>
+            </p>
+          ) : numbers ? (
+            <>
+              <p className="text-[32px] font-bold leading-none tracking-tight text-white">{formatNaira(numbers.revenueKobo)}</p>
+              <div className="mt-1 flex items-center gap-2">
+                <ChangeBadge pct={numbers.revenueChangePct} tone="dark" />
+                <p className="text-xs text-white/50">against the {range.replace("d", "")} days before</p>
+              </div>
+            </>
+          ) : (
+            <span className="h-8 w-40 animate-pulse rounded bg-white/20" aria-label="Loading" />
+          )}
+        </section>
 
-          <p className="text-white/60 text-xs font-medium uppercase tracking-wider">
-            Total Revenue
-          </p>
-          <p className="text-white text-[32px] font-bold leading-none tracking-tight">
-            ₦{REVENUE.toLocaleString("en-NG")}
-          </p>
-
-          <div className="flex items-center gap-2 mt-1">
-            <span className="flex items-center gap-1 bg-green-500/20 text-green-400 text-xs font-bold px-2.5 py-1 rounded-full">
-              <ArrowUpRight size={12} />
-              {REVENUE_CHANGE}%
-            </span>
-            <p className="text-white/50 text-xs">vs last month</p>
-          </div>
-        </div>
-
-        {/* ── Stats Row ── */}
-        <div className="flex gap-3">
-          {STATS.map((s) => (
-            <StatCard key={s.label} {...s} />
-          ))}
-        </div>
-
-        {/* ── Revenue Trend ── */}
-        <div className="bg-card rounded-3xl p-5 border border-border-default">
-          <p className="text-base font-bold text-foreground mb-4">
-            Revenue Trend
-          </p>
-          <RevenueBarChart data={REVENUE_TREND} height={190} />
-        </div>
-
-        {/* ── Top Selling Products ── */}
-        <div className="bg-card rounded-3xl p-5 border border-border-default">
-          <p className="text-base font-bold text-foreground mb-1">
-            Top Selling Products
-          </p>
-          <div className="flex flex-col">
-            {TOP_PRODUCTS.map((product, i) => (
-              <TopProductRow key={product.id} product={product} rank={i + 1} />
+        {numbers && (
+          <div className="flex gap-3">
+            {[
+              { label: "Orders", value: numbers.orders, change: numbers.ordersChangePct },
+              { label: "Views", value: numbers.views, change: numbers.viewsChangePct },
+            ].map((s) => (
+              <div key={s.label} className="flex flex-1 flex-col gap-1.5 rounded-2xl border border-border-default bg-card p-4">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-foreground-muted">{s.label}</p>
+                <p className="text-[22px] font-bold leading-none text-foreground">{s.value.toLocaleString("en-NG")}</p>
+                <ChangeBadge pct={s.change} />
+              </div>
             ))}
           </div>
-        </div>
+        )}
 
+        {/* ── Trend ── */}
+        <section aria-labelledby="trend-title" className={card}>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 id="trend-title" className="text-base font-bold text-foreground">
+              Trend
+            </h2>
+            <div role="tablist" aria-label="Show" className="flex gap-1">
+              {METRICS.map((m) => (
+                <button
+                  key={m.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={metric === m.value}
+                  onClick={() => setMetric(m.value)}
+                  className={`rounded-full px-2.5 py-1 text-xs font-semibold ${metric === m.value ? "bg-seller-main text-white" : "text-foreground-muted"}`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {series.isError ? (
+            <Retry what="the trend" onRetry={() => series.refetch()} />
+          ) : series.data ? (
+            <>
+              <TrendChart data={series.data} metric={metric} />
+              {series.data.every((p) => p.value === 0) && (
+                <p className="mt-2 text-center text-xs text-foreground-muted">Nothing in {since} yet.</p>
+              )}
+            </>
+          ) : (
+            <ChartSkeleton />
+          )}
+        </section>
+
+        {/* ── Best sellers ── */}
+        <section aria-labelledby="top-title" className={card}>
+          <h2 id="top-title" className="mb-1 text-base font-bold text-foreground">
+            Top selling products
+          </h2>
+          {top.isError ? (
+            <Retry what="your best sellers" onRetry={() => top.refetch()} />
+          ) : !top.data ? (
+            <div className="h-24 animate-pulse rounded-xl bg-surface-muted" aria-label="Loading" />
+          ) : top.data.length === 0 ? (
+            <p className="py-3 text-sm text-foreground-muted">Nothing sold in {since} yet.</p>
+          ) : (
+            <ul>
+              {top.data.map((item) => (
+                <TopRow key={item.listingId} item={item} />
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* ── Stock (guide 7.2.3, A1) ── */}
+        <section id="stock" aria-labelledby="stock-title" className={card}>
+          <h2 id="stock-title" className="mb-1 text-base font-bold text-foreground">
+            Running low
+          </h2>
+          {alerts.isError ? (
+            <Retry what="your stock" onRetry={() => alerts.refetch()} />
+          ) : !alerts.data ? (
+            <div className="h-24 animate-pulse rounded-xl bg-surface-muted" aria-label="Loading" />
+          ) : alerts.data.items.length === 0 ? (
+            <p className="flex items-center gap-2 py-3 text-sm text-foreground-muted">
+              <PackageX size={16} aria-hidden />
+              Nothing is running low. You&apos;ll be told when an item has {alerts.data.threshold} or fewer left.
+            </p>
+          ) : (
+            <ul>
+              {alerts.data.items.map((item) => (
+                <AlertRow key={`${item.listingId}:${item.variantId ?? ""}`} item={item} />
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* ── Payouts ── */}
+        {numbers && (
+          <section aria-labelledby="payouts-title" className={card}>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 id="payouts-title" className="text-base font-bold text-foreground">
+                Payouts
+              </h2>
+              <Link href="/sellers/earnings" className="text-xs font-semibold text-seller-main">
+                See all
+              </Link>
+            </div>
+            <dl className="grid grid-cols-3 gap-3 text-center">
+              {[
+                { label: "Held", hint: "until 48 hours after handover", value: numbers.heldKobo },
+                { label: "On the way", hint: "released, not in your bank yet", value: numbers.releasedKobo },
+                { label: "Paid out", hint: `in ${since}`, value: numbers.paidOutKobo },
+              ].map((p) => (
+                <div key={p.label} className="flex flex-col gap-1 rounded-2xl bg-surface-muted p-3">
+                  <dt className="text-[11px] font-medium uppercase tracking-wide text-foreground-muted">{p.label}</dt>
+                  <dd className="text-sm font-bold text-foreground">{formatNaira(p.value)}</dd>
+                  <dd className="text-[10px] leading-tight text-foreground-muted">{p.hint}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
       </div>
     </main>
   );
