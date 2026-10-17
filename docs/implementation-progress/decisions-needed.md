@@ -1,7 +1,6 @@
 # Decisions needed: Phases 5–10 and launch
 
-Written 2026-10-17, after Phase 4. **Status:** rounds 1–6 are answered; see [Answers](#answers-2026-10-17).
-One question about the code length is [open](#open-question-the-handover-code-length) (Phase 6). The plan built on these answers is in
+Written 2026-10-17, after Phase 4. **Status:** every question is answered; see [Answers](#answers-2026-10-17). Nothing is open. The plan built on these answers is in
 [execution-plan.md](execution-plan.md). Each row is a choice only you can make. The **Default** column is what I build if
 you leave the row unanswered, so nothing waits on a row unless its "Needed by" says it blocks.
 
@@ -281,15 +280,4 @@ they say so; anything still undecided is listed at the end.
 | DF10 | One code per store, kept short (2–3 digits) so a rider entering several isn't worn out. |
 | C11 | Confirmed, replacing DL7d: no pickup within 3 days is the seller's fault only if the rider reported the store not ready or the seller not there; otherwise it's nobody's. |
 | DF9a | Confirmed: the delivery fee comes back only when the whole order is refunded before anything was picked up. |
-
-## Open question: the handover code length
-
-- **DF10a (Phase 6).** The code is what proves delivery and starts the payout clock, so its length is a security
-  choice. After 5 wrong tries the order locks and admins are alerted (F5). Someone guessing therefore gets through
-  about 1 time in 200 with 3 digits, and 1 time in 20 with 2 digits. **a** 3 digits for every store, pickups from the
-  seller included (recommended) · **b** 2 digits · **c** 3 digits for dispatch, and today's 6 digits for pickup from
-  the seller, where only one code is typed.
-
-```
-DF10a:
-```
+| DF10a | 3 digits for every store, pickups from the seller included. With 5 tries before the order locks (F5), a guesser gets through about 1 time in 200. |

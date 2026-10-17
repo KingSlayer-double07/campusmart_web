@@ -1,8 +1,8 @@
 # Execution plan: Phases 4b–10
 
 Drafted 2026-10-17 from your answers in [decisions-needed.md](decisions-needed.md). The guide stays the base; this
-file lists what each phase builds, including where your answers change the guide. Anything still waiting on you is
-marked **(waits on ID)**, pointing at an open question in decisions-needed.md. Nothing is built on a guess.
+file lists what each phase builds, including where your answers change the guide. Every question is
+answered (six rounds, all in decisions-needed.md); nothing is built on a guess.
 
 ## How every phase runs
 
@@ -33,7 +33,7 @@ The same rules as Phases 0–4:
 |---|---|---|---|
 | 1 | 4b Checkout with delivery (DL10) | `feat/phase-4b-delivery-checkout` | nothing; starts on your "continue" |
 | 2 | 5 Payments, escrow, refunds | `feat/phase-5-payments` | nothing |
-| 3 | 6 Dispatch and handover (replaces the guide's pickup-station Phase 6) | `feat/phase-6-dispatch` | DF10a (code length) |
+| 3 | 6 Dispatch and handover (replaces the guide's pickup-station Phase 6) | `feat/phase-6-dispatch` | nothing |
 | 4 | 7 Seller analytics | `feat/phase-7-analytics` | nothing |
 | 5 | 8 Wishlist, stores, reviews, trust score | `feat/phase-8-stores-reviews` | nothing |
 | 6 | 9 Admin and moderation (the slices not built earlier) | `feat/phase-9-admin-moderation` | nothing |
@@ -244,7 +244,7 @@ Both can also end cancelled or disputed. The labels live in `lib/labels.ts` (D4)
   comes back for that store before its 3-day deadline, at no extra fee. If it's still not ready by then, that store's
   order is cancelled and refunded as the seller's fault.
 - **At the buyer:** the rider enters the buyer's code for each store, and each store's order is delivered. The codes
-  are short so typing several isn't tiring (DF10): 2 or 3 digits, the exact length **waiting on DF10a**. Each
+  are 3 digits so typing several isn't tiring (DF10, DF10a). Pickup from the seller uses the same 3-digit code. Each
   store's payout comes 48 hours later (D11).
 - **Pickup from the seller:** the seller enters the buyer's code (DL5).
 - **Wrong codes:** 5 wrong codes lock the order, and an admin unlocks it with a reason (F5).
