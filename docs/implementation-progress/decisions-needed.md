@@ -1,6 +1,8 @@
 # Decisions needed: Phases 5–10 and launch
 
-Written 2026-10-17, after Phase 4. Each row is a choice only you can make. The **Default** column is what I build if
+Written 2026-10-17, after Phase 4. **Status:** round 1 (the tables below) and round 2 are answered; see
+[Answers](#answers-2026-10-17). Round 3 questions, raised by the move to dispatch delivery, are
+[open](#open-questions-round-3). Each row is a choice only you can make. The **Default** column is what I build if
 you leave the row unanswered, so nothing waits on a row unless its "Needed by" says it blocks.
 
 **How to answer:** copy the reply block at the end and fill in each line with an option letter, `default`, or your own
@@ -114,62 +116,210 @@ is D11**. `ESCROW_DISPUTE_WINDOW_HOURS` stays a variable only so tests can set i
 
 ---
 
-## Reply block
+## Answers (2026-10-17)
+
+Your answers, as given. "Default" rows take the Default column above. Rows marked **open** wait on a round 3
+question.
+
+### Round 1
+
+| ID | Answer |
+|---|---|
+| W1 | Default: admin screens come with the phase that needs them (payouts in 5, disputes in 6, the rest in 9). |
+| W2 | Default: Phase 5 passes its gate on nock mocks; the real test payment stays a MANUAL item until staging exists. |
+| W3 | Default: keep going; MANUAL checks stay listed until you do them. |
+| S1 | Default: no staging until launch; I work on mocks. |
+| S2 | Render. |
+| S3 | A Neon `staging` branch. |
+| S4 | Default: no provider yet. Development prints emails to the console. |
+| S5 | Cloudinary later. |
+| S6 | Default: network access stays as is; everything is mocked. |
+| S7 | No branch protection for now. |
+| P1 | 0 for now. Admins can change it (R1a). |
+| P2 | The platform absorbs Paystack's processing fee. |
+| P3 | Default: the platform absorbs the transfer fee. |
+| P4 | Default: one transfer per seller order. |
+| P5 | OPay and PalmPay hidden until Paystack is set up for them, behind an environment variable (round 2). |
+| P6 | By fault. Buyer's fault: that seller order's share of the Paystack fee (split by subtotal) is taken from the refund. Seller's fault: the platform absorbs it and the seller loses 10 trust points, as for a cancellation. Mapping confirmed: the seller cancels or misses the deadline = seller; paid after the order expired and the stock was gone = nobody, the platform absorbs it; a dispute ending in a refund = the admin picks buyer, seller or nobody. |
+| P7 | Default: "Try again" on the same order until it expires. |
+| P8 | No minimum order total. |
+| P9 | Payouts pause for 24 hours after a payout account change, and the seller is notified. |
+| P10 | Every admin account gets the alerts. |
+| F1 | 3 days. What has to happen by then: **open** (DL7b). |
+| F2 | **Delivery replaces pickup stations.** An in-app dispatch delivers; a buyer can instead pick up from the seller where the seller allows it and has entered a location. The station and agent work stays in the code for later; the admin Stations screen stays visible (DL9). This replaces D12 and the agent half of D16. |
+| F3 | Default: a buyer can't cancel after paying. |
+| F4 | No longer applies (no stations); replaced by DL6. |
+| F5 | Default: after 5 wrong codes an admin unlocks the order, with a reason. |
+| F6 | The suggested dispute reasons: Not as described, Damaged, Wrong item, Missing items, Other. |
+| F7 | Evidence photos optional, up to 3 (they need Cloudinary). |
+| F8 | Default: full refund of that seller order, or full release. |
+| F9 | Default: an admin arranges the item's return outside the app. |
+| F10 | Default: 10 points per seller-caused cancellation in 90 days; a missed deadline counts too. |
+| A1 | Low-stock alert at 5. |
+| A2 | Default: one view per viewer per listing per day; the seller's own views don't count. |
+| R1 | The guide's weights, editable by admins (R1a, R1b). |
+| R2 | Default: a "Trusted seller" badge at 80 or more. |
+| R3 | The guide's ranking for now. Later, admins decide featured placement for stores that subscribe to it (future; not built now). |
+| R4 | Default: no review edits or seller replies at launch; admins can hide an abusive review. |
+| R5 | Default: favourites saved on a phone move into the account at first sign-in. |
+| M1 | Other admins sign up; the seeded admin sets their role. |
+| M2 | Default: listings from verified sellers go live at once. |
+| M3 | Default rejection reasons: Prohibited item, Misleading or wrong category, Poor photos, Counterfeit, Duplicate, Other. |
+| M4 | 5 buyer reports flag a listing. Prohibited items are kept off before anyone reports them (M4a). |
+| M5 | Prohibited: illegal drugs and controlled substances sold unlawfully; firearms, ammunition, explosives and other prohibited weapons; stolen goods and counterfeit products; fraudulent documents, forged certificates and fake identification; products whose sale is illegal or needs authorisation the seller doesn't have; hazardous or illegal chemicals and substances; products involving exploitation, abuse or other unlawful activity; anything else prohibited by Nigerian law or platform policy. |
+| M6 | A suspended user sees the suspension message with the admin's reason. |
+| M7 | A 6-digit email code at every admin sign-in. Until email is set up (S4) the code prints to the console. |
+| T1 | Build Google sign-in, for buyers only. **Buyers may register without a school email** and pick their school during onboarding; sellers still need a school email. This changes D7 for buyers. |
+| T2 | No web push. |
+| T3 | Phone verification stays deferred; the page stays hidden. |
+| T4 | Environment variables for the support email, phone and WhatsApp; "coming soon" where one isn't set. |
+| T5 | Default: I draft Terms and Privacy; you (ideally with a lawyer) approve. |
+| T6 | Default: personal details anonymised; order and payment records kept 6 years. |
+| T7 | Default: email only for order and payment events. |
+| T8 | Sentry (`SENTRY_DSN`) plus an uptime check on `/api/health`. |
+| L1 | Domains later, once bought. |
+| L2 | The seed's school, the University of Lagos (`unilag.edu.ng`), is the first campus. |
+| L3 | Default: a closed beta with invited students first. |
+
+### Round 2
+
+| ID | Answer |
+|---|---|
+| DL1 | A dispatch that is part of the app. A buyer can opt for pickup from the seller instead, only where the seller allows it and has entered their location. |
+| DL2 | The buyer enters an address. |
+| DL3 | The seller calls the dispatch from the app. The dispatch sees the seller's address and the buyer's address and phone number, picks up from the seller and delivers to the buyer (**open**: C1). The buyer gets an order code; the dispatch enters it when the buyer collects the items. |
+| DL4 | The buyer pays a delivery fee, shown at checkout: flat for addresses on campus. Off-campus delivery is arranged outside the app. |
+| DL5 | Handover is confirmed by the buyer's code, entered by the seller (pickup) or the dispatch. |
+| DL6 | Only the dispatch can mark an order delivered before the buyer confirms; an admin is alerted after 5 days. Which case: **open** (DL6b). |
+| DL7 | Yes: 3 days after payment, or the order is cancelled and refunded. What has to happen by then: **open** (DL7b). |
+| DL8 | A no-show is reported; an admin decides, including whose fault it is. |
+| DL9 | Keep the station and agent code; the admin Stations screen stays visible. |
+| DL10 | The delivery change comes first, as a Phase 4 rework, then Phase 5. |
+| P6a–c | See P6. |
+| P5 | Behind an environment variable. |
+| R1a | Admins can edit the trust-score weights, platform fee, deadline, low-stock level and report threshold. |
+| R1b | A change takes effect at the next nightly recalculation. |
+| M4a | Both: sellers confirm the item isn't prohibited before publishing, and listings matching banned words wait for admin review. |
+| M4b | A "Prohibited item" report hides the listing at once, pending review. After review it costs the seller 10 trust points (**open**: C3). |
+| T1 | See T1 above. |
+| T3 | Confirmed. |
+| T4 | Email, phone and WhatsApp. |
+| L2 | UNILAG, as seeded. |
+
+## Open questions (round 3)
+
+The dispatch model and buyers without a school email raise these. Phase 4's rework (DL10) can't be planned until
+they're answered; nothing has been built on a guess.
+
+### Confirm my reading (yes, or no with the correction)
+
+- **C1.** DL3: the dispatch picks up from the seller and delivers to the **buyer** (the answer said "drop it off
+  with the seller").
+- **C2.** Pickup from the seller has no delivery fee.
+- **C3.** M4b: the 10 points come off only when an admin confirms the item is prohibited; a rejected report costs
+  nothing.
+- **C4.** A buyer who signs up with email and password (any email) still confirms it with the 6-digit code before
+  buying. A Google account skips that step, because Google has already confirmed the email.
+
+### Dispatch riders
+
+- **DX1. How riders get accounts:** **a** they sign up with any email, then an admin gives them the Dispatch role and
+  a campus · **b** the same, but with a school email · **c** an admin invites them by email.
+- **DX2. Who gets a job when a seller calls the dispatch:** **a** every available rider at that campus sees it and
+  the first to accept takes it; admins are alerted if nobody accepts within N hours (give N) · **b** an admin assigns
+  each job · **c** the app assigns one automatically.
+- **DX3. Where the delivery fee goes:** **a** all to the rider, paid out by Paystack transfer (riders add a bank
+  account like sellers) · **b** to the platform; you pay riders outside the app · **c** split: the rider gets a share
+  (what %?) and the platform keeps the rest.
+- **DX4. When riders are paid** (only if DX3 is a or c): **a** once they enter the buyer's code · **b** with the
+  seller, after the 48-hour window · **c** a weekly transfer covering all their deliveries.
+- **DX5. Pickup at the seller:** **a** the rider enters or scans the seller-order code (`CM-XXXXXX`), recording that
+  the parcel is now with the rider · **b** the rider just taps "Picked up".
+- **DX6. A parcel lost or damaged while with the rider:** **a** the platform refunds the buyer and absorbs it ·
+  **b** it comes out of the rider's future payouts (only if DX3 is a or c) · **c** an admin decides each case.
+
+### Delivery fee, addresses and phones
+
+- **DF1. Who sets the flat on-campus fee:** **a** an admin, per campus, on the settings screen (R1a) · **b** one
+  environment variable for every campus.
+- **DF2. A cart with several stores:** **a** one fee per store (each store is its own trip) · **b** one fee per order
+  (one rider collects from every store).
+- **DF3. How the app knows an address is on campus:** **a** the buyer picks a place from a campus list an admin keeps
+  (halls, faculties, gates), then adds the room or a landmark · **b** the buyer types the address and ticks
+  "On campus".
+- **DF4. Off campus at checkout:** **a** not offered; those buyers pick up from the seller where allowed and arrange
+  the rest · **b** offered as "Off campus, arranged with the seller": no fee in the app, and the seller enters the
+  buyer's code at handover.
+- **DF5. The delivery fee on a refund:** **a** refunded whenever the item price is · **b** refunded only if no rider
+  trip happened.
+- **DM1. Choosing the method in a cart with several stores:** **a** per store (e.g. pickup from store A, dispatch
+  for store B) · **b** one method for the whole order.
+- **PH1. The buyer's phone number for the rider:** **a** asked at checkout, filled from and saved to the profile ·
+  **b** must be on the profile before checkout.
+- **SA1. The seller's address and phone** (the rider needs them for every dispatch): **a** every seller enters both
+  before publishing; "Allow pickup from me" is a separate switch that uses the same address · **b** other.
+- **SA2. When a buyer sees the seller's pickup address:** **a** only the area (e.g. the hall) before payment, the
+  full address after · **b** the full address on the product page.
+- **SA3. Pickup from the seller, after payment:** **a** the buyer sees the seller's address and phone; the seller
+  sees only the buyer's display name · **b** both see each other's phone number.
+
+### Deadlines and the 5-day alert
+
+- **DL7b. Within 3 days of payment the seller must:** **a** call the dispatch (after that, delays are the rider's)
+  · **b** have the parcel picked up by the rider · **c** have it delivered.
+- **DL7c. Pickup from the seller:** the buyer has N days to collect (give N). If they don't: **a** it's reported and
+  an admin decides (DL8) · **b** it's cancelled automatically as the buyer's fault, with the P6 fee deducted.
+- **DL6b. What the 5-day admin alert covers:** **a** the rider has had the parcel for 5 days and no code has been
+  entered · **b** the rider marked it delivered without the code (buyer unreachable, or won't give it) and 5 days have
+  passed · **c** both. (b and c mean a rider can mark delivered without the code.)
+
+### Buyers without a school email (T1)
+
+- **G1. Changing school later:** **a** not by the buyer; an admin changes it on request · **b** yes, in the profile
+  (the cart empties, since it's per school).
+- **G2. A buyer without a school email who wants to sell:** **a** adds a school email to the account and confirms it
+  with a code, then becomes a seller · **b** opens a separate seller account with the school email.
+- **G3. Google sign-in:** **a** buyer accounts only; sellers always use email and password · **b** a seller can also
+  sign in with Google when it's the same email.
+- **G4. A school that isn't on the list:** **a** the waitlist, as now · **b** other.
+
+### Moderation
+
+- **M4c. The banned-word list:** **a** admins edit it on the settings screen, starting from your M5 list · **b** fixed
+  in code.
+- **M4d. The 10 points for a confirmed prohibited item:** **a** drop off after 90 days, like cancellations · **b** stay
+  for good.
+
+### Reply block (round 3)
 
 ```
-W1:
-W2:
-W3:
-S1:
-S2:
-S3:
-S4:
-S5:
-S6:
-S7:
-P1:
-P2:
-P3:
-P4:
-P5:
-P6:
-P7:
-P8:
-P9:
-P10:
-F1:
-F2:
-F3:
-F4:
-F5:
-F6:
-F7:
-F8:
-F9:
-F10:
-A1:
-A2:
-R1:
-R2:
-R3:
-R4:
-R5:
-M1:
-M2:
-M3:
-M4:
-M5:
-M6:
-M7:
-T1:
-T2:
-T3:
-T4:
-T5:
-T6:
-T7:
-T8:
-L1:
-L2:
-L3:
+C1:
+C2:
+C3:
+C4:
+DX1:
+DX2:
+DX3:
+DX4:
+DX5:
+DX6:
+DF1:
+DF2:
+DF3:
+DF4:
+DF5:
+DM1:
+PH1:
+SA1:
+SA2:
+SA3:
+DL7b:
+DL7c:
+DL6b:
+G1:
+G2:
+G3:
+G4:
+M4c:
+M4d:
 ```

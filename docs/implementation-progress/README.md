@@ -47,11 +47,18 @@ Your decisions that change or extend the guide. Each phase file has the detail.
   Phase 3.
 - **pnpm only (2026-10-17):** both apps install with pnpm (`packageManager` pins 10.32.1); the npm lockfiles are
   deleted and CI runs `pnpm install --frozen-lockfile`.
+- **Phases 5–10 decisions (2026-10-17):** answered in [decisions-needed.md](decisions-needed.md#answers-2026-10-17).
+  The two that change the guide most:
+  - **Delivery replaces pickup stations** (F2, DL1–DL10). An in-app dispatch delivers, or the buyer picks up from a
+    seller who allows it. This replaces D12 and the agent half of D16. The station and agent code stays; the admin
+    Stations screen stays visible. Checkout is reworked first, as a Phase 4 rework.
+  - **Buyers may sign up without a school email** (T1). They pick their school during onboarding, and Google sign-in
+    is for buyers only. Sellers still need a school email. This changes D7 for buyers.
 
 ## Decisions still open
 
-[decisions-needed.md](decisions-needed.md): every choice for Phases 5–10 and launch, each with an ID, options, the
-default I build if it's unanswered, and when it's needed. Reply with `ID: choice` lines.
+Round 3 in [decisions-needed.md](decisions-needed.md#open-questions-round-3): dispatch riders, delivery fees,
+addresses, deadlines and buyers without a school email. The Phase 4 rework waits on them.
 
 ## What you need to set up
 
