@@ -11,9 +11,10 @@ export function sellerOrderCode(random = randomInt): string {
   return `CM-${code}`;
 }
 
-// 6 digits the buyer gives the agent at collection (D12), shown only to the buyer
+// The buyer's handover code: 3 digits for every store, so a rider typing several isn't worn out
+// (DF10, DF10a). 5 wrong tries lock it (F5), so a guesser gets through about 1 time in 200.
 export function collectionCode(random = randomInt): string {
-  return String(random(1_000_000)).padStart(6, '0');
+  return String(random(1_000)).padStart(3, '0');
 }
 
 // floor(subtotal * PLATFORM_FEE_BPS / 10000), and what's left for the seller

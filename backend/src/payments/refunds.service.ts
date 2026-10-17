@@ -68,6 +68,7 @@ export class RefundsService {
                 escrowStatus: true,
                 fulfillmentStatus: true,
                 collectedAt: true,
+                pickedUpAt: true,
               },
             },
           },
@@ -92,7 +93,9 @@ export class RefundsService {
     const others = so.order.sellerOrders.filter((s) => s.id !== so.id);
     const nothingPickedUp = so.order.sellerOrders.every(
       (s) =>
-        !s.collectedAt && !PICKED_UP_STATUSES.includes(s.fulfillmentStatus),
+        !s.pickedUpAt &&
+        !s.collectedAt &&
+        !PICKED_UP_STATUSES.includes(s.fulfillmentStatus),
     );
     const lastToGo = others.every(
       (s) => s.escrowStatus === EscrowStatus.REFUNDED,

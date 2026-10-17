@@ -105,8 +105,17 @@ export function refundAmounts(input: {
   };
 }
 
-// Statuses that mean a parcel has left the seller (picked up by a rider, collected or handed over)
+// Statuses that mean a parcel has left the seller: with the rider or handed over (Phase 6), or
+// dropped off and collected at a station (the older flow). Refunds also check pickedUpAt.
 export const PICKED_UP_STATUSES: FulfillmentStatus[] = [
+  FulfillmentStatus.WITH_RIDER,
+  FulfillmentStatus.DELIVERED,
   FulfillmentStatus.DROPPED_OFF,
+  FulfillmentStatus.COLLECTED,
+];
+
+// Handed over to the buyer, by the rider or by the seller; the 48-hour window then runs (D11)
+export const HANDED_OVER_STATUSES: FulfillmentStatus[] = [
+  FulfillmentStatus.DELIVERED,
   FulfillmentStatus.COLLECTED,
 ];

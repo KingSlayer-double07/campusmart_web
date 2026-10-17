@@ -11,14 +11,13 @@ import type { Env } from '../config/env';
 import {
   DisputeStatus,
   EscrowStatus,
-  FulfillmentStatus,
   PayoutStatus,
 } from '../generated/prisma/enums';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PaystackService } from '../paystack/paystack.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatNairaPlain } from './money';
-import { payoutReference } from './payment-rules';
+import { HANDED_OVER_STATUSES, payoutReference } from './payment-rules';
 
 const BATCH = 50;
 // Decision P9: payouts wait this long after a payout account is set or changed
@@ -56,13 +55,13 @@ export class PayoutsService {
     }
   }
 
-  // Step 1 and 2: collected, held, past releaseAt, no open dispute -> RELEASED plus a Payout
+  // Step 1 and 2: handed over, held, past releaseAt, no open dispute -> RELEASED plus a Payout
   async releaseDue(now = new Date()): Promise<number> {
     let released = 0;
     for (;;) {
       const due = await this.prisma.sellerOrder.findMany({
         where: {
-          fulfillmentStatus: FulfillmentStatus.COLLECTED,
+          fulfillmentStatus: { in: HANDED_OVER_STATUSES },
           escrowStatus: EscrowStatus.HELD,
           releaseAt: { lte: now },
           OR: [

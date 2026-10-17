@@ -46,6 +46,8 @@ model User {
   pickupStation        PickupStation?        @relation("StationAgents", fields: [pickupStationId], references: [id])
   verificationRequests VerificationRequest[]
   wishlist             Wishlist[]
+  deliveryJobs         DeliveryJob[]         @relation("RiderJobs")
+  invites              Invite[]
 }
 
 model Session {
@@ -91,6 +93,7 @@ model Institution {
   pickupStations  PickupStation[]
   campusPlaces    CampusPlace[]
   orders          Order[]
+  deliveryJobs    DeliveryJob[]
 }
 
 // Halls, faculties and gates a buyer picks as the delivery destination (decision DF3)
@@ -230,7 +233,7 @@ model CartItem {
 }
 
 model Order {
-  id              String         @id @default(uuid())
+  id              String          @id @default(uuid())
   buyerId         String
   institutionId   String
   pickupStationId String? // the station flow is kept for later (decision DL9); new orders leave it empty
@@ -239,23 +242,26 @@ model Order {
   campusPlaceId   String?
   deliveryAddress String?
   buyerPhone      String? // for the rider; set when any store goes by dispatch (PH2, C9)
-  deliveryFeeKobo Int            @default(0)
-  status          OrderStatus    @default(PENDING_PAYMENT)
+  deliveryFeeKobo Int             @default(0)
+  status          OrderStatus     @default(PENDING_PAYMENT)
   paymentMethod   PaymentMethod
   subtotalKobo    Int
   totalKobo       Int
-  idempotencyKey  String         @unique
+  idempotencyKey  String          @unique
   expiresAt       DateTime // unpaid orders expire (Phase 4)
   paidAt          DateTime?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
   sellerOrders    SellerOrder[]
   // One per attempt: a buyer can try again on the same order until it expires (decision P7)
   payments        Payment[]
-  buyer           User           @relation("BuyerOrders", fields: [buyerId], references: [id])
-  institution     Institution    @relation(fields: [institutionId], references: [id])
-  pickupStation   PickupStation? @relation(fields: [pickupStationId], references: [id])
-  campusPlace     CampusPlace?   @relation(fields: [campusPlaceId], references: [id])
+  buyer           User            @relation("BuyerOrders", fields: [buyerId], references: [id])
+  institution     Institution     @relation(fields: [institutionId], references: [id])
+  pickupStation   PickupStation?  @relation(fields: [pickupStationId], references: [id])
+  campusPlace     CampusPlace?    @relation(fields: [campusPlaceId], references: [id])
+  // One delivery job per order, covering every store that goes by dispatch (DF7)
+  deliveryJob     DeliveryJob?
+  problemReports  ProblemReport[]
 
   @@index([buyerId, createdAt])
 }
@@ -265,8 +271,9 @@ model SellerOrder {
   orderId            String
   sellerId           String
   code               String            @unique // 'CM-7F3K2Q', printed on the parcel
-  collectionCode     String // 6 digits, shown only to the buyer
-  collectionAttempts Int               @default(0)
+  collectionCode     String // the buyer's handover code: 3 digits from Phase 6 (DF10a), 6 on older orders
+  collectionAttempts Int               @default(0) // wrong handover codes; 5 lock it (F5)
+  handoverLockedAt   DateTime? // locked after 5 wrong codes, until an admin unlocks it with a reason (F5)
   deliveryMethod     DeliveryMethod? // chosen per store (DM1); empty on orders placed through a pickup station
   fulfillmentStatus  FulfillmentStatus @default(PENDING)
   // Dispatch: the rider collects from the seller by then (DL7b). Pickup: the buyer collects by then (DL7c).
@@ -277,9 +284,17 @@ model SellerOrder {
   subtotalKobo       Int
   platformFeeKobo    Int               @default(0)
   sellerPayoutKobo   Int
+  // Dispatch (Phase 6): when the rider will come (DF8b), when they took the parcel (DX5), and
+  // whether they found the store not ready or the seller away (DF11, C11)
+  arrivalFrom        DateTime?
+  arrivalTo          DateTime?
+  pickedUpAt         DateTime?
+  notReadyAt         DateTime?
+  notReadyNote       String?
+  riderAlertAt       DateTime? // admins were told: 5 days with the rider and no buyer code (DL6b)
   dropOffDeadline    DateTime?
   droppedOffAt       DateTime?
-  collectedAt        DateTime?
+  collectedAt        DateTime? // handover to the buyer: by the rider (DELIVERED) or the seller (COLLECTED)
   releaseAt          DateTime? // collectedAt + dispute window
   cancelledAt        DateTime?
   cancelReason       String?
@@ -387,14 +402,73 @@ model Dispute {
   id             String        @id @default(uuid())
   sellerOrderId  String        @unique
   openedById     String
-  reason         String
-  evidenceUrls   String[]
+  reason         String // 'NOT_AS_DESCRIBED', 'DAMAGED', 'WRONG_ITEM', 'MISSING_ITEMS', 'OTHER' (F6)
+  details        String?
+  evidenceUrls   String[] // up to 3 photos (F7)
   status         DisputeStatus @default(OPEN)
+  fault          Fault? // set when an admin refunds (P6)
   resolutionNote String?
   resolvedById   String?
   createdAt      DateTime      @default(now())
   resolvedAt     DateTime?
   sellerOrder    SellerOrder   @relation(fields: [sellerOrderId], references: [id])
+
+  @@index([status, createdAt])
+}
+
+// Phase 6 (DF7, DF8): one job per order for every store delivered by dispatch. It opens to the
+// campus's riders when the order is paid; one rider collects from each store, then delivers once.
+model DeliveryJob {
+  id                String            @id @default(uuid())
+  orderId           String            @unique
+  institutionId     String
+  status            DeliveryJobStatus @default(OPEN)
+  riderId           String?
+  acceptedAt        DateTime?
+  assignedById      String? // the admin who assigned or reassigned it (C5); null when the rider accepted
+  unacceptedAlertAt DateTime? // admins were told nobody accepted within 5 hours (DX2)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  order             Order             @relation(fields: [orderId], references: [id])
+  institution       Institution       @relation(fields: [institutionId], references: [id])
+  rider             User?             @relation("RiderJobs", fields: [riderId], references: [id])
+
+  @@index([institutionId, status, createdAt])
+  @@index([riderId, status])
+}
+
+// "Report a problem" before handover (C8), from the buyer (a late rider, a lost parcel) or the
+// rider (a buyer who didn't show, DL8). It alerts the admins and changes nothing on its own.
+model ProblemReport {
+  id             String        @id @default(uuid())
+  orderId        String
+  sellerOrderId  String? // the store, when the buyer reports one; empty for a rider's report on the job
+  reporterId     String
+  reporterRole   UserRole
+  reason         String // 'LATE', 'LOST', 'BUYER_NO_SHOW', 'OTHER'
+  details        String?
+  status         ProblemStatus @default(OPEN)
+  resolutionNote String?
+  resolvedById   String?
+  resolvedAt     DateTime?
+  createdAt      DateTime      @default(now())
+  order          Order         @relation(fields: [orderId], references: [id])
+
+  @@index([status, createdAt])
+}
+
+// A rider's invitation (DX1): the link sets their password and confirms their email
+model Invite {
+  id          String    @id @default(uuid())
+  userId      String
+  tokenHash   String    @unique // sha256 of the token in the link
+  invitedById String
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Review {
@@ -497,6 +571,7 @@ enum UserRole {
   SELLER
   ADMIN
   PICKUP_AGENT
+  DISPATCH // a rider, invited by an admin (DX1); can't buy or sell (DX7)
 }
 
 enum OrderStatus {
@@ -521,6 +596,9 @@ enum DeliveryMethod {
 enum FulfillmentStatus {
   PENDING
   AWAITING_RIDER // paid, by dispatch: waiting for a rider to collect from the seller
+  RIDER_ASSIGNED // a rider accepted the order's delivery job and will come to the store
+  WITH_RIDER // the rider entered this store's CM- code at the seller (DX5)
+  DELIVERED // the rider entered the buyer's code for this store (DL5)
   AWAITING_PICKUP // paid, pickup from the seller: waiting for the buyer
   AWAITING_DROPOFF
   DROPPED_OFF
@@ -608,4 +686,16 @@ enum ListingCategory {
   TECH
   SERVICES
   OTHERS
+}
+
+enum DeliveryJobStatus {
+  OPEN // every active rider at the campus sees it; the first to accept takes it (DX2)
+  ASSIGNED
+  DONE // every store delivered or cancelled
+  CANCELLED // nothing left to deliver: every dispatch store was cancelled
+}
+
+enum ProblemStatus {
+  OPEN
+  CLOSED
 }

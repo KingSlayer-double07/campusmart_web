@@ -342,7 +342,7 @@ describe('Phase 4 checkout and orders (e2e)', () => {
       expect(first.code).not.toBe(second.code);
       for (const so of order.sellerOrders) {
         expect(so.code).toMatch(/^CM-[2-9A-HJ-NP-Z]{6}$/);
-        expect(so.collectionCode).toMatch(/^\d{6}$/);
+        expect(so.collectionCode).toMatch(/^\d{3}$/); // DF10a
         expect(so.fulfillmentStatus).toBe('PENDING');
         expect(so.deliveryMethod).toBe('DISPATCH');
       }

@@ -17,11 +17,11 @@ describe('order codes', () => {
     expect(sellerOrderCode(() => n++ % 32)).toBe('CM-234567');
   });
 
-  it('makes 6-digit collection codes, keeping leading zeros', () => {
-    expect(collectionCode(() => 42)).toBe('000042');
-    expect(collectionCode(() => 999_999)).toBe('999999');
+  it('makes 3-digit handover codes, keeping leading zeros (DF10a)', () => {
+    expect(collectionCode(() => 7)).toBe('007');
+    expect(collectionCode(() => 999)).toBe('999');
     for (let i = 0; i < 200; i += 1)
-      expect(collectionCode()).toMatch(/^\d{6}$/);
+      expect(collectionCode()).toMatch(/^\d{3}$/);
   });
 
   it('takes the platform fee in basis points, rounding down', () => {
