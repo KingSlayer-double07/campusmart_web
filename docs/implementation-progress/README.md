@@ -11,7 +11,7 @@ its checklist, changes, verification evidence, deviations and open asks.
 | 3 Listings, variants, uploads | DONE pending manual checks (real Cloudinary upload) | `feat/phase-3-listings`, `feat/phase-3-seller-verification` | 2026-10-09 |
 | 4 Cart and checkout | DONE | `feat/phase-4-cart-checkout` | 2026-10-09 |
 | 4b Checkout with delivery | DONE | `feat/phase-4b-delivery-checkout` | 2026-10-17 |
-| 5 Payments and escrow | NOT STARTED | | |
+| 5 Payments and escrow | DONE pending manual checks (a real Paystack test payment at staging) | `feat/phase-5-payments` | 2026-10-17 |
 | 6 Dispatch and handover (replaces pickup stations) | NOT STARTED | | |
 | 7 Seller analytics | NOT STARTED | | |
 | 8 Wishlist, stores, reviews | NOT STARTED | | |
@@ -79,6 +79,7 @@ everything still open from Phases 0–4 and 9.
   [`evidence/phase3-seller-verification/`](evidence/phase3-seller-verification/))
 - [Phase 4](phase-4-cart-checkout.md) (browser evidence in [`evidence/phase4-cart-checkout/`](evidence/phase4-cart-checkout/))
 - [Phase 4b](phase-4b-delivery-checkout.md) (browser evidence in [`evidence/phase4b-delivery-checkout/`](evidence/phase4b-delivery-checkout/))
+- [Phase 5](phase-5-payments.md) (browser evidence, with the local Paystack stub, in [`evidence/phase5-payments/`](evidence/phase5-payments/))
 - [Phase 9](phase-9-admin.md) (built in slices; browser evidence in [`evidence/phase9-admin/`](evidence/phase9-admin/))
 
 ## Working setup used for verification
@@ -86,5 +87,6 @@ everything still open from Phases 0–4 and 9.
 - Local Postgres 16 (`campusmart_dev` for migrations and manual runs, `campusmart_test` for e2e), never Neon.
 - If the container restarted and Postgres is down: `su postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D /var/lib/postgresql/cm-data -l /var/lib/postgresql/cm-pg.log -o '-p 5432 -k /tmp' start"`.
 - `backend/.env` is local and git-ignored. Placeholder values only; no real credentials are committed.
+- Payments in a browser walk: start the API with `PAYMENTS_ENABLED=true PAYSTACK_SECRET_KEY=sk_test_walk_local_only node -r <repo>/docs/implementation-progress/evidence/phase5-payments/paystack-stub.cjs dist/main`. The stub answers every Paystack call locally.
 - Gate commands: backend `pnpm exec tsc --noEmit`, `pnpm run lint --max-warnings 0`, `pnpm test`,
   `pnpm run test:e2e`; frontend `pnpm run lint`, `pnpm exec tsc --noEmit`, `pnpm exec vitest run`, `pnpm run build`.

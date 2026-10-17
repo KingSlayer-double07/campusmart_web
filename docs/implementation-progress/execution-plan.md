@@ -332,7 +332,8 @@ The guide's Phase 8, with these changes:
   - Shown as a "Trusted seller" badge at 80 or more (R2).
   - A prohibited listing doesn't cost points; it means suspension (M4d, Phase 9).
 
-Gate: the guide's Phase 8 list, plus a link crawl. Needs from you: nothing.
+Gate: the guide's Phase 8 list, plus a link crawl, plus "a seller-fault refund lowers the trust score", carried from
+Phase 5 (which records the fault). Needs from you: nothing.
 
 ## Phase 9: admin and moderation
 

@@ -152,4 +152,6 @@ Resolved since the earlier notes:
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | API | Phase 10 |
 | `SENTRY_DSN` | API | Phase 10, launch |
 | `PAYSTACK_WALLET_CHANNELS` | API | once Paystack confirms OPay / PalmPay |
+| `PAYSTACK_WEBHOOK_IPS` | API | optional: defaults to Paystack's three published webhook IPs; checked in production only |
+| `DROP_OFF_DEADLINE_DAYS`, `BUYER_COLLECT_DAYS` | API | optional: defaults 3 and 5 (DL7b, DL7c); admins change the first in `/admin/settings` |
 | Support email, phone, WhatsApp (names set in Phase 10) | API | production |

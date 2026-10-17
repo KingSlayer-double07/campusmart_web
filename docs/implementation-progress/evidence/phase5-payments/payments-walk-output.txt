@@ -1,0 +1,28 @@
+PASS  An admin changes the platform fee; the change is audited  (250)
+PASS  The fee is back at 0% for the rest of the walk
+PASS  A webhook with a bad signature gets 401
+PASS  Checkout offers card and bank transfer only; OPay and PalmPay stay hidden (P5)
+PASS  Checkout sends the buyer to Paystack for the order total, reference CM_<order>_1  (CM_73ee68e4-19b3-4619-b1eb-ba0d0e0e683a_1, ₦5000)
+PASS  The signed charge.success webhook is accepted
+PASS  A replay of the same webhook changes nothing
+PASS  The confirmation page shows the order paid, with each store code
+PASS  Escrow is HELD and the dispatch order waits for a rider, with a deadline (DL7b)  (HELD,AWAITING_RIDER,true)
+PASS  The seller is told about the new order and the buyer about the payment
+PASS  The order page says it waits for a rider
+PASS  With no webhook, the page asks Paystack once after 10 seconds and shows it paid (guide 5.3)
+PASS  Once paid, the pickup store's address shows and the order waits for the buyer  (AWAITING_PICKUP)
+PASS  Pay now starts a new payment with a new reference (attempt 2)  (CM_076afc15-d6cb-4e24-a95a-e1fefa1da245_2)
+PASS  The dashboard asks for a payout account until there is one
+PASS  An account the bank can't resolve is refused with a plain message
+PASS  Only the bank, last 4 digits, name and recipient are stored  (058,6789,CHIDI OKAFOR,RCP_walk_6789)
+PASS  The change pauses payouts for 24 hours and is said so (P9)
+PASS  With an account set, the dashboard banner is gone
+PASS  Paystack reports the transfer failed (signed transfer.failed webhook)
+PASS  The failure is recorded and every admin is alerted
+PASS  Admin payouts lists the failed payout with its reason
+PASS  Retry sends it again with a new reference, and is audited  (PROCESSING,2,PO_d8ca5c8f-e157-41d2-a402-1abf2261c452_2)
+PASS  Paystack confirms the transfer (signed transfer.success webhook)
+PASS  The payout shows as paid
+PASS  Amaka's earnings show the payout as paid, and she was told
+
+26/26 passed
