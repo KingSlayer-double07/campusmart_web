@@ -8,6 +8,7 @@ export type ListingStatus = Schemas['ListingStatus'];
 export type FulfillmentStatus = Schemas['FulfillmentStatus'];
 export type PaymentMethod = Schemas['PaymentMethod'];
 export type OrderStatus = Schemas['OrderStatus'];
+export type PayoutStatus = Schemas['PayoutStatus'];
 
 export const CATEGORY_LABELS: Record<ListingCategory, string> = {
   FASHION: 'Fashion',
@@ -36,6 +37,8 @@ export const LISTING_STATUS_LABELS: Record<ListingStatus, string> = {
 
 export const FULFILLMENT_STATUS_LABELS: Record<FulfillmentStatus, string> = {
   PENDING: 'Awaiting payment',
+  AWAITING_RIDER: 'Waiting for a rider',
+  AWAITING_PICKUP: 'Ready for you to collect',
   AWAITING_DROPOFF: 'Awaiting drop-off',
   DROPPED_OFF: 'Ready for pickup',
   COLLECTED: 'Collected',
@@ -48,6 +51,14 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   PAID: 'Paid',
   CANCELLED: 'Cancelled',
   EXPIRED: 'Not paid in time',
+};
+
+export const PAYOUT_STATUS_LABELS: Record<PayoutStatus, string> = {
+  PENDING: 'Queued',
+  PROCESSING: 'Sending',
+  PAID: 'Paid',
+  FAILED: 'Failed',
+  AWAITING_ACCOUNT: 'Needs a payout account',
 };
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {

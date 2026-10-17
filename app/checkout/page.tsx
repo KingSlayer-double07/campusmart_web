@@ -13,6 +13,7 @@ import type { DeliveryMethod } from "@/lib/api/checkout";
 import { useCampusPlaces, useCheckout } from "@/lib/api/hooks/useBuyerOrders";
 import { blockingIssues, useCart, type CartLineGroup } from "@/lib/api/hooks/useCart";
 import { useMe } from "@/lib/api/hooks/useMe";
+import { usePaymentConfig } from "@/lib/api/hooks/usePayments";
 import { PAYMENT_OPTIONS } from "@/lib/constants/payments";
 import { formatNaira, type PaymentMethod } from "@/lib/labels";
 import { randomUUID } from "@/lib/uuid";
@@ -117,6 +118,7 @@ export default function CheckoutPage() {
   const places = useCampusPlaces();
   const checkout = useCheckout();
   const { data: me } = useMe();
+  const payments = usePaymentConfig();
   const [mounted, setMounted] = useState(false);
   const [payMethod, setPayMethod] = useState<PaymentMethod | null>(null);
   const [methods, setMethods] = useState<Record<string, DeliveryMethod>>({});
@@ -150,6 +152,10 @@ export default function CheckoutPage() {
   const deliveryFeeKobo = anyDispatch && destination === "CAMPUS" ? (fee ?? 0) : 0;
   const totalKobo = cart.subtotalKobo + deliveryFeeKobo;
   const phoneValue = phone ?? me?.phone ?? "";
+  // Only what the API offers right now: OPay and PalmPay stay hidden until Paystack confirms them (P5)
+  const offered = payments.data?.methods ?? ["CARD", "BANK_TRANSFER"];
+  const paymentOptions = PAYMENT_OPTIONS.filter((o) => offered.includes(o.id));
+  const chosenPay = payMethod && offered.includes(payMethod) ? payMethod : null;
 
   const proceed = async () => {
     if (anyDispatch) {
@@ -161,7 +167,7 @@ export default function CheckoutPage() {
       setErrors(next);
       if (next.place || next.address || next.phone) return;
     }
-    if (!payMethod) {
+    if (!chosenPay) {
       setProblem({ title: "Choose how you'll pay", text: "Pick one of the payment choices." });
       return;
     }
@@ -172,13 +178,17 @@ export default function CheckoutPage() {
           destination: destination === "CAMPUS" ? { campusPlaceId: placeId } : { address: address.trim() },
           phone: phoneValue.trim(),
         }),
-        paymentMethod: payMethod,
+        paymentMethod: chosenPay,
         idempotencyKey,
       });
       if (result.authorizationUrl) {
-        window.location.href = result.authorizationUrl;
+        // Paystack's page; it sends the buyer back to /order-confirmation (guide 5.1)
+        window.location.assign(result.authorizationUrl);
+      } else if (result.paymentsEnabled) {
+        // The order stands but Paystack didn't answer: the order page has "Pay now" (P7)
+        router.replace(`/orders/${result.orderId}`);
       } else {
-        // No payment page while online payment is switched off (Phase 5 turns it on)
+        // No payment page while online payment is switched off
         router.replace(`/order-confirmation?orderId=${result.orderId}&payment=unavailable`);
       }
     } catch (err) {
@@ -425,20 +435,23 @@ export default function CheckoutPage() {
             {/* Payment */}
             <div className="px-4 sm:px-6 flex flex-col gap-3">
               <p className="font-semibold" id="payment-choices">Payment choices</p>
+              {payments.data && !payments.data.paymentsEnabled && (
+                <InfoBanner text="Online payment isn't switched on yet. You can place the order, but it can't be paid until it is." />
+              )}
               <div className="flex flex-col gap-3" role="radiogroup" aria-labelledby="payment-choices">
-                {PAYMENT_OPTIONS.map((option) => (
+                {paymentOptions.map((option) => (
                   <button
                     key={option.id}
                     type="button"
                     role="radio"
-                    aria-checked={option.id === payMethod}
+                    aria-checked={option.id === chosenPay}
                     aria-label={option.title}
                     className="flex justify-between items-center w-full"
                     onClick={() => setPayMethod(option.id)}
                   >
                     <div className="flex flex-col items-start gap-0.5">
                       <div className="flex gap-2 items-center">
-                        <Radio checked={option.id === payMethod} />
+                        <Radio checked={option.id === chosenPay} />
                         {option.Icon && <option.Icon color="#737373" size={17} strokeWidth={2.2} />}
                         <p className="text-sm text-foreground/70">{option.title}</p>
                       </div>

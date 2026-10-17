@@ -11,10 +11,13 @@ import SectionHeader from "../components/SectionHeader";
 import { useFavouritesStore } from "../store/useFavouritesStore";
 import type { Order } from "@/lib/api/checkout";
 import { useOrder } from "@/lib/api/hooks/useBuyerOrders";
+import { useVerifyPayment } from "@/lib/api/hooks/usePayments";
 import { formatNaira } from "@/lib/labels";
 import { deliveryLine } from "../orders/delivery";
 
 const POLL_FOR_MS = 60_000;
+// Guide 5.3: if the webhook hasn't marked it paid by then, ask Paystack once
+const VERIFY_AFTER_MS = 10_000;
 const time = new Intl.DateTimeFormat("en-NG", { timeStyle: "short" });
 
 function Paid({ order }: { order: Order }) {
@@ -54,6 +57,8 @@ function Paid({ order }: { order: Order }) {
 function ConfirmationBody() {
   const params = useSearchParams();
   const orderId = params.get("orderId") ?? undefined;
+  // Paystack adds the payment's reference when it sends the buyer back
+  const reference = params.get("reference") ?? params.get("trxref") ?? undefined;
   // Checkout sends buyers here without a payment page while online payment is switched off
   const paymentUnavailable = params.get("payment") === "unavailable";
   const [pollingSince, setPollingSince] = useState(() => Date.now());
@@ -62,6 +67,19 @@ function ConfirmationBody() {
   const query = useOrder(orderId, { poll: polling });
   const order = query.data;
   const waiting = order?.status === "PENDING_PAYMENT";
+  // mutate keeps its identity across renders, so the timer isn't reset by polling
+  const { mutate: verifyPayment } = useVerifyPayment();
+  const [verified, setVerified] = useState(false);
+
+  useEffect(() => {
+    if (!waiting || !reference || verified || paymentUnavailable) return;
+    const timer = setTimeout(() => {
+      setVerified(true);
+      // A failure here changes nothing: polling carries on and the webhook still settles it
+      verifyPayment(reference);
+    }, VERIFY_AFTER_MS);
+    return () => clearTimeout(timer);
+  }, [waiting, reference, verified, paymentUnavailable, verifyPayment]);
 
   // Guide 4.3.5: poll every 3 seconds for up to 60 while the payment is confirmed
   useEffect(() => {

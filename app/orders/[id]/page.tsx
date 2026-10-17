@@ -11,7 +11,8 @@ import { ToastContainer, useToast } from "@/app/components/Toast";
 import { ApiError } from "@/lib/api/client";
 import type { Order, SellerOrder } from "@/lib/api/checkout";
 import { useCancelOrder, useOrder } from "@/lib/api/hooks/useBuyerOrders";
-import { formatNaira, type FulfillmentStatus } from "@/lib/labels";
+import { usePaymentConfig, usePayOrder } from "@/lib/api/hooks/usePayments";
+import { FULFILLMENT_STATUS_LABELS, formatNaira, type FulfillmentStatus } from "@/lib/labels";
 import { summarizeOpeningHours } from "@/lib/openingHours";
 import OrderStatusBadge from "../OrderStatusBadge";
 import { deliveryLine } from "../delivery";
@@ -121,9 +122,20 @@ function SellerOrderCard({ order, sellerOrder }: { order: Order; sellerOrder: Se
       {order.status === "PAID" && !so.deliveryMethod && so.fulfillmentStatus !== "CANCELLED" && so.fulfillmentStatus !== "DISPUTED" && (
         <Timeline status={so.fulfillmentStatus} />
       )}
+      {/* Delivery and pickup orders get their own timeline with Phase 6; until then, the state */}
+      {order.status === "PAID" && so.deliveryMethod && (so.fulfillmentStatus === "AWAITING_RIDER" || so.fulfillmentStatus === "AWAITING_PICKUP") && (
+        <p className="flex items-center gap-2 rounded-xl bg-surface-muted px-3 py-2 text-xs text-foreground">
+          <Clock size={14} className="shrink-0 text-main" />
+          {so.fulfillmentStatus === "AWAITING_RIDER"
+            ? `${FULFILLMENT_STATUS_LABELS.AWAITING_RIDER}: we'll tell you when it's on its way`
+            : "Paid. Contact the seller to arrange collecting it."}
+        </p>
+      )}
       {so.fulfillmentStatus === "CANCELLED" && (
         <p className="rounded-xl bg-surface-muted px-3 py-2 text-xs text-foreground-muted">
-          Cancelled{so.cancelReason === "PAYMENT_EXPIRED" ? ": not paid in time" : so.cancelReason === "BUYER_CANCELLED" ? " by you" : ""}
+          {order.status === "PAID"
+            ? "Cancelled and refunded. Banks usually take a few working days to return the money."
+            : `Cancelled${so.cancelReason === "PAYMENT_EXPIRED" ? ": not paid in time" : so.cancelReason === "BUYER_CANCELLED" ? " by you" : ""}`}
         </p>
       )}
       {so.fulfillmentStatus === "DISPUTED" && (
@@ -155,6 +167,8 @@ export default function OrderDetailPage() {
   const toast = useToast();
   const query = useOrder(id);
   const cancel = useCancelOrder();
+  const payments = usePaymentConfig();
+  const payOrder = usePayOrder();
   const [confirming, setConfirming] = useState(false);
   const order = query.data;
 
@@ -200,6 +214,17 @@ export default function OrderDetailPage() {
   }
 
   const station = order.pickupStation;
+  // Decision P7: a fresh Paystack page, as often as needed until the order expires
+  const payNow = async () => {
+    try {
+      const started = await payOrder.mutateAsync(order.id);
+      window.location.assign(started.authorizationUrl);
+    } catch (err) {
+      toast.error("Couldn't open the payment page", err instanceof ApiError ? err.message : "Please try again");
+      if (err instanceof ApiError && err.code === "ORDER_NOT_PAYABLE") void query.refetch();
+    }
+  };
+
   const confirmCancel = async () => {
     try {
       await cancel.mutateAsync(order.id);
@@ -231,15 +256,28 @@ export default function OrderDetailPage() {
                 <Clock size={16} className="text-main shrink-0 mt-0.5" />
                 <p className="text-sm text-foreground">
                   Waiting for payment. Your items are held until {time.format(new Date(order.expiresAt))}, then go back on sale.
+                  {payments.data && !payments.data.paymentsEnabled && " Online payment isn't switched on yet."}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setConfirming(true)}
-                className="self-start rounded-full border border-border-default bg-card px-4 py-1.5 text-sm font-semibold"
-              >
-                Cancel order
-              </button>
+              <div className="flex flex-wrap gap-2">
+                {payments.data?.paymentsEnabled && (
+                  <button
+                    type="button"
+                    onClick={payNow}
+                    disabled={payOrder.isPending || payOrder.isSuccess}
+                    className="rounded-full bg-main px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    {payOrder.isPending || payOrder.isSuccess ? "Opening payment…" : `Pay ${formatNaira(order.totalKobo)} now`}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setConfirming(true)}
+                  className="rounded-full border border-border-default bg-card px-4 py-1.5 text-sm font-semibold"
+                >
+                  Cancel order
+                </button>
+              </div>
             </div>
           )}
           {order.status === "EXPIRED" && (

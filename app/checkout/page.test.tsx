@@ -14,6 +14,8 @@ const buyerOrdersApi = vi.hoisted(() => ({
   cancel: vi.fn(),
 }));
 vi.mock("@/lib/api/checkout", () => ({ cartApi, buyerOrdersApi }));
+const paymentsApi = vi.hoisted(() => ({ config: vi.fn() }));
+vi.mock("@/lib/api/payments", () => ({ paymentsApi }));
 const me = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/api/auth", () => ({ authApi: { me } }));
 
@@ -59,7 +61,9 @@ const pay = async (count: number, method = "Card") => {
   fireEvent.click(screen.getByRole("radio", { name: method }));
   fireEvent.click(screen.getByRole("button", { name: `Proceed to Pay (${count})` }));
 };
-const placed = { orderId: "o1", totalKobo: 950_000, authorizationUrl: null, reference: null };
+const placed = { orderId: "o1", totalKobo: 950_000, paymentsEnabled: false, authorizationUrl: null, reference: null };
+const OFF = { paymentsEnabled: false, methods: ["CARD", "BANK_TRANSFER"] };
+const ON = { paymentsEnabled: true, methods: ["CARD", "BANK_TRANSFER"] };
 
 describe("CheckoutPage", () => {
   beforeEach(() => {
@@ -69,8 +73,55 @@ describe("CheckoutPage", () => {
     cartApi.get.mockResolvedValue(cartOf([tunde]));
     buyerOrdersApi.campusPlaces.mockResolvedValue(places);
     buyerOrdersApi.checkout.mockResolvedValue(placed);
+    paymentsApi.config.mockResolvedValue(OFF);
   });
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("with Paystack on, goes to the payment page for the order", async () => {
+    const assign = vi.fn();
+    vi.stubGlobal("location", { ...window.location, assign });
+    paymentsApi.config.mockResolvedValue(ON);
+    buyerOrdersApi.checkout.mockResolvedValue({
+      ...placed,
+      paymentsEnabled: true,
+      authorizationUrl: "https://checkout.paystack.com/abc",
+      reference: "CM_o1_1",
+    });
+    renderCheckout();
+    fireEvent.click(await screen.findByRole("radio", { name: "Off campus" }));
+    fireEvent.change(screen.getByLabelText("Address off campus"), { target: { value: "14 Akoka Road, Yaba" } });
+    expect(screen.queryByText(/Online payment isn't switched on yet/)).toBeNull();
+    await pay(2);
+    await waitFor(() => expect(assign).toHaveBeenCalledWith("https://checkout.paystack.com/abc"));
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it("if Paystack didn't answer, the order stands and the order page offers Pay now", async () => {
+    paymentsApi.config.mockResolvedValue(ON);
+    buyerOrdersApi.checkout.mockResolvedValue({ ...placed, paymentsEnabled: true });
+    renderCheckout();
+    fireEvent.click(await screen.findByRole("radio", { name: "Off campus" }));
+    fireEvent.change(screen.getByLabelText("Address off campus"), { target: { value: "14 Akoka Road, Yaba" } });
+    await pay(2);
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/orders/o1"));
+  });
+
+  it("offers only the methods the API lists: OPay and PalmPay stay hidden until confirmed (P5)", async () => {
+    renderCheckout();
+    expect(await screen.findByText(/Online payment isn't switched on yet/)).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Card" })).toBeTruthy();
+    expect(screen.queryByRole("radio", { name: "OPay" })).toBeNull();
+    expect(screen.queryByRole("radio", { name: "PalmPay" })).toBeNull();
+    cleanup();
+
+    paymentsApi.config.mockResolvedValue({ paymentsEnabled: true, methods: ["CARD", "BANK_TRANSFER", "OPAY", "PALMPAY"] });
+    renderCheckout();
+    expect(await screen.findByRole("radio", { name: "OPay" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "PalmPay" })).toBeTruthy();
+  });
 
   it("by rider to a campus place: one fee on top, the saved phone, then the order", async () => {
     renderCheckout();

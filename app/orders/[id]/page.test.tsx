@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 vi.mock("next/navigation", () => ({ useParams: () => ({ id: "o1" }), useRouter: () => ({ push: vi.fn(), back: vi.fn() }) }));
 const buyerOrdersApi = vi.hoisted(() => ({ pickupStations: vi.fn(), checkout: vi.fn(), list: vi.fn(), get: vi.fn(), cancel: vi.fn() }));
 vi.mock("@/lib/api/checkout", () => ({ buyerOrdersApi, cartApi: {} }));
+const paymentsApi = vi.hoisted(() => ({ config: vi.fn(), pay: vi.fn() }));
+vi.mock("@/lib/api/payments", () => ({ paymentsApi }));
 
 import { ApiError } from "@/lib/api/client";
 import OrderDetailPage from "./page";
@@ -57,8 +59,60 @@ function renderPage() {
 }
 
 describe("OrderDetailPage", () => {
-  beforeEach(() => vi.clearAllMocks());
-  afterEach(cleanup);
+  beforeEach(() => {
+    vi.clearAllMocks();
+    paymentsApi.config.mockResolvedValue({ paymentsEnabled: false, methods: ["CARD", "BANK_TRANSFER"] });
+  });
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("Pay now opens a fresh Paystack page for an unpaid order (P7)", async () => {
+    const assign = vi.fn();
+    vi.stubGlobal("location", { ...window.location, assign });
+    paymentsApi.config.mockResolvedValue({ paymentsEnabled: true, methods: ["CARD", "BANK_TRANSFER"] });
+    paymentsApi.pay.mockResolvedValue({ authorizationUrl: "https://checkout.paystack.com/xyz", reference: "CM_o1_2" });
+    buyerOrdersApi.get.mockResolvedValue(order({ status: "PENDING_PAYMENT", paidAt: null }, { fulfillmentStatus: "PENDING" }));
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Pay ₦9,000 now" }));
+    await waitFor(() => expect(assign).toHaveBeenCalledWith("https://checkout.paystack.com/xyz"));
+    expect(paymentsApi.pay).toHaveBeenCalledWith("o1");
+  });
+
+  it("says why Pay now didn't work, and hides it while payment is off", async () => {
+    paymentsApi.config.mockResolvedValue({ paymentsEnabled: true, methods: ["CARD", "BANK_TRANSFER"] });
+    paymentsApi.pay.mockRejectedValue(new ApiError(409, "ORDER_NOT_PAYABLE", "This order can't be paid any more"));
+    buyerOrdersApi.get.mockResolvedValue(order({ status: "PENDING_PAYMENT", paidAt: null }, { fulfillmentStatus: "PENDING" }));
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Pay ₦9,000 now" }));
+    expect(await screen.findByText("Couldn't open the payment page")).toBeTruthy();
+    expect(screen.getByText("This order can't be paid any more")).toBeTruthy();
+    cleanup();
+
+    paymentsApi.config.mockResolvedValue({ paymentsEnabled: false, methods: ["CARD", "BANK_TRANSFER"] });
+    renderPage();
+    expect(await screen.findByText(/Online payment isn't switched on yet/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Pay .* now/ })).toBeNull();
+  });
+
+  it("a paid delivery waits for a rider; a refunded store says so", async () => {
+    buyerOrdersApi.get.mockResolvedValue(
+      order({
+        pickupStation: null,
+        destination: { campusPlace: { id: "p1", name: "Faculty of Science" }, address: null },
+        deliveryFeeKobo: 50_000,
+        buyerPhone: "+234 801 234 5678",
+        sellerOrders: [
+          sellerOrder({ deliveryMethod: "DISPATCH", fulfillmentStatus: "AWAITING_RIDER" }),
+          sellerOrder({ id: "so2", code: "CM-ABC234", seller: { id: "s2", storeName: "Ada Wears" }, deliveryMethod: "DISPATCH", fulfillmentStatus: "CANCELLED", cancelReason: "SELLER_CANCELLED" }),
+        ],
+      }),
+    );
+    renderPage();
+    expect(await screen.findByText(/Waiting for a rider/)).toBeTruthy();
+    expect(screen.getByText(/Cancelled and refunded/)).toBeTruthy();
+  });
 
   it("shows the per-seller timeline, and the collection code only once dropped off", async () => {
     buyerOrdersApi.get.mockResolvedValue(order());
