@@ -1,0 +1,22 @@
+PASS  An admin invites a rider for a campus (DX1)
+PASS  The invite email (printed until MAIL_* is set) carries the link
+PASS  The rider sets a password, which confirms the email and signs them in
+PASS  Paying for two stores by rider opens one job (DF7, DF8)
+PASS  The new rider is told about the job (DX2)
+PASS  Before accepting, only the areas show: no store names, addresses or buyer phone (C6)
+PASS  Accepting sets an arrival window per store (DF8b)
+PASS  The seller sees the rider’s name and when they come (DX8, DF8b)
+PASS  The seller’s order shows the CM- code with a QR for the rider
+PASS  At the seller the rider types the CM- code; the parcel is with the rider (DX5)
+PASS  A store not ready is reported and the seller told (DF11)
+PASS  The buyer sees a handover code per store and the rider’s name only (C7, DX8)
+PASS  A wrong buyer code is refused, with the tries left (F5)
+PASS  Both stores delivered; the job is done and the 48-hour window runs (D11)
+PASS  The dispute holds that store’s payout
+PASS  A release pays the seller now (F8)
+PASS  Admin deliveries lists the finished job with its rider
+PASS  A pickup order opens no job
+PASS  The buyer has the pickup code as soon as it’s paid (C7)
+PASS  The seller enters the buyer’s code and the order is collected
+
+20/20 passed
