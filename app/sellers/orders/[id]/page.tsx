@@ -1,254 +1,277 @@
 "use client";
 
-import { use, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
-import { MoreVertical, Check } from "lucide-react";
-import PageHeader from "@/app/components/PageHeader";
-import { useSellerOrder, useUpdateOrderStatus } from "@/lib/api/hooks/useSellerOrders";
-import { type OrderStatus } from "@/types";
-import { cn } from "@/lib/utils/cn";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { Bike, ImageOff, Store } from "lucide-react";
+import CodeQr from "@/app/components/CodeQr";
 import Modal from "@/app/components/Modal";
+import PageHeader from "@/app/components/PageHeader";
+import { ToastContainer, useToast } from "@/app/components/Toast";
+import { ApiError } from "@/lib/api/client";
+import { useCancelSellerOrder, useSellerHandover, useSellerOrder } from "@/lib/api/hooks/useSellerOrders";
+import { FULFILLMENT_STATUS_LABELS, formatNaira } from "@/lib/labels";
+import { whenText } from "@/lib/orderText";
+import { nextStep } from "../../components/OrderCard";
 
-// --- Types & Constants ---
-const MOCK_EXTRA = {
-  buyerPhone: "+234 801 234 5678",
-  buyerAddress: "12 Allen Avenue, Ikeja, Lagos\nNigeria",
-  deliveryFee: 1500,
-  serviceFee: 200,
-  productSize: "L",
-  productColor: "Black",
-  placedAt: "June 22, 2026 • 2:30 PM",
-};
-
-const STEPS: { label: string; status: OrderStatus | "In Transit" | "Delivered" }[] = [
-  { label: "Confirmed",  status: "Awaiting drop-off" },
-  { label: "Picked Up",  status: "Dropped off" },
-  { label: "In Transit", status: "In Transit" },
-  { label: "Delivered",  status: "Delivered" },
-];
-
-function stepIndex(status: OrderStatus): number {
-  if (status === "Awaiting drop-off") return 0;
-  if (status === "Dropped off")       return 1;
-  if (status === "Completed")         return 2;
-  return -1;
-}
-
-// --- Components ---
-function ProgressTracker({ status }: { status: OrderStatus }) {
-  const reached = stepIndex(status);
-
-  return (
-    <div className="flex items-start justify-between relative px-2">
-      {STEPS.map((_, i) =>
-        i < STEPS.length - 1 ? (
-          <div
-            key={`line-${i}`}
-            className={cn(
-              "absolute top-[14px] h-[2px] transition-colors",
-              i < reached ? "bg-seller-main" : "bg-neutral-200"
-            )}
-            style={{
-              left: `calc(${(i / (STEPS.length - 1)) * 100}% + 14px)`,
-              width: `calc(${100 / (STEPS.length - 1)}% - 28px)`,
-            }}
-          />
-        ) : null
-      )}
-
-      {STEPS.map((step, i) => {
-        const done = i <= reached;
-        return (
-          <div key={step.label} className="flex flex-col items-center gap-1.5 z-10">
-            <div
-              className={cn(
-                "size-7 rounded-full flex items-center justify-center border-2 transition-colors",
-                done ? "bg-seller-main border-seller-main" : "bg-card border-border-default"
-              )}
-            >
-              {done && <Check size={13} strokeWidth={3} className="text-white" />}
-            </div>
-            <p className={cn("text-[11px] font-semibold text-center", done ? "text-seller-main" : "text-foreground-muted")}>
-              {step.label}
-            </p>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function StatusBadge({ status }: { status: OrderStatus }) {
-  const styles: Record<OrderStatus, string> = {
-    "Awaiting drop-off": "bg-amber-100 text-amber-600",
-    "Dropped off":       "bg-blue-100 text-blue-600",
-    "Completed":         "bg-green-100 text-green-600",
-    "Cancelled":         "bg-red-100 text-red-600",
-  };
-  return (
-    <span className={cn("px-2.5 py-1 rounded-full text-xs font-bold w-fit", styles[status])}>
-      {status}
-    </span>
-  );
-}
-
-function ctaLabel(status: OrderStatus): string {
-  if (status === "Awaiting drop-off") return "Mark as Picked Up";
-  if (status === "Dropped off")       return "Mark as Delivered";
-  return "Order Completed";
-}
-
-function nextStatus(status: OrderStatus): OrderStatus | null {
-  if (status === "Awaiting drop-off") return "Dropped off";
-  if (status === "Dropped off")       return "Completed";
-  return null;
-}
+const inputClass =
+  "w-full bg-surface-muted border border-border-default rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-foreground-muted focus:outline-none focus:ring-2 focus:ring-seller-main/30 focus:border-seller-main transition aria-invalid:border-red-400";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-[11px] font-bold text-foreground-muted uppercase tracking-widest px-1">{children}</p>;
+  return <p className="px-1 text-[11px] font-bold uppercase tracking-widest text-foreground-muted">{children}</p>;
 }
 
-export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  const { data: order, isLoading, isError } = useSellerOrder(id);
-  const { mutate: updateStatus, isPending } = useUpdateOrderStatus();
-  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
-  const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+// Decision DL5: a buyer collecting from the seller gives their 3-digit code; the seller enters it
+function HandoverForm({ orderId, onDone }: { orderId: string; onDone: () => void }) {
+  const handOver = useSellerHandover(orderId);
+  const [code, setCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  if (isLoading) {
-    return (
-      <main className="flex flex-col w-full max-w-md min-h-dvh bg-surface-muted">
-        <div className="bg-card px-4 pt-10 pb-4">
-          <PageHeader title="Order Details" showBack />
-        </div>
-        <div className="flex items-center justify-center py-32 text-foreground-muted text-sm">Loading...</div>
-      </main>
-    );
-  }
-
-  if (isError || !order) {
-    return (
-      <main className="flex flex-col w-full max-w-md min-h-dvh bg-surface-muted">
-        <div className="bg-card px-4 pt-10 pb-4">
-          <PageHeader title="Order Details" showBack />
-        </div>
-        <div className="flex items-center justify-center py-32 text-red-400 text-sm">Order not found.</div>
-      </main>
-    );
-  }
-
-  const subtotal = order.price * order.quantity;
-  const total    = subtotal + MOCK_EXTRA.deliveryFee + MOCK_EXTRA.serviceFee;
-  const next     = nextStatus(order.status);
-  const initials = order.buyerName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!/^\d{3}$/.test(code.trim())) return setError("Enter the buyer’s 3-digit code");
+    setError(null);
+    try {
+      await handOver.mutateAsync(code.trim());
+      onDone();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Couldn’t check the code. Please try again.");
+    }
+  };
 
   return (
-    <main className="flex flex-col w-full max-w-md min-h-dvh bg-surface-muted pb-40">
-      <div className="bg-card px-4 pt-10 pb-4">
-        <PageHeader
-          title="Order Details"
-          showBack
-          rightItems={
-            <button onClick={() => setIsCancelModalOpen(true)} className="p-1 rounded-full hover:bg-surface-muted transition">
-              <MoreVertical size={20} />
-            </button>
-          }
+    <form onSubmit={submit} noValidate className="flex flex-col gap-2 rounded-3xl border border-border-default bg-card p-4">
+      <label htmlFor="buyer-code" className="text-sm font-semibold text-foreground">
+        Buyer’s code
+      </label>
+      <p className="text-xs text-foreground-muted">When the buyer collects, ask for their 3-digit code and enter it here.</p>
+      <div className="flex gap-2">
+        <input
+          id="buyer-code"
+          inputMode="numeric"
+          autoComplete="off"
+          maxLength={3}
+          value={code}
+          placeholder="000"
+          aria-invalid={!!error}
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+          className={`${inputClass} font-mono text-lg tracking-[0.4em]`}
         />
+        <button
+          type="submit"
+          disabled={handOver.isPending}
+          className="shrink-0 rounded-xl bg-seller-main px-4 text-sm font-bold text-white disabled:opacity-50"
+        >
+          {handOver.isPending ? "Checking…" : "Hand over"}
+        </button>
+      </div>
+      {error && (
+        <p role="alert" className="text-xs font-medium text-red-500">
+          {error}
+        </p>
+      )}
+    </form>
+  );
+}
+
+// Decision F10: before the parcel leaves the seller. The buyer is refunded and it counts against the store.
+function CancelDialog({ orderId, isOpen, onClose, onDone }: { orderId: string; isOpen: boolean; onClose: () => void; onDone: () => void }) {
+  const cancel = useCancelSellerOrder(orderId);
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async () => {
+    if (reason.trim().length < 3) return setError("Say why, in a few words");
+    try {
+      await cancel.mutateAsync(reason.trim());
+      onClose();
+      onDone();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Couldn’t cancel. Please try again.");
+    }
+  };
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={cancel.isPending ? () => undefined : onClose}
+      title="Cancel this order?"
+      footer={
+        <button
+          type="button"
+          onClick={submit}
+          disabled={cancel.isPending}
+          className="w-full rounded-full bg-red-500 py-4 text-sm font-bold text-white disabled:opacity-50"
+        >
+          {cancel.isPending ? "Cancelling…" : "Cancel and refund the buyer"}
+        </button>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        <p className="text-sm text-foreground-muted">
+          The buyer gets their money back and the items go back on sale. A cancellation counts against your store’s trust score.
+        </p>
+        <label htmlFor="cancel-reason" className="text-sm font-semibold text-foreground">
+          Why?
+        </label>
+        <textarea
+          id="cancel-reason"
+          rows={3}
+          maxLength={300}
+          value={reason}
+          placeholder="e.g. It sold out in my shop"
+          aria-invalid={!!error}
+          onChange={(e) => {
+            setReason(e.target.value);
+            setError(null);
+          }}
+          className={`${inputClass} resize-none`}
+        />
+        {error && (
+          <p role="alert" className="text-xs font-medium text-red-500">
+            {error}
+          </p>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+export default function SellerOrderDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const toast = useToast();
+  const query = useSellerOrder(id);
+  const [cancelling, setCancelling] = useState(false);
+  const order = query.data;
+
+  const shell = (body: React.ReactNode) => (
+    <main className="flex min-h-dvh w-full max-w-md flex-col bg-surface-muted pb-40">
+      <ToastContainer toasts={toast.toasts} onDismiss={toast.dismiss} />
+      <div className="bg-card px-4 pb-4 pt-10">
+        <PageHeader title="Order details" showBack />
+      </div>
+      <div className="flex flex-col gap-4 px-4 py-4">{body}</div>
+    </main>
+  );
+
+  if (query.isPending) {
+    return shell(
+      <div className="flex flex-col gap-3" aria-busy="true" aria-label="Loading the order">
+        <div className="h-40 animate-pulse rounded-3xl bg-card" />
+        <div className="h-24 animate-pulse rounded-3xl bg-card" />
+      </div>,
+    );
+  }
+  if (query.isError || !order) {
+    const missing = query.error instanceof ApiError && query.error.status === 404;
+    return shell(
+      <div className="flex flex-col items-center gap-2 py-24 text-center">
+        <p className="text-sm font-medium">{missing ? "We can’t find this order" : "We couldn’t load this order"}</p>
+        {missing ? (
+          <Link href="/sellers/orders" className="text-sm font-semibold text-seller-main">
+            See your orders
+          </Link>
+        ) : (
+          <button type="button" onClick={() => query.refetch()} className="text-sm font-semibold text-seller-main">
+            Try again
+          </button>
+        )}
+      </div>,
+    );
+  }
+
+  const awaitingRider = order.deliveryMethod === "DISPATCH" && (order.fulfillmentStatus === "AWAITING_RIDER" || order.fulfillmentStatus === "RIDER_ASSIGNED");
+  const awaitingBuyer = order.deliveryMethod === "SELLER_PICKUP" && order.fulfillmentStatus === "AWAITING_PICKUP";
+
+  return shell(
+    <>
+      <div className="flex flex-col items-center gap-3 rounded-3xl border border-border-default bg-card p-5 text-center">
+        <p className="text-xs font-semibold uppercase tracking-wide text-foreground-muted">Order code</p>
+        <p className="font-mono text-3xl font-bold tracking-wider text-foreground">{order.code}</p>
+        {awaitingRider && (
+          <>
+            <CodeQr value={order.code} />
+            <p className="text-xs text-foreground-muted">The rider scans this or types the code when they collect.</p>
+          </>
+        )}
+        <span className="rounded-full border border-border-default px-3 py-1 text-xs font-semibold">
+          {FULFILLMENT_STATUS_LABELS[order.fulfillmentStatus]}
+        </span>
+        <p className="text-sm text-foreground">{nextStep(order)}</p>
       </div>
 
-      <div className="flex flex-col gap-4 px-4 py-4">
-        <div className="bg-card rounded-3xl p-5 border border-border-default flex flex-col gap-3">
-          <div>
-            <p className="text-base font-bold text-foreground">Order #{order.orderId}</p>
-            <p className="text-xs text-foreground-muted mt-0.5">Placed {MOCK_EXTRA.placedAt}</p>
-          </div>
-          <StatusBadge status={order.status} />
-        </div>
-
-        <div className="bg-card rounded-3xl p-5 border border-border-default">
-          <ProgressTracker status={order.status} />
-        </div>
-
-        <SectionLabel>Buyer Information</SectionLabel>
-        <div className="bg-card rounded-3xl p-4 border border-border-default flex items-start gap-4">
-          <div className="size-11 rounded-full bg-seller-main/15 flex items-center justify-center shrink-0">
-            <span className="text-sm font-bold text-seller-main">{initials}</span>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <p className="text-sm font-bold text-foreground">{order.buyerName}</p>
-            <p className="text-xs text-foreground-muted">{MOCK_EXTRA.buyerPhone}</p>
-            <p className="text-xs text-foreground-muted leading-relaxed whitespace-pre-line">{MOCK_EXTRA.buyerAddress}</p>
-          </div>
-        </div>
-
-        <SectionLabel>Item Ordered</SectionLabel>
-        <div className="bg-card rounded-3xl p-4 border border-border-default flex items-center gap-4">
-          <div className="relative size-14 rounded-2xl overflow-hidden bg-surface-muted shrink-0">
-            <Image src={order.productImage} alt={order.productName} fill className="object-cover" sizes="56px" />
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <p className="text-sm font-bold text-foreground">{order.productName}</p>
-            <p className="text-xs text-foreground-muted">Qty: {order.quantity} • Size: {MOCK_EXTRA.productSize} • Color: {MOCK_EXTRA.productColor}</p>
-            <p className="text-sm font-bold text-seller-main mt-1">₦{order.price.toLocaleString("en-NG")}</p>
-          </div>
-        </div>
-
-        <SectionLabel>Payment Summary</SectionLabel>
-        <div className="bg-card rounded-3xl p-5 border border-border-default flex flex-col gap-0">
-          {[
-            { label: "Subtotal",     value: subtotal,                    bold: false },
-            { label: "Delivery Fee", value: MOCK_EXTRA.deliveryFee,      bold: false },
-            { label: "Service Fee",  value: MOCK_EXTRA.serviceFee,       bold: false },
-          ].map(({ label, value, bold }) => (
-            <div key={label} className="flex items-center justify-between py-3 border-b border-border-default">
-              <p className={cn("text-sm text-foreground-muted", bold && "font-bold text-foreground")}>{label}</p>
-              <p className={cn("text-sm text-foreground", bold && "font-bold text-seller-main")}>₦{value.toLocaleString("en-NG")}</p>
-            </div>
-          ))}
-          <div className="flex items-center justify-between pt-3">
-            <p className="text-sm font-bold text-foreground">Total</p>
-            <p className="text-base font-bold text-seller-main">₦{total.toLocaleString("en-NG")}</p>
-          </div>
-        </div>
-      </div>
-
-      {next && (
-        <div className="fixed bottom-0 left-0 w-full flex justify-center pb-8 px-4 z-30 pointer-events-none">
-          <div className="w-full max-w-md pointer-events-auto">
-            <button disabled={isPending} onClick={() => setIsActionModalOpen(true)} className="w-full py-4 rounded-full bg-seller-main text-white font-bold text-sm disabled:opacity-50 transition active:scale-[0.98]">
-              {isPending ? "Updating..." : ctaLabel(order.status)}
-            </button>
-          </div>
-        </div>
+      {awaitingBuyer && !order.handoverLocked && (
+        <HandoverForm orderId={order.id} onDone={() => toast.success("Handed over", "Your payout follows in 48 hours")} />
+      )}
+      {order.handoverLocked && (
+        <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
+          Too many wrong codes were entered, so this order is locked. CampusMart has been told and will unlock it.
+        </p>
       )}
 
-      <Modal isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)} title="Cancel this Order?">
-        <p className="text-sm text-foreground-muted mb-6 mt-2">
-          Are you sure you want to cancel this order? This action cannot be undone.
-        </p>
-        <div className="flex flex-col gap-3">
-          <button onClick={() => { updateStatus({ id: order.id, status: "Cancelled" }); setIsCancelModalOpen(false); }} className="w-full py-4 rounded-full bg-red-500 text-white font-bold text-sm transition active:scale-[0.98]">
-            Yes, Cancel Order
-          </button>
-          <button onClick={() => setIsCancelModalOpen(false)} className="w-full py-4 rounded-full bg-card border border-border-default text-foreground font-bold text-sm transition active:scale-[0.98]">
-            No, Keep Order
-          </button>
+      <SectionLabel>How it reaches the buyer</SectionLabel>
+      <div className="flex items-start gap-3 rounded-3xl border border-border-default bg-card p-4 text-sm">
+        {order.deliveryMethod === "SELLER_PICKUP" ? <Store size={18} className="mt-0.5 text-seller-main" /> : <Bike size={18} className="mt-0.5 text-seller-main" />}
+        <div className="min-w-0">
+          <p className="font-semibold">
+            {order.deliveryMethod === "SELLER_PICKUP" ? `${order.buyerName} collects it from you` : "A CampusMart rider collects it from you"}
+          </p>
+          {order.rider && <p className="text-xs text-foreground-muted">Rider: {order.rider.name}</p>}
+          {order.pickedUpAt && <p className="text-xs text-foreground-muted">Collected from you {whenText(order.pickedUpAt)}</p>}
+          {order.handedOverAt && <p className="text-xs text-foreground-muted">Handed over {whenText(order.handedOverAt)}</p>}
+          {order.notReadyNote && <p className="text-xs text-main">Rider’s note: {order.notReadyNote}</p>}
         </div>
-      </Modal>
+      </div>
 
-      <Modal isOpen={isActionModalOpen} onClose={() => setIsActionModalOpen(false)} title={ctaLabel(order.status) + "?"}>
-        <p className="text-sm text-foreground-muted mb-6 mt-2">
-          Confirm that this order has been {next === "Dropped off" ? "dropped off at the hub" : next === "Completed" ? "delivered to the buyer" : "processed"}.
-        </p>
-        <div className="flex flex-col gap-3">
-          <button disabled={isPending} onClick={() => { if (next) { updateStatus({ id: order.id, status: next }); setIsActionModalOpen(false); } }} className="w-full py-4 rounded-full bg-seller-main text-white font-bold text-sm disabled:opacity-50 transition active:scale-[0.98]">
-            Yes, {ctaLabel(order.status)}
-          </button>
-          <button onClick={() => setIsActionModalOpen(false)} className="w-full py-4 rounded-full bg-card border border-border-default text-foreground font-bold text-sm transition active:scale-[0.98]">
-            Cancel
-          </button>
+      <SectionLabel>Items</SectionLabel>
+      <ul className="flex flex-col gap-3 rounded-3xl border border-border-default bg-card p-4">
+        {order.items.map((item, i) => (
+          <li key={i} className="flex items-center gap-3">
+            <div className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface-muted text-foreground-muted">
+              {item.imageUrl ? <Image src={item.imageUrl} alt="" fill sizes="48px" className="object-cover" /> : <ImageOff size={14} />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">{item.title}</p>
+              <p className="text-xs text-foreground-muted">
+                {item.variantLabel ? `${item.variantLabel} · ` : ""}
+                {item.quantity} × {formatNaira(item.unitPriceKobo)}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <SectionLabel>Money</SectionLabel>
+      <div className="flex flex-col gap-2 rounded-3xl border border-border-default bg-card p-4 text-sm">
+        <div className="flex justify-between">
+          <span className="text-foreground-muted">Items</span>
+          <span>{formatNaira(order.subtotalKobo)}</span>
         </div>
-      </Modal>
-    </main>
+        <div className="flex justify-between font-bold">
+          <span>Your payout</span>
+          <span className="text-seller-main">{formatNaira(order.sellerPayoutKobo)}</span>
+        </div>
+        {order.releaseAt && order.escrowStatus === "HELD" && (
+          <p className="text-xs text-foreground-muted">Released {whenText(order.releaseAt)} unless the buyer reports a problem.</p>
+        )}
+      </div>
+
+      {order.canCancel && (
+        <button
+          type="button"
+          onClick={() => setCancelling(true)}
+          className="w-full rounded-full border border-red-200 py-3 text-sm font-bold text-red-500"
+        >
+          Cancel order
+        </button>
+      )}
+      <CancelDialog
+        orderId={order.id}
+        isOpen={cancelling}
+        onClose={() => setCancelling(false)}
+        onDone={() => toast.success("Order cancelled", "The buyer is being refunded")}
+      />
+    </>,
   );
 }

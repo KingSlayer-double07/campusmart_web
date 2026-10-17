@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 vi.mock("next/navigation", () => ({ useParams: () => ({ id: "o1" }), useRouter: () => ({ push: vi.fn(), back: vi.fn() }) }));
@@ -7,6 +7,8 @@ const buyerOrdersApi = vi.hoisted(() => ({ pickupStations: vi.fn(), checkout: vi
 vi.mock("@/lib/api/checkout", () => ({ buyerOrdersApi, cartApi: {} }));
 const paymentsApi = vi.hoisted(() => ({ config: vi.fn(), pay: vi.fn() }));
 vi.mock("@/lib/api/payments", () => ({ paymentsApi }));
+const problemsApi = vi.hoisted(() => ({ report: vi.fn() }));
+vi.mock("@/lib/api/dispatch", () => ({ problemsApi }));
 
 import { ApiError } from "@/lib/api/client";
 import OrderDetailPage from "./page";
@@ -110,8 +112,9 @@ describe("OrderDetailPage", () => {
       }),
     );
     renderPage();
-    expect(await screen.findByText(/Waiting for a rider/)).toBeTruthy();
-    expect(screen.getByText(/Cancelled and refunded/)).toBeTruthy();
+    const steps = await screen.findAllByRole("list", { name: "Progress" });
+    expect(within(steps[0]).getByText("Paid").closest("li")?.getAttribute("aria-current")).toBe("step");
+    expect(screen.getByText(/Cancelled by the seller\. You've been refunded/)).toBeTruthy();
   });
 
   it("shows the per-seller timeline, and the collection code only once dropped off", async () => {
@@ -191,5 +194,61 @@ describe("OrderDetailPage", () => {
     buyerOrdersApi.get.mockRejectedValue(new ApiError(0, "NETWORK", "offline"));
     renderPage();
     expect(await screen.findByText("We couldn't load this order")).toBeTruthy();
+  });
+
+  it("shows the code once the rider has the parcel (C7), and reports a problem with the stage's reasons (C8)", async () => {
+    const delivered = {
+      pickupStation: null,
+      destination: { campusPlace: { id: "p1", name: "Faculty of Science" }, address: null },
+      deliveryFeeKobo: 50_000,
+      buyerPhone: "+234 801 234 5678",
+    };
+    buyerOrdersApi.get.mockResolvedValue(
+      order({
+        ...delivered,
+        sellerOrders: [
+          sellerOrder({ deliveryMethod: "DISPATCH", fulfillmentStatus: "WITH_RIDER", collectionCode: "048", rider: { name: "Musa Bello" } }),
+        ],
+      }),
+    );
+    problemsApi.report.mockResolvedValue({ kind: "PROBLEM", id: "p1" });
+    renderPage();
+    expect(await screen.findByText("048")).toBeTruthy();
+    expect(screen.getByText(/Give it to Musa Bello when it reaches you, and not before/)).toBeTruthy();
+    expect(screen.getByText("Your rider: Musa Bello")).toBeTruthy();
+
+    // Before handover: late, lost or something else
+    fireEvent.click(screen.getByRole("button", { name: /Report a problem/ }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).queryByLabelText("Damaged")).toBeNull();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Send to CampusMart" }));
+    expect(await within(dialog).findByText("Choose what went wrong")).toBeTruthy();
+    fireEvent.click(within(dialog).getByLabelText("It's late"));
+    fireEvent.change(within(dialog).getByRole("textbox"), { target: { value: "Two days now" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Send to CampusMart" }));
+    await waitFor(() =>
+      expect(problemsApi.report).toHaveBeenCalledWith("o1", "so1", { reason: "LATE", details: "Two days now" }),
+    );
+    expect(await screen.findByText("CampusMart has been told")).toBeTruthy();
+  });
+
+  it("after handover a problem is a dispute, open for 48 hours", async () => {
+    const releaseAt = new Date(Date.now() + 20 * 3_600_000).toISOString();
+    buyerOrdersApi.get.mockResolvedValue(
+      order({
+        pickupStation: null,
+        destination: { campusPlace: { id: "p1", name: "Faculty of Science" }, address: null },
+        sellerOrders: [sellerOrder({ deliveryMethod: "DISPATCH", fulfillmentStatus: "DELIVERED", collectionCode: null, releaseAt })],
+      }),
+    );
+    problemsApi.report.mockResolvedValue({ kind: "DISPUTE", id: "d1" });
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: /Report a problem \(until/ }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByLabelText("Damaged"));
+    expect(within(dialog).getByText(/Photos \(optional, up to 3\)/)).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Send to CampusMart" }));
+    await waitFor(() => expect(problemsApi.report).toHaveBeenCalledWith("o1", "so1", { reason: "DAMAGED" }));
+    expect(await screen.findByText("Problem reported")).toBeTruthy();
   });
 });

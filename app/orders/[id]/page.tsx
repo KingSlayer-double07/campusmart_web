@@ -12,7 +12,9 @@ import { ApiError } from "@/lib/api/client";
 import type { Order, SellerOrder } from "@/lib/api/checkout";
 import { useCancelOrder, useOrder } from "@/lib/api/hooks/useBuyerOrders";
 import { usePaymentConfig, usePayOrder } from "@/lib/api/hooks/usePayments";
-import { FULFILLMENT_STATUS_LABELS, formatNaira, type FulfillmentStatus } from "@/lib/labels";
+import { formatNaira, type FulfillmentStatus } from "@/lib/labels";
+import { cancelReasonText, whenText } from "@/lib/orderText";
+import ReportProblemDialog from "../ReportProblemDialog";
 import { summarizeOpeningHours } from "@/lib/openingHours";
 import OrderStatusBadge from "../OrderStatusBadge";
 import { deliveryLine } from "../delivery";
@@ -67,7 +69,55 @@ function Timeline({ status }: { status: FulfillmentStatus }) {
   );
 }
 
-function SellerOrderCard({ order, sellerOrder }: { order: Order; sellerOrder: SellerOrder }) {
+// Decision C8: from payment until 48 hours after handover
+function canReport(order: Order, so: SellerOrder): boolean {
+  if (order.status !== "PAID" || !so.deliveryMethod) return false;
+  if (so.fulfillmentStatus === "CANCELLED" || so.fulfillmentStatus === "DISPUTED") return false;
+  if (so.fulfillmentStatus === "DELIVERED" || so.fulfillmentStatus === "COLLECTED") {
+    return !!so.releaseAt && new Date(so.releaseAt).getTime() > Date.now();
+  }
+  return true;
+}
+
+const DISPATCH_STEPS: { label: string; reached: FulfillmentStatus[] }[] = [
+  { label: "Paid", reached: ["AWAITING_RIDER", "RIDER_ASSIGNED", "WITH_RIDER", "DELIVERED"] },
+  { label: "A rider is on the way to the store", reached: ["RIDER_ASSIGNED", "WITH_RIDER", "DELIVERED"] },
+  { label: "With the rider", reached: ["WITH_RIDER", "DELIVERED"] },
+  { label: "Delivered", reached: ["DELIVERED"] },
+];
+const PICKUP_STEPS: { label: string; reached: FulfillmentStatus[] }[] = [
+  { label: "Paid", reached: ["AWAITING_PICKUP", "COLLECTED"] },
+  { label: "Ready for you to collect", reached: ["AWAITING_PICKUP", "COLLECTED"] },
+  { label: "Collected", reached: ["COLLECTED"] },
+];
+
+// Phase 6: where a delivered or collected store's order has got to
+function DeliverySteps({ method, status }: { method: NonNullable<SellerOrder["deliveryMethod"]>; status: FulfillmentStatus }) {
+  const steps = method === "DISPATCH" ? DISPATCH_STEPS : PICKUP_STEPS;
+  const lastReached = steps.reduce((at, step, i) => (step.reached.includes(status) ? i : at), -1);
+  return (
+    <ol className="flex flex-col gap-2" aria-label="Progress">
+      {steps.map((step, i) => {
+        const done = i <= lastReached;
+        const current = i === lastReached;
+        return (
+          <li key={step.label} className="flex items-center gap-3" aria-current={current ? "step" : undefined}>
+            <span
+              className={`flex size-5 shrink-0 items-center justify-center rounded-full border-2 ${
+                done ? "border-green-500 bg-green-500 text-white" : "border-border-default bg-card"
+              }`}
+            >
+              {done && <Check size={12} strokeWidth={3} />}
+            </span>
+            <p className={`text-sm ${current ? "font-semibold text-foreground" : done ? "text-foreground" : "text-foreground-muted"}`}>{step.label}</p>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function SellerOrderCard({ order, sellerOrder, onReport }: { order: Order; sellerOrder: SellerOrder; onReport: (so: SellerOrder) => void }) {
   const so = sellerOrder;
   return (
     <section aria-label={so.seller.storeName} className="flex flex-col gap-4 rounded-2xl border border-border-default bg-card p-4">
@@ -122,24 +172,49 @@ function SellerOrderCard({ order, sellerOrder }: { order: Order; sellerOrder: Se
       {order.status === "PAID" && !so.deliveryMethod && so.fulfillmentStatus !== "CANCELLED" && so.fulfillmentStatus !== "DISPUTED" && (
         <Timeline status={so.fulfillmentStatus} />
       )}
-      {/* Delivery and pickup orders get their own timeline with Phase 6; until then, the state */}
-      {order.status === "PAID" && so.deliveryMethod && (so.fulfillmentStatus === "AWAITING_RIDER" || so.fulfillmentStatus === "AWAITING_PICKUP") && (
-        <p className="flex items-center gap-2 rounded-xl bg-surface-muted px-3 py-2 text-xs text-foreground">
-          <Clock size={14} className="shrink-0 text-main" />
-          {so.fulfillmentStatus === "AWAITING_RIDER"
-            ? `${FULFILLMENT_STATUS_LABELS.AWAITING_RIDER}: we'll tell you when it's on its way`
-            : "Paid. Contact the seller to arrange collecting it."}
+      {/* Phase 6: delivery and pickup orders, step by step (C7: the code shows when it's due) */}
+      {order.status === "PAID" && so.deliveryMethod && so.fulfillmentStatus !== "CANCELLED" && so.fulfillmentStatus !== "DISPUTED" && (
+        <DeliverySteps method={so.deliveryMethod} status={so.fulfillmentStatus} />
+      )}
+      {so.rider && so.fulfillmentStatus !== "DELIVERED" && (
+        <p className="flex items-center gap-2 text-sm text-foreground">
+          <Bike size={16} className="shrink-0 text-main" />
+          Your rider: {so.rider.name}
+        </p>
+      )}
+      {so.deliveryMethod && so.collectionCode && !so.handoverLocked && (
+        <div className="rounded-2xl bg-main-subtle px-4 py-4 text-center">
+          <p className="text-xs font-semibold uppercase tracking-wide text-main">Your handover code</p>
+          <p className="mt-1 font-mono text-4xl font-bold tracking-[0.3em] text-foreground" aria-label={`Handover code ${so.collectionCode.split("").join(" ")}`}>
+            {so.collectionCode}
+          </p>
+          <p className="mt-1 text-xs text-foreground-muted">
+            {so.deliveryMethod === "DISPATCH"
+              ? `Give it to ${so.rider?.name ?? "the rider"} when it reaches you, and not before.`
+              : `Give it to the seller when you collect${so.pickupDeadline ? ` (by ${whenText(so.pickupDeadline)})` : ""}.`}
+          </p>
+        </div>
+      )}
+      {so.handoverLocked && (
+        <p className="rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600">
+          Too many wrong codes were entered, so this order is locked. CampusMart has been told and will be in touch.
         </p>
       )}
       {so.fulfillmentStatus === "CANCELLED" && (
         <p className="rounded-xl bg-surface-muted px-3 py-2 text-xs text-foreground-muted">
           {order.status === "PAID"
-            ? "Cancelled and refunded. Banks usually take a few working days to return the money."
+            ? `${cancelReasonText(so.cancelReason)}. You've been refunded; banks usually take a few working days.`
             : `Cancelled${so.cancelReason === "PAYMENT_EXPIRED" ? ": not paid in time" : so.cancelReason === "BUYER_CANCELLED" ? " by you" : ""}`}
         </p>
       )}
       {so.fulfillmentStatus === "DISPUTED" && (
         <p className="rounded-xl bg-orange-50 px-3 py-2 text-xs text-main">You reported a problem with this order. CampusMart is looking into it.</p>
+      )}
+      {canReport(order, so) && (
+        <button type="button" onClick={() => onReport(so)} className="self-start text-xs font-semibold text-main underline">
+          Report a problem
+          {so.releaseAt && ` (until ${whenText(so.releaseAt)})`}
+        </button>
       )}
 
       <ul className="flex flex-col gap-3" aria-label={`Items from ${so.seller.storeName}`}>
@@ -170,6 +245,7 @@ export default function OrderDetailPage() {
   const payments = usePaymentConfig();
   const payOrder = usePayOrder();
   const [confirming, setConfirming] = useState(false);
+  const [reporting, setReporting] = useState<SellerOrder | null>(null);
   const order = query.data;
 
   const header = (
@@ -327,10 +403,27 @@ export default function OrderDetailPage() {
           )}
 
           {order.sellerOrders.map((so) => (
-            <SellerOrderCard key={so.id} order={order} sellerOrder={so} />
+            <SellerOrderCard key={so.id} order={order} sellerOrder={so} onReport={setReporting} />
           ))}
         </div>
       </main>
+
+      {reporting && (
+        <ReportProblemDialog
+          orderId={order.id}
+          sellerOrderId={reporting.id}
+          storeName={reporting.seller.storeName}
+          handedOver={reporting.fulfillmentStatus === "DELIVERED" || reporting.fulfillmentStatus === "COLLECTED"}
+          isOpen={!!reporting}
+          onClose={() => setReporting(null)}
+          onDone={(result) =>
+            toast.success(
+              result.kind === "DISPUTE" ? "Problem reported" : "CampusMart has been told",
+              result.kind === "DISPUTE" ? "The seller's payout is on hold while we look into it" : "We'll look into it and get back to you",
+            )
+          }
+        />
+      )}
 
       <Modal isOpen={confirming} onClose={() => setConfirming(false)} title="Cancel this order?">
         <div className="mt-2 flex flex-col gap-3">
