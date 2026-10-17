@@ -114,7 +114,7 @@ export class PayoutAccountsService {
       type: 'PAYOUT_ACCOUNT_CHANGED',
       title: 'Your payout account was changed',
       body: `Payouts now go to ${bank.name} ••${dto.accountNumber.slice(-4)} (${resolved.account_name}). They start again in 24 hours. If this wasn't you, change your password and contact support now.`,
-      link: '/sellers/payouts',
+      link: '/sellers/earnings',
     });
     return toAccountDto(profile);
   }

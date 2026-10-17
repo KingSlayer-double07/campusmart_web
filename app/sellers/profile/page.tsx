@@ -227,7 +227,7 @@ export default function ProfilePage() {
 
   const menuItems = [
     { icon: Package, label: "Orders", description: "Track and manage your sales", href: "/sellers/orders" },
-    { icon: Landmark, label: "Earnings", description: "View your sales and payouts", href: "/sellers/earnings" },
+    { icon: Landmark, label: "Earnings", description: "Payout account and payouts", href: "/sellers/earnings" },
     { icon: Grid, label: "Inventory", description: "Manage your products", href: "/sellers/products" },
     { icon: Shield, label: "Account Security", description: "Password and active sessions", href: "/profile/account_security" },
   ];

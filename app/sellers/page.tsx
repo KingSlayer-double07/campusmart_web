@@ -6,6 +6,7 @@ import { Bell, Package, ClipboardList, TrendingUp, TrendingDown } from "lucide-r
 import { useSellerStore } from "@/app/store/useSellerStore";
 import { useAuthStore } from "@/app/store/useAuthStore";
 import { useSellerProfile, useUpdateSellerProfile } from "@/lib/api/hooks/useSellerProfile";
+import PayoutAccountBanner from "./components/PayoutAccountBanner";
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 
@@ -153,6 +154,10 @@ export default function SellersPage() {
             </button>
           </div>
         </section>
+
+        <div className="px-4 pt-5 empty:hidden">
+          <PayoutAccountBanner />
+        </div>
 
         {/* ── Best Performing ── */}
         <section className="flex flex-col gap-4 px-4 py-5">

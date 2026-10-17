@@ -239,7 +239,7 @@ export class PayoutsService {
       type: 'PAYOUT_PAID',
       title: 'Payout sent',
       body: `${formatNairaPlain(payout.amountKobo)} is on its way to your bank account.`,
-      link: '/sellers/payouts',
+      link: '/sellers/earnings',
     });
   }
 
