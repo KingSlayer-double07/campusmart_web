@@ -286,9 +286,13 @@ describe('Phase 4b delivery checkout (e2e)', () => {
           phone: PHONE,
         }).expect(201)
       ).body.data;
+      // Both seller orders are created together, so find each by its store
+      type Store = { seller: { id: string }; pickupFrom: unknown };
+      const store = (order: { sellerOrders: Store[] }, sellerId: string) =>
+        order.sellerOrders.find((so) => so.seller.id === sellerId);
       const before = (await agent.get(`/api/orders/${orderId}`).expect(200))
         .body.data;
-      expect(before.sellerOrders[0].pickupFrom).toEqual({
+      expect(store(before, ada.id)?.pickupFrom).toEqual({
         area: 'Moremi Hall',
         address: null,
         phone: null,
@@ -304,13 +308,13 @@ describe('Phase 4b delivery checkout (e2e)', () => {
       });
       const after = (await agent.get(`/api/orders/${orderId}`).expect(200)).body
         .data;
-      expect(after.sellerOrders[0].pickupFrom).toEqual({
+      expect(store(after, ada.id)?.pickupFrom).toEqual({
         area: 'Moremi Hall',
         address: DELIVERY_DETAILS.pickupAddress,
         phone: DELIVERY_DETAILS.contactPhone,
       });
       // The rider collects from Tunde; the buyer never needs his address
-      expect(after.sellerOrders[1].pickupFrom).toBeNull();
+      expect(store(after, tunde.id)?.pickupFrom).toBeNull();
     });
   });
 

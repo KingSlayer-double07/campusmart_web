@@ -123,13 +123,17 @@ export class CheckoutService {
       const sellerId = entry.line.listing.sellerId;
       bySeller.set(sellerId, [...(bySeller.get(sellerId) ?? []), entry]);
     }
-    const sellerOrders = [...bySeller].map(([sellerId, entries]) => {
+    // Stamped 1 ms apart in cart order: they'd otherwise share a millisecond, and the order pages
+    // (sorted by createdAt) would show the stores in no fixed order
+    const placedAt = Date.now();
+    const sellerOrders = [...bySeller].map(([sellerId, entries], index) => {
       const subtotalKobo = entries.reduce(
         (sum, e) => sum + e.unitPriceKobo * e.line.quantity,
         0,
       );
       return {
         sellerId,
+        createdAt: new Date(placedAt + index),
         deliveryMethod: delivery.methods.get(sellerId),
         code: sellerOrderCode(),
         collectionCode: collectionCode(),
