@@ -209,8 +209,10 @@ The invite email is the `rider-invite` template, printed to the console until `M
   OK.
 - **gen:api:** regenerated with the backend changes; CI re-checks it with no diff.
 - **GitHub CI:** [run 62](https://github.com/KingSlayer-double07/campusmart_web/actions/runs/39073291975) on
-  `9998811` green, CI_FINAL. Run 59 on `ef348d6` was red only because the API types were regenerated in the next
-  commit.
+  `9998811` (the code before the walk fixes) and
+  [run 63](https://github.com/KingSlayer-double07/campusmart_web/actions/runs/39074123376) on `6690991` (the walk
+  fixes, the backfill migration and this log), both green. Run 59 on `ef348d6` was red only because the API types
+  were regenerated in the next commit.
 - **Browser walk** ([`evidence/phase6-dispatch/`](evidence/phase6-dispatch/)): Chromium → `next start` → NestJS →
   `campusmart_dev`.
   - **Setup.** Phase 5's setup: `PAYMENTS_ENABLED=true`, a made-up key and
