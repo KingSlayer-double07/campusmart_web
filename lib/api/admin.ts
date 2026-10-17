@@ -11,6 +11,10 @@ export type AdminPickupStation = Schemas['AdminPickupStationDto'];
 export type AdminPickupStationPage = Schemas['AdminPickupStationPageDto'];
 export type CreatePickupStationBody = Schemas['CreatePickupStationDto'];
 export type UpdatePickupStationBody = Schemas['UpdatePickupStationDto'];
+export type AdminCampusPlace = Schemas['AdminCampusPlaceDto'];
+export type AdminCampusPlacePage = Schemas['AdminCampusPlacePageDto'];
+export type CreateCampusPlaceBody = Schemas['CreateCampusPlaceDto'];
+export type UpdateCampusPlaceBody = Schemas['UpdateCampusPlaceDto'];
 export type OpeningHours = Schemas['OpeningHoursDto'];
 export type Weekday = Schemas['Weekday'];
 export type ActiveFilter = Schemas['ActiveFilter'];
@@ -29,6 +33,8 @@ export interface AdminListFilters {
 export interface StationFilters extends AdminListFilters {
   institutionId?: string;
 }
+
+export type CampusPlaceFilters = StationFilters;
 
 // Drops empty filters so they never reach the URL as "undefined"
 export function toParams(filters: object): Record<string, string> {
@@ -58,6 +64,13 @@ export const adminApi = {
     fetchApi<AdminPickupStation>('/admin/pickup-stations', json('POST', body)),
   updateStation: (id: string, body: UpdatePickupStationBody) =>
     fetchApi<AdminPickupStation>(`/admin/pickup-stations/${id}`, json('PATCH', body)),
+
+  campusPlaces: (filters: CampusPlaceFilters = {}) =>
+    fetchApi<AdminCampusPlacePage>('/admin/campus-places', { params: toParams(filters) }),
+  createCampusPlace: (body: CreateCampusPlaceBody) =>
+    fetchApi<AdminCampusPlace>('/admin/campus-places', json('POST', body)),
+  updateCampusPlace: (id: string, body: UpdateCampusPlaceBody) =>
+    fetchApi<AdminCampusPlace>(`/admin/campus-places/${id}`, json('PATCH', body)),
 
   verificationRequests: (filters: { status?: ReviewQueue; cursor?: string; limit?: number } = {}) =>
     fetchApi<AdminVerificationPage>('/admin/verification-requests', { params: toParams(filters) }),

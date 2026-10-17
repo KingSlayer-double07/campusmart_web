@@ -1,4 +1,4 @@
-import { LayoutGrid, MapPin, School, ShieldCheck, type LucideIcon } from "lucide-react";
+import { LayoutGrid, MapPin, MapPinned, School, Settings, ShieldCheck, type LucideIcon } from "lucide-react";
 
 export interface AdminNavItem {
   href: string;
@@ -11,8 +11,11 @@ export interface AdminNavItem {
 export const ADMIN_NAV: AdminNavItem[] = [
   { href: "/admin", label: "Overview", icon: LayoutGrid },
   { href: "/admin/institutions", label: "Institutions", icon: School },
+  { href: "/admin/places", label: "Campus places", icon: MapPinned },
+  // Kept for when pickup stations come back (decision DL9)
   { href: "/admin/stations", label: "Pickup stations", icon: MapPin },
   { href: "/admin/verifications", label: "Verifications", icon: ShieldCheck },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 export function isActiveNav(pathname: string, href: string) {

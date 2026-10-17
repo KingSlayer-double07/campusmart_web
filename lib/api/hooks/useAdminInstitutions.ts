@@ -9,6 +9,7 @@ import {
 // Admin data is never persisted to localStorage (guide 9.2.4): no meta.persist here.
 export const adminInstitutionsKey = ['admin', 'institutions'] as const;
 const adminStationsKey = ['admin', 'stations'] as const;
+const adminCampusPlacesKey = ['admin', 'campus-places'] as const;
 
 export function useAdminInstitutions(filters: Omit<AdminListFilters, 'cursor'> = {}) {
   return useInfiniteQuery({
@@ -24,8 +25,9 @@ function useInvalidateAdmin() {
   return () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: adminInstitutionsKey }),
-      // Station rows show their institution's name and status
+      // Station and place rows show their institution's name and status
       queryClient.invalidateQueries({ queryKey: adminStationsKey }),
+      queryClient.invalidateQueries({ queryKey: adminCampusPlacesKey }),
     ]);
 }
 

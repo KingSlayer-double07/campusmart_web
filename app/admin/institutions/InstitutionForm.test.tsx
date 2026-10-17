@@ -17,7 +17,9 @@ const saved = {
   domains: ["lasu.edu.ng"],
   isActive: true,
   createdAt: "2026-10-09T00:00:00.000Z",
+  deliveryFeeKobo: null,
   stationCount: 0,
+  placeCount: 0,
   userCount: 0,
 };
 

@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { CheckCircle2, ChevronRight, Circle, Clock, MapPin, School, ShieldCheck, type LucideIcon } from "lucide-react";
+import { CheckCircle2, ChevronRight, Circle, Clock, MapPinned, School, ShieldCheck, type LucideIcon } from "lucide-react";
+import { useAdminCampusPlaces } from "@/lib/api/hooks/useAdminCampusPlaces";
 import { useAdminInstitutions } from "@/lib/api/hooks/useAdminInstitutions";
-import { useAdminStations } from "@/lib/api/hooks/useAdminStations";
 import { useAdminVerifications } from "@/lib/api/hooks/useAdminVerifications";
 import { cn } from "@/lib/utils/cn";
 import AdminPageHeader from "./components/AdminPageHeader";
@@ -12,7 +12,7 @@ import AdminPageHeader from "./components/AdminPageHeader";
 function activeCount(
   query:
     | ReturnType<typeof useAdminInstitutions>
-    | ReturnType<typeof useAdminStations>
+    | ReturnType<typeof useAdminCampusPlaces>
     | ReturnType<typeof useAdminVerifications>,
 ) {
   if (query.isPending) return { label: null, count: 0, isError: false };
@@ -96,15 +96,17 @@ function Step({
 }
 
 export default function AdminHomePage() {
-  const institutions = activeCount(useAdminInstitutions({ status: "ACTIVE", limit: 100 }));
-  const stations = activeCount(useAdminStations({ status: "ACTIVE", limit: 100 }));
+  const institutionsQuery = useAdminInstitutions({ status: "ACTIVE", limit: 100 });
+  const institutions = activeCount(institutionsQuery);
+  const places = activeCount(useAdminCampusPlaces({ status: "ACTIVE", limit: 100 }));
   const waiting = activeCount(useAdminVerifications("PENDING", 100));
+  const feeSet = !!institutionsQuery.data?.pages.some((page) => page.items.some((i) => i.deliveryFeeKobo !== null));
 
   return (
     <div className="flex flex-col gap-6">
       <AdminPageHeader
         title="Admin console"
-        description="Bring schools onto CampusMart, set up where their orders are collected and approve new sellers. More tools appear here as the marketplace grows."
+        description="Bring schools onto CampusMart, set up where riders deliver and approve new sellers. More tools appear here as the marketplace grows."
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -116,11 +118,11 @@ export default function AdminHomePage() {
           description="Active schools and the email domains students sign up with"
         />
         <AreaCard
-          href="/admin/stations"
-          icon={MapPin}
-          title="Pickup stations"
-          count={stations.label}
-          description="Active places where sellers drop off and buyers collect"
+          href="/admin/places"
+          icon={MapPinned}
+          title="Campus places"
+          count={places.label}
+          description="Active halls, faculties and gates riders deliver to"
         />
         <AreaCard
           href="/admin/verifications"
@@ -143,17 +145,17 @@ export default function AdminHomePage() {
             linkLabel="Add an institution"
           />
           <Step
-            done={stations.count > 0}
-            title="2. Add at least one pickup station"
-            description="Buyers choose a station at checkout, so a school needs one before anyone can order."
-            href="/admin/stations"
-            linkLabel="Add a pickup station"
+            done={places.count > 0 && feeSet}
+            title="2. Add campus places and set the delivery fee"
+            description="Buyers pick a place for delivery on campus. Until there's a place and a fee, they can only get delivery off campus or pick up."
+            href={places.count > 0 ? "/admin/settings" : "/admin/places"}
+            linkLabel={places.count > 0 ? "Set the delivery fee" : "Add a campus place"}
           />
           <Step
             done={false}
             pending
-            title="3. Assign a pickup agent to the station"
-            description="Coming with the Users screen: agents confirm drop-offs and collections at their station."
+            title="3. Invite the riders"
+            description="Coming with the dispatch screens: riders collect from sellers and deliver to buyers."
           />
         </ol>
       </section>
