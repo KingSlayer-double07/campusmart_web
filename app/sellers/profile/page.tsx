@@ -27,8 +27,9 @@ import { ApiError } from "@/lib/api/client";
 import type { SellerProfile } from "@/lib/api/listings";
 import { useLogout } from "@/lib/api/hooks/useLogout";
 import { useSellerProfile, useUpdateSellerProfile } from "@/lib/api/hooks/useSellerProfile";
-import { useCanPublish } from "@/lib/api/hooks/useSellerVerification";
+import { useIsVerified } from "@/lib/api/hooks/useSellerVerification";
 import { uploadImages } from "@/lib/uploads";
+import DeliveryCard from "../components/DeliveryCard";
 import VerificationCard from "../components/VerificationCard";
 
 const inputClass =
@@ -185,7 +186,7 @@ function EditStoreSheet({
             value={bio}
             maxLength={500}
             rows={3}
-            placeholder="What you sell, when you usually drop off"
+            placeholder="What you sell, and when you're usually around"
             onChange={(e) => setBio(e.target.value)}
             className={`${inputClass} resize-none`}
           />
@@ -209,7 +210,7 @@ export default function ProfilePage() {
   const { data: profile, isPending, isError, refetch } = useSellerProfile();
   const update = useUpdateSellerProfile();
   const [editing, setEditing] = useState(false);
-  const verified = useCanPublish();
+  const verified = useIsVerified();
 
   const handleLogout = async () => {
     await logout();
@@ -284,7 +285,7 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between rounded-xl bg-card/70 px-4 py-3">
               <div>
                 <p className="text-sm font-semibold text-foreground">{profile.isOnline ? "You're online" : "You're offline"}</p>
-                <p className="text-xs text-foreground-muted">Buyers see when you&apos;re around to drop off</p>
+                <p className="text-xs text-foreground-muted">Buyers see when you&apos;re around for riders and pickups</p>
               </div>
               <button
                 type="button"
@@ -308,6 +309,9 @@ export default function ProfilePage() {
 
         {/* Get verified (hidden once an admin has approved the seller) */}
         <VerificationCard />
+
+        {/* Where riders collect, and whether buyers can pick up (decisions SA1, DL1) */}
+        {profile && <DeliveryCard profile={profile} onSaved={() => toast.success("Delivery details saved", "Riders and buyers see the changes straight away")} />}
 
         {/* Quick Access Menu */}
         <div className="flex flex-col gap-3">

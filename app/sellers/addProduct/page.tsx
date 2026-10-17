@@ -10,8 +10,9 @@ import { emptyValues } from "../components/listingFormModel";
 import VerificationNotice from "../components/VerificationNotice";
 
 // Guide 3.2.6: photos upload straight to Cloudinary, then the listing is created and the seller
-// lands on their products. Pickup location and availability are gone: the buyer picks the station,
-// and availability is the listing's status. Until an admin verifies the seller, it saves drafts only.
+// lands on their products. Where riders collect is on the store profile (decision SA1), and
+// availability is the listing's status. Until the seller is verified and has those details, it
+// saves drafts only.
 export default function AddProductPage() {
   const router = useRouter();
   const createListing = useCreateListing();
