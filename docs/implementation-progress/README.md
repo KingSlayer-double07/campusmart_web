@@ -10,8 +10,9 @@ its checklist, changes, verification evidence, deviations and open asks.
 | 2 Commerce schema | DONE | `feat/phase-2-commerce-schema` | 2026-10-09 |
 | 3 Listings, variants, uploads | DONE pending manual checks (real Cloudinary upload) | `feat/phase-3-listings`, `feat/phase-3-seller-verification` | 2026-10-09 |
 | 4 Cart and checkout | DONE | `feat/phase-4-cart-checkout` | 2026-10-09 |
+| 4b Checkout with delivery | NOT STARTED (waits on round 4: DF2, PH2, DF4a, SA4, C9, C10) | `feat/phase-4b-delivery-checkout` | |
 | 5 Payments and escrow | NOT STARTED | | |
-| 6 Fulfilment and pickup stations | NOT STARTED | | |
+| 6 Dispatch and handover (replaces pickup stations) | NOT STARTED | | |
 | 7 Seller analytics | NOT STARTED | | |
 | 8 Wishlist, stores, reviews | NOT STARTED | | |
 | 9 Admin UI and moderation | IN PROGRESS (slices A, institutions and pickup stations, and B, seller verification: DONE pending manual checks) | `feat/phase-9-admin-institutions-stations`, `feat/phase-3-seller-verification` | 2026-10-09 |
@@ -47,18 +48,22 @@ Your decisions that change or extend the guide. Each phase file has the detail.
   Phase 3.
 - **pnpm only (2026-10-17):** both apps install with pnpm (`packageManager` pins 10.32.1); the npm lockfiles are
   deleted and CI runs `pnpm install --frozen-lockfile`.
+- **Prohibited items mean suspension (2026-10-17, M4d):** not a trust-score deduction.
 - **Phases 5–10 decisions (2026-10-17):** answered in [decisions-needed.md](decisions-needed.md#answers-2026-10-17).
   The two that change the guide most:
-  - **Delivery replaces pickup stations** (F2, DL1–DL10). An in-app dispatch delivers, or the buyer picks up from a
-    seller who allows it. This replaces D12 and the agent half of D16. The station and agent code stays; the admin
-    Stations screen stays visible. Checkout is reworked first, as a Phase 4 rework.
+  - **Delivery replaces pickup stations** (F2, DL1–DL10, round 3). An in-app dispatch delivers on and off campus,
+    or the buyer picks up from a seller who allows it. Riders are invited by admins and paid outside the app, and
+    delivery fees go to the platform. This replaces D12 and the agent half of D16. The station and agent code stays;
+    the admin Stations screen stays visible. Checkout is reworked first, as Phase 4b.
   - **Buyers may sign up without a school email** (T1). They pick their school during onboarding, and Google sign-in
     is for buyers only. Sellers still need a school email. This changes D7 for buyers.
 
-## Decisions still open
+## Plan and open questions
 
-Round 3 in [decisions-needed.md](decisions-needed.md#open-questions-round-3): dispatch riders, delivery fees,
-addresses, deadlines and buyers without a school email. The Phase 4 rework waits on them.
+- [execution-plan.md](execution-plan.md): what Phases 4b–10 build, in order, with each phase's gate checklist and
+  what it needs from you.
+- Round 4 in [decisions-needed.md](decisions-needed.md#open-questions-round-4): 17 short questions, each tagged with
+  the phase that waits on it. Phase 4b needs six of them.
 
 ## What you need to set up
 

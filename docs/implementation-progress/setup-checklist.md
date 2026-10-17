@@ -1,6 +1,6 @@
 # What you need to set up: Phases 5–10, launch, and what's still open
 
-Last updated 2026-10-17, after Phase 4 and the pnpm switch. Everything here needs you: an account, a key, a dashboard
+Last updated 2026-10-17, after Phase 4, the pnpm switch and your decision rounds 1–3. Everything here needs you: an account, a key, a dashboard
 setting or a person. The choices themselves (fees, deadlines, rules) are in [decisions-needed.md](decisions-needed.md),
 each with an ID and a default. Code work isn't listed. Automated tests never touch real services (Paystack stays mocked with nock); the
 real accounts are for checking each flow end to end on a real setup.
@@ -29,8 +29,8 @@ real accounts are for checking each flow end to end on a real setup.
       (guide 5.5). Payouts can't go out automatically otherwise.
 - [ ] Webhook URL (test mode): `https://<staging-api>/api/payments/webhook`, once staging exists. Call the API host
       directly, not through Vercel, so the signed body arrives untouched.
-- [ ] Ask Paystack support whether your account can get a dedicated **OPay / PalmPay** channel. Until they confirm,
-      those two options pay by bank transfer or USSD (guide 5.1). Or tell me to hide them.
+- [ ] Ask Paystack support whether your account can get a dedicated **OPay / PalmPay** channel. They stay hidden
+      until you confirm it and set `PAYSTACK_WALLET_CHANNELS=true` (decision P5).
 - [ ] Start **business verification** now (registered business documents). Live keys and live Transfers need it, and
       it takes time.
 
@@ -68,16 +68,17 @@ deadline). The 48-hour dispute window is locked (D11).
 - [ ] An account → `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`. Real photo uploads and
       the private student-ID photos depend on it.
 
-## 2. Before Phase 6 (fulfilment and pickup agents)
+## 2. Before Phases 4b and 6 (delivery and dispatch)
 
-- [ ] **Real pickup stations** for your first campus: name, address, contact name and phone, opening hours. The seed
-      has placeholders; you can enter real ones at `/admin/stations` now.
-- [ ] **Pickup agents**: who staffs each station. Each agent needs an account made with a school email at that
-      campus (D7); an admin then makes them a pickup agent for a station (Phase 9 Users screen). Staff without a
-      school email: decision F2.
-- [ ] **An Android phone with Chrome** to try the agent app's QR scanning (the browser's barcode reader). On an
-      iPhone the agent types the code instead.
-- Rules for cancellations, uncollected parcels and disputes: decisions F3–F10.
+Pickup stations are replaced by delivery (decisions F2 and DL1–DL10); see [execution-plan.md](execution-plan.md).
+
+- [ ] **Campus places** for UNILAG (halls, faculties, gates) and the **flat on-campus delivery fee**. You enter them
+      in `/admin` once Phase 4b lands; until then the seed has placeholders.
+- [ ] **Riders**: the email of each person you want as a dispatch rider. An admin invites them from
+      `/admin/riders` (Phase 6). The invite email prints to the console until email is set up (1.4).
+- [ ] **An Android phone with Chrome** to try the rider app's QR scanning (the browser's barcode reader). On an
+      iPhone the rider types the code instead.
+- Pickup stations and agents stay in the code for later; `/admin/stations` still works but nothing uses it.
 
 ## 3. Phases 7–9 (no new accounts, only decisions)
 
@@ -86,20 +87,18 @@ All in [decisions-needed.md](decisions-needed.md): A1–A2 (analytics), R1–R5 
 
 ## 4. Before Phase 10
 
-- [ ] **Google sign-in**, or decide to leave it out:
+- [ ] **Google sign-in** (decided: build it, for buyers only):
   - A Google Cloud project, an OAuth consent screen (app name, support email, logo, your domains), and a Web OAuth
     client.
   - Redirect URIs `https://<frontend>/api/auth/google/callback` and `http://localhost:3000/api/auth/google/callback`.
   - Keys go in `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (new variables, not in the guide's list).
-- [ ] **Support contacts**: a real support inbox and phone number for Help → Email support / Call us (the screens show
-      made-up ones today).
-- [ ] **Web push** (optional): yes or no. If yes, I generate the VAPID keys and you store `VAPID_PUBLIC_KEY`,
-      `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` (`mailto:` your support address).
-- [ ] **Phone verification** stays off unless you want an SMS provider (e.g. Termii: an account and API key).
-- [ ] **Terms and Privacy text**: escrow, the 48-hour dispute window, refunds, and what's kept when an account is
-      deleted (NDPR). I can draft it; you (ideally with a lawyer) approve it.
-- [ ] **Monitoring** (optional): an uptime check on `/api/health` (UptimeRobot, Better Stack) and error alerts
-      (Sentry: `SENTRY_DSN`, or your host's log alerts).
+- [ ] **Support contacts** (T4): a support email, phone and WhatsApp number, set in production as environment
+      variables. Each one left unset shows "coming soon".
+- [ ] **Terms and Privacy text**: I draft it (delivery and pickup, escrow, the 48-hour window, refunds and the fault
+      rules, prohibited items, NDPR); you (ideally with a lawyer) approve it.
+- [ ] **Monitoring** (T8): a Sentry project (`SENTRY_DSN`) and an uptime check on `/api/health` (UptimeRobot, Better
+      Stack).
+- Decided, nothing to set up: no web push (T2); phone verification stays off (T3).
 
 ## 5. Before launch (guide's deployment section and launch checklist)
 
@@ -142,14 +141,15 @@ Resolved since the earlier notes:
 | Variable | Where | Needed by |
 |---|---|---|
 | `PAYSTACK_SECRET_KEY`, `PAYMENTS_ENABLED=true` | API | Phase 5 (test key), launch (live key) |
-| `PLATFORM_FEE_BPS` | API | your decision, before launch |
+| `PLATFORM_FEE_BPS` | API | 0 (P1); admins change it in `/admin/settings` from Phase 5 |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | API | now (Phase 3 check) |
-| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS`, `MAIL_FROM` | API | Phase 5 (staging), launch |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS`, `MAIL_FROM` | API | staging and launch (S1, S4) |
 | `DATABASE_URL`, `DIRECT_URL` | API | staging, launch (Neon) |
 | `JWT_SECRET` | API | staging, launch (a different one each) |
 | `APP_URL`, `FRONTEND_URL` | API | staging, launch |
 | `API_ORIGIN` | Vercel | staging, launch |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | API (seed) | staging, launch |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | API | Phase 10 (if wanted) |
-| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | API | Phase 10 (if wanted) |
-| `SENTRY_DSN` | API | optional |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | API | Phase 10 |
+| `SENTRY_DSN` | API | Phase 10, launch |
+| `PAYSTACK_WALLET_CHANNELS` | API | once Paystack confirms OPay / PalmPay |
+| Support email, phone, WhatsApp (names set in Phase 10) | API | production |

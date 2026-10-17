@@ -1,8 +1,8 @@
 # Decisions needed: Phases 5–10 and launch
 
-Written 2026-10-17, after Phase 4. **Status:** round 1 (the tables below) and round 2 are answered; see
-[Answers](#answers-2026-10-17). Round 3 questions, raised by the move to dispatch delivery, are
-[open](#open-questions-round-3). Each row is a choice only you can make. The **Default** column is what I build if
+Written 2026-10-17, after Phase 4. **Status:** rounds 1–3 are answered; see [Answers](#answers-2026-10-17).
+A short round 4 is [open](#open-questions-round-4). The plan built on these answers is in
+[execution-plan.md](execution-plan.md). Each row is a choice only you can make. The **Default** column is what I build if
 you leave the row unanswered, so nothing waits on a row unless its "Needed by" says it blocks.
 
 **How to answer:** copy the reply block at the end and fill in each line with an option letter, `default`, or your own
@@ -118,8 +118,8 @@ is D11**. `ESCROW_DISPUTE_WINDOW_HOURS` stays a variable only so tests can set i
 
 ## Answers (2026-10-17)
 
-Your answers, as given. "Default" rows take the Default column above. Rows marked **open** wait on a round 3
-question.
+Your answers, as given. "Default" rows take the Default column above. Later rounds refine earlier rows where
+they say so; anything still undecided is in round 4.
 
 ### Round 1
 
@@ -145,7 +145,7 @@ question.
 | P8 | No minimum order total. |
 | P9 | Payouts pause for 24 hours after a payout account change, and the seller is notified. |
 | P10 | Every admin account gets the alerts. |
-| F1 | 3 days. What has to happen by then: **open** (DL7b). |
+| F1 | 3 days, counted from payment, for the rider to pick the parcel up (DL7b). |
 | F2 | **Delivery replaces pickup stations.** An in-app dispatch delivers; a buyer can instead pick up from the seller where the seller allows it and has entered a location. The station and agent work stays in the code for later; the admin Stations screen stays visible (DL9). This replaces D12 and the agent half of D16. |
 | F3 | Default: a buyer can't cancel after paying. |
 | F4 | No longer applies (no stations); replaced by DL6. |
@@ -187,11 +187,11 @@ question.
 |---|---|
 | DL1 | A dispatch that is part of the app. A buyer can opt for pickup from the seller instead, only where the seller allows it and has entered their location. |
 | DL2 | The buyer enters an address. |
-| DL3 | The seller calls the dispatch from the app. The dispatch sees the seller's address and the buyer's address and phone number, picks up from the seller and delivers to the buyer (**open**: C1). The buyer gets an order code; the dispatch enters it when the buyer collects the items. |
+| DL3 | The seller calls the dispatch from the app. The dispatch sees the seller's address and the buyer's address and phone number, picks up from the seller and delivers to the buyer (C1). The buyer gets an order code; the dispatch enters it when the buyer collects the items. |
 | DL4 | The buyer pays a delivery fee, shown at checkout: flat for addresses on campus. Off-campus delivery is arranged outside the app. |
 | DL5 | Handover is confirmed by the buyer's code, entered by the seller (pickup) or the dispatch. |
-| DL6 | Only the dispatch can mark an order delivered before the buyer confirms; an admin is alerted after 5 days. Which case: **open** (DL6b). |
-| DL7 | Yes: 3 days after payment, or the order is cancelled and refunded. What has to happen by then: **open** (DL7b). |
+| DL6 | Only the dispatch can mark an order delivered before the buyer confirms; an admin is alerted after 5 days. The case is DL6b. |
+| DL7 | Yes: 3 days after payment, or the order is cancelled and refunded. What has to happen by then: DL7b. |
 | DL8 | A no-show is reported; an admin decides, including whose fault it is. |
 | DL9 | Keep the station and agent code; the admin Stations screen stays visible. |
 | DL10 | The delivery change comes first, as a Phase 4 rework, then Phase 5. |
@@ -200,126 +200,111 @@ question.
 | R1a | Admins can edit the trust-score weights, platform fee, deadline, low-stock level and report threshold. |
 | R1b | A change takes effect at the next nightly recalculation. |
 | M4a | Both: sellers confirm the item isn't prohibited before publishing, and listings matching banned words wait for admin review. |
-| M4b | A "Prohibited item" report hides the listing at once, pending review. After review it costs the seller 10 trust points (**open**: C3). |
+| M4b | A "Prohibited item" report hides the listing at once, pending review. (The 10-point penalty given here was replaced by suspension in round 3, M4d.) |
 | T1 | See T1 above. |
 | T3 | Confirmed. |
 | T4 | Email, phone and WhatsApp. |
 | L2 | UNILAG, as seeded. |
 
-## Open questions (round 3)
+### Round 3
 
-The dispatch model and buyers without a school email raise these. Phase 4's rework (DL10) can't be planned until
-they're answered; nothing has been built on a guess.
+| ID | Answer |
+|---|---|
+| C1 | Confirmed: the rider picks up from the seller and delivers to the buyer. |
+| C2 | Confirmed: pickup from the seller has no delivery fee. |
+| C3 | Confirmed, then replaced by M4d: a confirmed prohibited item means suspension, not points. |
+| C4 | Confirmed: email-and-password buyers confirm their email with the 6-digit code before buying; Google accounts skip it. |
+| DX1 | An admin invites riders by email. |
+| DX2 | Every available rider at the campus sees a new job and the first to accept takes it. Admins are alerted if nobody accepts within 5 hours. |
+| DX3 | Delivery fees go to the platform; you pay riders outside the app. |
+| DX4 | Doesn't apply (DX3). |
+| DX5 | At the seller, the rider enters or scans the seller-order code (`CM-XXXXXX`), which records that the parcel is with the rider. |
+| DX6 | A parcel lost or damaged with the rider: an admin decides each case. |
+| DF1 | An admin sets the flat on-campus fee per campus, on the settings screen. |
+| DF2 | Not answered (round 4). |
+| DF3 | The buyer picks a place from a campus list an admin keeps. No room field: the buyer's phone number is how the rider finds them, calling on arrival. Where the phone comes from: round 4 (PH2). |
+| DF4 | Off-campus delivery is done by the dispatch too, but no fee appears in the app: it depends on distance and is settled outside the app. |
+| DF5 | The delivery fee is refunded only if no rider trip happened. When a trip counts: round 4 (DF5a). |
+| DM1 | The method is chosen per store. |
+| PH1 | The phone number must be on the profile before checkout. |
+| SA1 | Every seller enters an address and phone before publishing; "Allow pickup from me" is a separate switch that uses the same address. |
+| SA2 | Before payment a buyer sees only the seller's area; the full address after. |
+| SA3 | Pickup from the seller, after payment: the buyer sees the seller's address and phone; the seller sees only the buyer's display name. |
+| DL7b | Within 3 days of payment the rider must have picked the parcel up. |
+| DL7c | A buyer who doesn't collect from the seller in time: the order is cancelled automatically as the buyer's fault, with the P6 fee deducted. The number of days: round 4. |
+| DL6b | The 5-day alert: the rider has had the parcel for 5 days and no code has been entered. A rider can't mark an order delivered without the code. |
+| G1 | A buyer can change school in their profile; the cart empties. |
+| G2 | A buyer without a school email who wants to sell adds a school email, confirms it with a code, then becomes a seller. |
+| G3 | Google sign-in is for buyer accounts only; sellers always use email and password. |
+| G4 | A school that isn't listed goes to the waitlist, as now. |
+| M4c | Admins edit the banned-word list on the settings screen, starting from your M5 list. |
+| M4d | The penalty for listing a prohibited item is suspension, not a point deduction. |
 
-### Confirm my reading (yes, or no with the correction)
+## Open questions (round 4)
 
-- **C1.** DL3: the dispatch picks up from the seller and delivers to the **buyer** (the answer said "drop it off
-  with the seller").
-- **C2.** Pickup from the seller has no delivery fee.
-- **C3.** M4b: the 10 points come off only when an admin confirms the item is prohibited; a rejected report costs
-  nothing.
-- **C4.** A buyer who signs up with email and password (any email) still confirms it with the 6-digit code before
-  buying. A Google account skips that step, because Google has already confirmed the email.
+Each one says which phase waits on it. Phase 4b can start once its six are answered.
 
-### Dispatch riders
+### Phase 4b (checkout with delivery)
 
-- **DX1. How riders get accounts:** **a** they sign up with any email, then an admin gives them the Dispatch role and
-  a campus · **b** the same, but with a school email · **c** an admin invites them by email.
-- **DX2. Who gets a job when a seller calls the dispatch:** **a** every available rider at that campus sees it and
-  the first to accept takes it; admins are alerted if nobody accepts within N hours (give N) · **b** an admin assigns
-  each job · **c** the app assigns one automatically.
-- **DX3. Where the delivery fee goes:** **a** all to the rider, paid out by Paystack transfer (riders add a bank
-  account like sellers) · **b** to the platform; you pay riders outside the app · **c** split: the rider gets a share
-  (what %?) and the platform keeps the rest.
-- **DX4. When riders are paid** (only if DX3 is a or c): **a** once they enter the buyer's code · **b** with the
-  seller, after the 48-hour window · **c** a weekly transfer covering all their deliveries.
-- **DX5. Pickup at the seller:** **a** the rider enters or scans the seller-order code (`CM-XXXXXX`), recording that
-  the parcel is now with the rider · **b** the rider just taps "Picked up".
-- **DX6. A parcel lost or damaged while with the rider:** **a** the platform refunds the buyer and absorbs it ·
-  **b** it comes out of the rider's future payouts (only if DX3 is a or c) · **c** an admin decides each case.
+- **DF2. Several stores in one cart, each by dispatch:** **a** one on-campus fee per store (each is its own trip) ·
+  **b** one fee for the whole order.
+- **PH2. The buyer's phone at checkout** (PH1 says the profile, DF3 says "they add their phone number"): **a** it comes
+  from the profile only; checkout shows it with a link to add or change it · **b** it's typed at checkout next to the
+  place, and saved to the profile.
+- **DF4a. The off-campus address:** **a** the buyer types it · **b** other.
+- **SA4. The seller's address, and the "area" a buyer sees before paying (SA2):** **a** the seller picks the area
+  from the campus places list, then types the full address · **b** the seller types both (for sellers who live off
+  campus).
+- **C9.** Confirm: the phone is required only when at least one store in the cart is delivered by dispatch, since
+  pickup from the seller never shares the buyer's phone (SA3).
+- **C10.** Confirm: on-campus dispatch is offered at checkout only once an admin has set that campus's fee.
 
-### Delivery fee, addresses and phones
+### Phase 5 (payments and refunds)
 
-- **DF1. Who sets the flat on-campus fee:** **a** an admin, per campus, on the settings screen (R1a) · **b** one
-  environment variable for every campus.
-- **DF2. A cart with several stores:** **a** one fee per store (each store is its own trip) · **b** one fee per order
-  (one rider collects from every store).
-- **DF3. How the app knows an address is on campus:** **a** the buyer picks a place from a campus list an admin keeps
-  (halls, faculties, gates), then adds the room or a landmark · **b** the buyer types the address and ticks
-  "On campus".
-- **DF4. Off campus at checkout:** **a** not offered; those buyers pick up from the seller where allowed and arrange
-  the rest · **b** offered as "Off campus, arranged with the seller": no fee in the app, and the seller enters the
-  buyer's code at handover.
-- **DF5. The delivery fee on a refund:** **a** refunded whenever the item price is · **b** refunded only if no rider
-  trip happened.
-- **DM1. Choosing the method in a cart with several stores:** **a** per store (e.g. pickup from store A, dispatch
-  for store B) · **b** one method for the whole order.
-- **PH1. The buyer's phone number for the rider:** **a** asked at checkout, filled from and saved to the profile ·
-  **b** must be on the profile before checkout.
-- **SA1. The seller's address and phone** (the rider needs them for every dispatch): **a** every seller enters both
-  before publishing; "Allow pickup from me" is a separate switch that uses the same address · **b** other.
-- **SA2. When a buyer sees the seller's pickup address:** **a** only the area (e.g. the hall) before payment, the
-  full address after · **b** the full address on the product page.
-- **SA3. Pickup from the seller, after payment:** **a** the buyer sees the seller's address and phone; the seller
-  sees only the buyer's display name · **b** both see each other's phone number.
+- **DF5a. A rider trip has "happened" (so the delivery fee isn't refunded) once:** **a** a rider accepts the job ·
+  **b** the rider picks the parcel up.
+- **DL7d. 3 days pass with no pickup, but the seller did call the dispatch:** **a** the seller's fault anyway ·
+  **b** nobody's (the platform absorbs the fee; no trust loss); the seller is at fault only if they never called ·
+  **c** an admin decides each case.
 
-### Deadlines and the 5-day alert
+### Phase 6 (dispatch and handover)
 
-- **DL7b. Within 3 days of payment the seller must:** **a** call the dispatch (after that, delays are the rider's)
-  · **b** have the parcel picked up by the rider · **c** have it delivered.
-- **DL7c. Pickup from the seller:** the buyer has N days to collect (give N). If they don't: **a** it's reported and
-  an admin decides (DL8) · **b** it's cancelled automatically as the buyer's fault, with the P6 fee deducted.
-- **DL6b. What the 5-day admin alert covers:** **a** the rider has had the parcel for 5 days and no code has been
-  entered · **b** the rider marked it delivered without the code (buyer unreachable, or won't give it) and 5 days have
-  passed · **c** both. (b and c mean a rider can mark delivered without the code.)
+- **DL7c. Days a buyer has to collect from the seller:** a number.
+- **DX7. Can a rider's account also buy?** **a** no, it's a rider-only account · **b** yes.
+- **DX8. Once a rider accepts, who sees the rider's name and phone:** **a** the seller and the buyer · **b** the name
+  only · **c** nobody; the rider calls them.
+- **C5.** Confirm: after the 5-hour alert, or if a rider drops a job, an admin can assign or reassign a rider.
+- **C6.** Confirm: before accepting, riders see only the two areas; the full addresses and the buyer's phone come
+  after they accept.
+- **C7. When the buyer sees their handover code:** **a** as soon as the order is paid · **b** for dispatch, once the
+  rider has the parcel; for pickup from the seller, as soon as it's paid.
+- **C8.** Confirm: "Report a problem" is open from payment until 48 hours after handover. Before handover it alerts
+  admins (late rider, lost parcel, no-show); after handover it's a dispute that holds the payout.
 
-### Buyers without a school email (T1)
+### Phase 9 (moderation)
 
-- **G1. Changing school later:** **a** not by the buyer; an admin changes it on request · **b** yes, in the profile
-  (the cart empties, since it's per school).
-- **G2. A buyer without a school email who wants to sell:** **a** adds a school email to the account and confirms it
-  with a code, then becomes a seller · **b** opens a separate seller account with the school email.
-- **G3. Google sign-in:** **a** buyer accounts only; sellers always use email and password · **b** a seller can also
-  sign in with Google when it's the same email.
-- **G4. A school that isn't on the list:** **a** the waitlist, as now · **b** other.
+- **M4e. Suspension for a confirmed prohibited item:** **a** automatic when the admin confirms, until an admin lifts
+  it · **b** the admin decides each time.
+- **M4f.** Does it also apply when the banned-word check held the listing before it ever went live? yes / no.
 
-### Moderation
-
-- **M4c. The banned-word list:** **a** admins edit it on the settings screen, starting from your M5 list · **b** fixed
-  in code.
-- **M4d. The 10 points for a confirmed prohibited item:** **a** drop off after 90 days, like cancellations · **b** stay
-  for good.
-
-### Reply block (round 3)
+### Reply block (round 4)
 
 ```
-C1:
-C2:
-C3:
-C4:
-DX1:
-DX2:
-DX3:
-DX4:
-DX5:
-DX6:
-DF1:
 DF2:
-DF3:
-DF4:
-DF5:
-DM1:
-PH1:
-SA1:
-SA2:
-SA3:
-DL7b:
+PH2:
+DF4a:
+SA4:
+C9:
+C10:
+DF5a:
+DL7d:
 DL7c:
-DL6b:
-G1:
-G2:
-G3:
-G4:
-M4c:
-M4d:
+DX7:
+DX8:
+C5:
+C6:
+C7:
+C8:
+M4e:
+M4f:
 ```
