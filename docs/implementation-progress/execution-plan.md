@@ -2,7 +2,7 @@
 
 Drafted 2026-10-17 from your answers in [decisions-needed.md](decisions-needed.md). The guide stays the base; this
 file lists what each phase builds, including where your answers change the guide. Anything still waiting on you is
-marked **(waits on ID)**, pointing at a round 4 question. Nothing is built on a guess.
+marked **(waits on ID)**, pointing at a round 5 question. Nothing is built on a guess.
 
 ## How every phase runs
 
@@ -31,12 +31,12 @@ The same rules as Phases 0–4:
 
 | Step | Phase | Branch | Waits on |
 |---|---|---|---|
-| 1 | 4b Checkout with delivery (DL10) | `feat/phase-4b-delivery-checkout` | DF2, PH2, DF4a, SA4, C9, C10 |
-| 2 | 5 Payments, escrow, refunds | `feat/phase-5-payments` | DF5a, DL7d |
-| 3 | 6 Dispatch and handover (replaces the guide's pickup-station Phase 6) | `feat/phase-6-dispatch` | DL7c, DX7, DX8, C5–C8 |
+| 1 | 4b Checkout with delivery (DL10) | `feat/phase-4b-delivery-checkout` | DF6 |
+| 2 | 5 Payments, escrow, refunds | `feat/phase-5-payments` | DF9 |
+| 3 | 6 Dispatch and handover (replaces the guide's pickup-station Phase 6) | `feat/phase-6-dispatch` | DF7, DF8 |
 | 4 | 7 Seller analytics | `feat/phase-7-analytics` | nothing |
 | 5 | 8 Wishlist, stores, reviews, trust score | `feat/phase-8-stores-reviews` | nothing |
-| 6 | 9 Admin and moderation (the slices not built earlier) | `feat/phase-9-admin-moderation` | M4e, M4f |
+| 6 | 9 Admin and moderation (the slices not built earlier) | `feat/phase-9-admin-moderation` | nothing |
 | 7 | 10 Remaining features (incl. buyers without a school email, Google sign-in) | `feat/phase-10-remaining` | nothing |
 | 8 | Launch track (yours, with my help) | none | your accounts, see the last section |
 
@@ -69,9 +69,12 @@ disputes in 6, the rest in 9.
 ## Phase 4b: checkout with delivery
 
 **Goal:** the cart and checkout let the buyer choose, per store (DM1):
-- **dispatch on campus:** a place from the campus list, plus a flat fee;
-- **dispatch off campus:** an address, with no fee in the app (DF4);
+- **dispatch on campus:** a place from the campus list. The order pays one flat fee, however many stores it covers
+  (DF2);
+- **dispatch off campus:** an address the buyer types (DF4a), with no fee in the app (DF4);
 - **pickup from the seller:** free (C2), only where the seller allows it (DL1).
+
+Whether one order has one destination, or each dispatch store its own: **waits on DF6**.
 
 Payments stay off until Phase 5, as now.
 
@@ -81,10 +84,12 @@ Payments stay off until Phase 5, as now.
 |---|---|
 | `CampusPlace` (institution, name, active, sort order) | the admin's list of halls, faculties and gates (DF3) |
 | `Institution.deliveryFeeKobo` (nullable) | the flat on-campus fee (DF1) |
-| `SellerProfile`: `pickupArea` and `pickupAddress` **(waits on SA4)**, `contactPhone`, `allowsPickup` | SA1, SA2, DL1 |
+| `SellerProfile`: `pickupArea` and `pickupAddress` (both typed by the seller), `contactPhone`, `allowsPickup` | SA1, SA2, SA4, DL1 |
 | `Order.pickupStationId` becomes optional | stations aren't used (DL9) |
-| `SellerOrder`: `deliveryMethod` (`DISPATCH_CAMPUS`, `DISPATCH_OFF_CAMPUS`, `SELLER_PICKUP`), `deliveryFeeKobo`, `campusPlaceId`, `deliveryAddress`, `buyerPhone` (a copy for the rider) | DM1, DF3, DF4 |
-| `Order.totalKobo` = items + delivery fees | DL4 |
+| `SellerOrder.deliveryMethod` (`DISPATCH_CAMPUS`, `DISPATCH_OFF_CAMPUS`, `SELLER_PICKUP`) | DM1 |
+| The destination, `campusPlaceId` or `deliveryAddress`, plus `buyerPhone` (a copy for the rider): on `Order` or on each `SellerOrder` **(waits on DF6)** | DF3, DF4, DF4a, PH2 |
+| `Order.deliveryFeeKobo`: one fee per order | DF2 |
+| `Order.totalKobo` = items + the delivery fee | DL4 |
 
 The platform fee still comes from item subtotals only, since delivery fees are the platform's (DX3).
 
@@ -98,29 +103,29 @@ The platform fee still comes from item subtotals only, since delivery fees are t
 - **Publishing needs a complete profile (SA1).** `assertCanPublish` also requires an address and phone. Without them
   the request fails with 403 `SELLER_PROFILE_INCOMPLETE`, a code new in 4b. This sits next to the existing
   verification check. Drafts are still allowed.
-- **Cart:** `GET /cart` gains, per store:
-  - the methods on offer;
-  - the fee, applied per store or per order **(waits on DF2)**;
-  - the seller's area, when they allow pickup (SA2).
+- **Cart:** `GET /cart` gains:
+  - per store, the methods on offer, and the seller's area when they allow pickup (SA2);
+  - the campus's on-campus fee, charged once per order (DF2).
 - **Checkout:** `POST /orders/checkout` takes one choice per store instead of `pickupStationId`. It refuses:
   - pickup from a seller who doesn't allow it;
   - a place at another school;
-  - on-campus dispatch at a school with no fee set **(waits on C10)**;
-  - an off-campus order without an address **(waits on DF4a)**;
-  - dispatch without a phone on the profile: 422 `PHONE_REQUIRED` (PH1; when it applies waits on C9 and PH2).
+  - on-campus dispatch at a school with no fee set (C10);
+  - off-campus dispatch without an address (DF4a);
+  - dispatch without a phone number. The phone is typed at checkout next to the place and saved to the profile
+    (PH2, which replaces PH1). It's needed only when a store is delivered by dispatch (C9).
 - **Privacy:**
   - Order detail shows the seller's full address and phone to the buyer only after payment (SA3).
   - The seller sees only the buyer's display name.
   - No response reveals the seller's full address before payment.
-- **Phone:** the profile's phone becomes editable now (`PATCH /users/me/profile`, phone field only). The rest of that
-  endpoint stays in Phase 10.
+- **Phone:** checkout saves the phone to the profile and fills it in next time. Editing the rest of the profile stays
+  in Phase 10.
 
 **Frontend**
 
 - **Checkout:**
   - one section per store, with a method picker and a campus place picker (or an address box for off campus);
-  - the delivery fee in the summary;
-  - a prompt to add a phone when it's needed.
+  - a phone field next to the place, filled in from the profile (PH2);
+  - the one delivery fee in the summary (DF2).
 - **Pickup:** the station picker page is no longer linked; its code stays (DL9).
 - **Seller profile:** a "Delivery and pickup" card (address, phone, the allow-pickup switch). The listing form says
   why publishing is blocked until the card is complete.
@@ -130,7 +135,7 @@ The platform fee still comes from item subtotals only, since delivery fees are t
 **Gate checklist**
 
 - [ ] A cart with a dispatch store and a pickup store makes two seller orders with the right methods. The total is
-      items plus fees.
+      items plus one delivery fee; two dispatch stores still pay one fee.
 - [ ] Pickup from a seller who doesn't allow it is refused.
 - [ ] A place at another school is refused.
 - [ ] Dispatch without a phone is refused.
@@ -160,7 +165,7 @@ The guide's 5.1–5.7, with these changes.
   - Signature checked, replays ignored, amount and currency checked, as the guide says.
   - On success, each seller order's escrow becomes `HELD`, and it moves on by method:
     - **dispatch:** "awaiting dispatch", with a deadline 3 days after payment (DL7b);
-    - **pickup:** "awaiting pickup", with the buyer's deadline (Phase 6, DL7c).
+    - **pickup:** "awaiting pickup", with the buyer's 5-day deadline (DL7c; the job is Phase 6).
   - Sellers are notified (in the app, and by email once S4 is set up).
   - The Paystack fee from the webhook is stored, for refunds.
 - **Payout account (5.4):** banks list, name check, Paystack recipient; the full account number is never stored. A
@@ -170,13 +175,14 @@ The guide's 5.1–5.7, with these changes.
   - One transfer per seller order (P4) of items minus the platform fee (P1, 0).
   - The platform absorbs the transfer fee (P3). Delivery fees stay in the platform balance (DX3).
 - **Refunds (5.6):** `refundSellerOrder(sellerOrderId, reason, fault)`.
-  - **Amount:** the items, plus the delivery fee unless a rider trip happened (DF5) **(when a trip counts waits on
-    DF5a)**.
+  - **Amount:** the items, plus the delivery fee unless the rider had already picked the parcel up (DF5, DF5a).
+    With one fee per order, what's refunded when only some stores are refunded: **waits on DF9**.
   - **Buyer's fault:** that seller order's share of the Paystack fee, split by subtotal, is taken off (P6).
   - **Seller's fault:** the platform absorbs the fee, and the seller loses 10 trust points, counted like a
     cancellation (P6, F10).
   - **Nobody's fault** (e.g. paid after the order expired and the stock was gone): the platform absorbs it.
-  - **Who is at fault when 3 days pass with no pickup although the seller called the dispatch:** waits on DL7d.
+  - **3 days with no pickup (DL7d):** if the seller never called the dispatch, it's the seller's fault. If they did
+    call, it's nobody's: the platform absorbs the fee and the seller keeps their points.
 - **Fees:** the platform absorbs Paystack's processing fee (P2).
 - **Admin:** a `/admin/payouts` screen for failed and awaiting-account payouts, with retry; the platform fee on
   `/admin/settings`.
@@ -203,14 +209,14 @@ Replaces the guide's Phase 6. The station flow stays in the code, unused.
 
 - A new `DISPATCH` role. An admin invites a rider by email and picks their campus; the invite email prints to the
   console until S4. The rider sets a password from the invite link, and the link confirms their email.
-- Whether a rider can also buy: **waits on DX7**.
+- Rider accounts can't buy or sell (DX7).
 - Admin: a `/admin/riders` screen to invite, list and deactivate riders.
 
 **Seller order states**
 
 | Method | Path |
 |---|---|
-| Dispatch | awaiting dispatch → dispatch requested → rider assigned → with the rider → delivered |
+| Dispatch | awaiting dispatch → dispatch requested → rider assigned → with the rider → delivered (per store or per order: **waits on DF7**) |
 | Pickup from the seller | awaiting pickup → collected |
 
 Both can also end cancelled or disputed. The labels live in `lib/labels.ts` (D4).
@@ -219,26 +225,33 @@ Both can also end cancelled or disputed. The labels live in `lib/labels.ts` (D4)
 
 - The seller taps "Call dispatch". Every active rider at that campus sees the job; the first to accept takes it, and
   any other gets 409.
-- Admins are alerted if nobody accepts within 5 hours. They can then assign or reassign a rider **(waits on C5)**.
-- What riders see before and after accepting: **waits on C6**. Who sees the rider's name and phone: **waits on DX8**.
+- With several dispatch stores in one order: one job for the order or one per store **(waits on DF7)**, and when the
+  job opens to riders **(waits on DF8)**.
+- Admins are alerted if nobody accepts within 5 hours. They can assign or reassign a rider then, or when a rider
+  drops a job (C5).
+- Before accepting, riders see only the pickup and drop-off areas. The full addresses and the buyer's phone come after
+  they accept (C6).
+- The seller and the buyer see the rider's name only (DX8).
 - **At the seller:** the rider enters or scans the `CM-` code, and the parcel is recorded as with the rider.
 - **At the buyer:** the rider enters the buyer's 6-digit code, and the order is delivered; payout comes 48 hours later
   (D11).
 - **Pickup from the seller:** the seller enters the buyer's code (DL5).
 - **Wrong codes:** 5 wrong codes lock the order, and an admin unlocks it with a reason (F5).
-- When the buyer sees their code: **waits on C7**.
+- The buyer sees their code once the rider has the parcel (dispatch), or as soon as the order is paid (pickup from
+  the seller) (C7).
 
 **Deadlines** (an hourly job)
 
 | Method | Rule |
 |---|---|
-| Dispatch | No pickup 3 days after payment: cancelled and refunded. Fault as Phase 5 decides (DL7b, DL7d). The seller gets a reminder 24 hours before. |
+| Dispatch | No pickup 3 days after payment: cancelled and refunded. The seller's fault only if they never called the dispatch (DL7b, DL7d). The seller gets a reminder 24 hours before. |
 | With the rider | 5 days without the buyer's code: admins are alerted (DL6b). |
-| Pickup from the seller | Not collected within N days **(waits on DL7c)**: cancelled automatically as the buyer's fault, with the P6 fee taken off. |
+| Pickup from the seller | Not collected within 5 days of payment: cancelled automatically as the buyer's fault, with the P6 fee taken off (DL7c). |
 
 **Problems and disputes**
 
-- "Report a problem" is open from payment until 48 hours after handover **(waits on C8)**.
+- "Report a problem" is open from payment until 48 hours after handover. Before handover it alerts admins (a late
+  rider, a lost parcel, a no-show); after handover it's a dispute that holds the payout (C8).
 - Disputes:
   - The reasons are F6's list.
   - Up to 3 photos, which need Cloudinary (F7, S5).
@@ -329,9 +342,9 @@ The slices not built earlier.
 - **Reports:**
   - 5 distinct buyer reports flag a listing (M4).
   - A "Prohibited item" report hides it at once, pending review (M4b).
-- **A confirmed prohibited item means suspension (M4d)**, with these details waiting:
-  - automatic or the admin's choice: **waits on M4e**;
-  - whether it also applies to listings held before going live: **waits on M4f**.
+- **A confirmed prohibited item means suspension (M4d).** The suspension starts automatically when the admin
+  confirms, and lasts until an admin lifts it (M4e). It doesn't apply to a listing the banned-word check held before it
+  ever went live (M4f).
 
 **Admin sign-in (M7)**
 - A 6-digit code by email at every admin sign-in. It prints to the console until S4 is set up.

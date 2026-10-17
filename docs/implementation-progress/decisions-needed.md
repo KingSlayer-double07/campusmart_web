@@ -1,7 +1,7 @@
 # Decisions needed: Phases 5–10 and launch
 
-Written 2026-10-17, after Phase 4. **Status:** rounds 1–3 are answered; see [Answers](#answers-2026-10-17).
-A short round 4 is [open](#open-questions-round-4). The plan built on these answers is in
+Written 2026-10-17, after Phase 4. **Status:** rounds 1–4 are answered; see [Answers](#answers-2026-10-17).
+Round 5, four questions raised by DF2, is [open](#open-questions-round-5). The plan built on these answers is in
 [execution-plan.md](execution-plan.md). Each row is a choice only you can make. The **Default** column is what I build if
 you leave the row unanswered, so nothing waits on a row unless its "Needed by" says it blocks.
 
@@ -119,7 +119,7 @@ is D11**. `ESCROW_DISPUTE_WINDOW_HOURS` stays a variable only so tests can set i
 ## Answers (2026-10-17)
 
 Your answers, as given. "Default" rows take the Default column above. Later rounds refine earlier rows where
-they say so; anything still undecided is in round 4.
+they say so; anything still undecided is in round 5.
 
 ### Round 1
 
@@ -240,71 +240,48 @@ they say so; anything still undecided is in round 4.
 | M4c | Admins edit the banned-word list on the settings screen, starting from your M5 list. |
 | M4d | The penalty for listing a prohibited item is suspension, not a point deduction. |
 
-## Open questions (round 4)
+### Round 4
 
-Each one says which phase waits on it. Phase 4b can start once its six are answered.
+| ID | Answer |
+|---|---|
+| DF2 | One delivery fee for the whole order. |
+| PH2 | The phone is typed at checkout next to the place and saved to the profile. This replaces PH1. |
+| DF4a | The buyer types the off-campus address. |
+| SA4 | The seller types both the area and the full address. |
+| C9 | Confirmed: the phone is needed only when a store is delivered by dispatch. |
+| C10 | Confirmed: on-campus dispatch shows at checkout only once that campus has a fee. |
+| DF5a | A rider trip has happened once the rider picks the parcel up. |
+| DL7d | 3 days with no pickup: the seller's fault only if they never called the dispatch; otherwise nobody's (the platform absorbs the fee, no trust loss). |
+| DL7c | A buyer has 5 days to collect from the seller. |
+| DX7 | Rider accounts can't buy. |
+| DX8 | The seller and the buyer see the rider's name only. |
+| C5 | Confirmed: after the 5-hour alert, or if a rider drops a job, an admin can assign or reassign a rider. |
+| C6 | Confirmed: before accepting, riders see only the two areas; the full addresses and the buyer's phone after. |
+| C7 | Dispatch: the buyer sees their code once the rider has the parcel. Pickup from the seller: as soon as it's paid. |
+| C8 | Confirmed: "Report a problem" is open from payment until 48 hours after handover. Before handover it alerts admins; after, it's a dispute that holds the payout. |
+| M4e | Suspension for a confirmed prohibited item is automatic, and lasts until an admin lifts it. |
+| M4f | It doesn't apply to a listing the banned-word check held before it went live. |
 
-### Phase 4b (checkout with delivery)
+## Open questions (round 5)
 
-- **DF2. Several stores in one cart, each by dispatch:** **a** one on-campus fee per store (each is its own trip) ·
-  **b** one fee for the whole order.
-- **PH2. The buyer's phone at checkout** (PH1 says the profile, DF3 says "they add their phone number"): **a** it comes
-  from the profile only; checkout shows it with a link to add or change it · **b** it's typed at checkout next to the
-  place, and saved to the profile.
-- **DF4a. The off-campus address:** **a** the buyer types it · **b** other.
-- **SA4. The seller's address, and the "area" a buyer sees before paying (SA2):** **a** the seller picks the area
-  from the campus places list, then types the full address · **b** the seller types both (for sellers who live off
-  campus).
-- **C9.** Confirm: the phone is required only when at least one store in the cart is delivered by dispatch, since
-  pickup from the seller never shares the buyer's phone (SA3).
-- **C10.** Confirm: on-campus dispatch is offered at checkout only once an admin has set that campus's fee.
+DF2's one fee per order raises these four. Phase 4b waits on DF6.
 
-### Phase 5 (payments and refunds)
+- **DF6 (Phase 4b). The buyer's destination:** **a** one per order: every store delivered by dispatch goes to the same
+  place or address · **b** one per store.
+- **DF7 (Phase 6). Rider jobs when several stores in one order use dispatch:** **a** one job for the order: one rider
+  collects from every store, then delivers once · **b** one job per store, each possibly with a different rider; the
+  fee is still charged once.
+- **DF8 (Phase 6, only if DF7 is a). When the job opens to riders:** **a** once every store in it has called the
+  dispatch · **b** when the first store calls; the rider collects from the others as they call.
+- **DF9 (Phase 5). The one fee when only some of the order's stores are refunded:** **a** it's refunded only when
+  every dispatch store in the order is refunded before its parcel was picked up · **b** each store refunded before
+  pickup gets back a share of the fee, split by subtotal.
 
-- **DF5a. A rider trip has "happened" (so the delivery fee isn't refunded) once:** **a** a rider accepts the job ·
-  **b** the rider picks the parcel up.
-- **DL7d. 3 days pass with no pickup, but the seller did call the dispatch:** **a** the seller's fault anyway ·
-  **b** nobody's (the platform absorbs the fee; no trust loss); the seller is at fault only if they never called ·
-  **c** an admin decides each case.
-
-### Phase 6 (dispatch and handover)
-
-- **DL7c. Days a buyer has to collect from the seller:** a number.
-- **DX7. Can a rider's account also buy?** **a** no, it's a rider-only account · **b** yes.
-- **DX8. Once a rider accepts, who sees the rider's name and phone:** **a** the seller and the buyer · **b** the name
-  only · **c** nobody; the rider calls them.
-- **C5.** Confirm: after the 5-hour alert, or if a rider drops a job, an admin can assign or reassign a rider.
-- **C6.** Confirm: before accepting, riders see only the two areas; the full addresses and the buyer's phone come
-  after they accept.
-- **C7. When the buyer sees their handover code:** **a** as soon as the order is paid · **b** for dispatch, once the
-  rider has the parcel; for pickup from the seller, as soon as it's paid.
-- **C8.** Confirm: "Report a problem" is open from payment until 48 hours after handover. Before handover it alerts
-  admins (late rider, lost parcel, no-show); after handover it's a dispute that holds the payout.
-
-### Phase 9 (moderation)
-
-- **M4e. Suspension for a confirmed prohibited item:** **a** automatic when the admin confirms, until an admin lifts
-  it · **b** the admin decides each time.
-- **M4f.** Does it also apply when the banned-word check held the listing before it ever went live? yes / no.
-
-### Reply block (round 4)
+### Reply block (round 5)
 
 ```
-DF2:
-PH2:
-DF4a:
-SA4:
-C9:
-C10:
-DF5a:
-DL7d:
-DL7c:
-DX7:
-DX8:
-C5:
-C6:
-C7:
-C8:
-M4e:
-M4f:
+DF6:
+DF7:
+DF8:
+DF9:
 ```

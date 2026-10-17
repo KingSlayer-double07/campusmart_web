@@ -10,7 +10,7 @@ its checklist, changes, verification evidence, deviations and open asks.
 | 2 Commerce schema | DONE | `feat/phase-2-commerce-schema` | 2026-10-09 |
 | 3 Listings, variants, uploads | DONE pending manual checks (real Cloudinary upload) | `feat/phase-3-listings`, `feat/phase-3-seller-verification` | 2026-10-09 |
 | 4 Cart and checkout | DONE | `feat/phase-4-cart-checkout` | 2026-10-09 |
-| 4b Checkout with delivery | NOT STARTED (waits on round 4: DF2, PH2, DF4a, SA4, C9, C10) | `feat/phase-4b-delivery-checkout` | |
+| 4b Checkout with delivery | NOT STARTED (waits on round 5: DF6) | `feat/phase-4b-delivery-checkout` | |
 | 5 Payments and escrow | NOT STARTED | | |
 | 6 Dispatch and handover (replaces pickup stations) | NOT STARTED | | |
 | 7 Seller analytics | NOT STARTED | | |
@@ -62,8 +62,8 @@ Your decisions that change or extend the guide. Each phase file has the detail.
 
 - [execution-plan.md](execution-plan.md): what Phases 4b–10 build, in order, with each phase's gate checklist and
   what it needs from you.
-- Round 4 in [decisions-needed.md](decisions-needed.md#open-questions-round-4): 17 short questions, each tagged with
-  the phase that waits on it. Phase 4b needs six of them.
+- Round 5 in [decisions-needed.md](decisions-needed.md#open-questions-round-5): four questions raised by one delivery
+  fee per order. Phase 4b needs DF6.
 
 ## What you need to set up
 
