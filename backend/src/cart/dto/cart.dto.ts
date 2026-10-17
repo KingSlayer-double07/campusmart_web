@@ -124,6 +124,15 @@ export class CartSellerDto {
     description: 'Store name, else username, else first name',
   })
   storeName!: string;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'Moremi Hall',
+    description:
+      'Set when the seller lets buyers collect from them (decision DL1). Only the area: the address comes after payment (SA2, SA3).',
+  })
+  pickupArea!: string | null;
 }
 
 export class CartGroupDto {
@@ -183,4 +192,12 @@ export class CartDto {
 
   @ApiProperty({ type: [CartIssueDto] })
   issues!: CartIssueDto[];
+
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description:
+      "Your school's flat fee for dispatch to a campus place, in kobo, charged once per order (decisions DF1, DF2). null: on-campus dispatch isn't offered yet (C10).",
+  })
+  campusDeliveryFeeKobo!: number | null;
 }

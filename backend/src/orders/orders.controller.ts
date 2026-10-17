@@ -18,6 +18,7 @@ import { ApiOkEnvelope } from '../common/swagger/api-envelope.decorator';
 import { ErrorResponseDto } from '../common/swagger/error-response.dto';
 import { CheckoutService } from './checkout.service';
 import {
+  CampusPlaceDto,
   CheckoutDto,
   CheckoutResultDto,
   OrderDto,
@@ -44,26 +45,40 @@ export class OrdersController {
   }
 
   @ApiOperation({
+    summary: 'Places a rider can deliver to at your school',
+    description: 'Active campus places, by name (decision DF3)',
+  })
+  @ApiOkEnvelope([CampusPlaceDto])
+  @Get('campus-places')
+  campusPlaces(@CurrentUser() user: AuthUser): Promise<CampusPlaceDto[]> {
+    return this.orders.campusPlaces(user);
+  }
+
+  @ApiOperation({
     summary: 'Turn the cart into an order',
     description:
-      'Reserves stock and snapshots prices from the database in one transaction; the client sends no prices. The same idempotencyKey returns the same order. authorizationUrl is null until payments are switched on.',
+      'Reserves stock and snapshots prices from the database in one transaction; the client sends no prices. ' +
+      'Each store in the cart is delivered by dispatch or collected from the seller. Anything by dispatch needs one destination and a phone number, ' +
+      'and the order pays one delivery fee: the campus fee for a campus place, nothing in the app for an address off campus. ' +
+      'The same idempotencyKey returns the same order. authorizationUrl is null until payments are switched on.',
   })
   @ApiOkEnvelope(CheckoutResultDto, { status: 201 })
   @ApiResponse({
     status: 400,
     type: ErrorResponseDto,
-    description: 'CART_EMPTY or VALIDATION_FAILED',
+    description:
+      'CART_EMPTY, DELIVERY_CHOICE_REQUIRED (details.sellerId), DESTINATION_REQUIRED, PHONE_REQUIRED or VALIDATION_FAILED',
   })
   @ApiResponse({
     status: 404,
     type: ErrorResponseDto,
-    description: 'No such active station at your school',
+    description: 'No such active campus place at your school',
   })
   @ApiResponse({
     status: 409,
     type: ErrorResponseDto,
     description:
-      'OUT_OF_STOCK or ITEM_UNAVAILABLE (details name the item), or IDEMPOTENCY_KEY_REUSED',
+      'OUT_OF_STOCK or ITEM_UNAVAILABLE (details name the item), PICKUP_NOT_OFFERED (details.sellerId), DELIVERY_UNAVAILABLE (no campus fee set yet), or IDEMPOTENCY_KEY_REUSED',
   })
   @Post('orders/checkout')
   checkout(
@@ -85,7 +100,8 @@ export class OrdersController {
 
   @ApiOperation({
     summary: 'One of your orders',
-    description: "Includes each seller order's collection code (yours only)",
+    description:
+      "Includes each seller order's handover code (yours only). For pickup from a seller, their address and phone appear once the order is paid.",
   })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkEnvelope(OrderDto)

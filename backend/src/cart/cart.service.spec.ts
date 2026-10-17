@@ -59,6 +59,10 @@ const listingRow = (
       ratingAvg: 0,
       ratingCount: 0,
       isOnline: false,
+      pickupArea: 'Moremi Hall' as string | null,
+      pickupAddress: 'Room 12, Block B' as string | null,
+      contactPhone: '+234 801 234 5678' as string | null,
+      allowsPickup: false,
     },
   },
   ...overrides,
@@ -286,7 +290,11 @@ describe('CartService', () => {
           listing: listingRow('c', 's1', { isDeleted: true }),
         },
       ];
-      const cart = toCartDto(lines, { id: 'buyer', institutionId: 'school-a' });
+      const cart = toCartDto(
+        lines,
+        { id: 'buyer', institutionId: 'school-a' },
+        50_000,
+      );
       expect(
         cart.groups.map((g) => [
           g.seller.storeName,
@@ -307,6 +315,35 @@ describe('CartService', () => {
         ['c2', 'PRICE_CHANGED'],
         ['c3', 'UNAVAILABLE'],
       ]);
+      expect(cart.campusDeliveryFeeKobo).toBe(50_000);
+    });
+
+    it("shows a seller's pickup area only when they offer pickup, and never the address", () => {
+      const pickup = listingRow('a', 's1');
+      pickup.seller.sellerProfile.allowsPickup = true;
+      const noAddress = listingRow('b', 's2');
+      noAddress.seller.sellerProfile.allowsPickup = true;
+      noAddress.seller.sellerProfile.pickupAddress = null;
+      const cart = toCartDto(
+        [pickup, noAddress, listingRow('c', 's3')].map((listing, i) => ({
+          id: `c${i}`,
+          listingId: listing.id,
+          variantId: null,
+          quantity: 1,
+          unitPriceKobo: 100_000,
+          listing,
+        })),
+        { id: 'buyer', institutionId: 'school-a' },
+        null,
+      );
+      expect(cart.groups.map((g) => g.seller.pickupArea)).toEqual([
+        'Moremi Hall',
+        null,
+        null,
+      ]);
+      expect(JSON.stringify(cart)).not.toContain('Room 12');
+      expect(JSON.stringify(cart)).not.toContain('801 234');
+      expect(cart.campusDeliveryFeeKobo).toBeNull();
     });
   });
 });

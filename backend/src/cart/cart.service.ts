@@ -11,6 +11,10 @@ import { requireActiveInstitution } from '../institutions/institution-access';
 import { cardSelect, toCard } from '../listings/listing.select';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+  deliveryDetailsSelect,
+  offersPickup,
+} from '../sellers/seller-delivery';
+import {
   lineIssue,
   lineState,
   MAX_CART_LINES,
@@ -27,7 +31,7 @@ import {
 
 type Buyer = { id: string; institutionId: string };
 
-// Everything lineState needs, plus the card the cart shows
+// Everything lineState needs, plus the card the cart shows and whether the seller offers pickup
 export const lineListingSelect = {
   ...cardSelect,
   isDeleted: true,
@@ -39,6 +43,17 @@ export const lineListingSelect = {
       priceKobo: true,
       stock: true,
       isActive: true,
+    },
+  },
+  seller: {
+    select: {
+      ...cardSelect.seller.select,
+      sellerProfile: {
+        select: {
+          ...cardSelect.seller.select.sellerProfile.select,
+          ...deliveryDetailsSelect,
+        },
+      },
     },
   },
 } satisfies Prisma.ListingSelect;
@@ -230,12 +245,18 @@ export class CartService {
   }
 
   private async load(buyer: Buyer): Promise<CartDto> {
-    const lines = await this.prisma.cartItem.findMany({
-      where: { userId: buyer.id },
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-      select: cartLineSelect,
-    });
-    return toCartDto(lines, buyer);
+    const [lines, school] = await Promise.all([
+      this.prisma.cartItem.findMany({
+        where: { userId: buyer.id },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: cartLineSelect,
+      }),
+      this.prisma.institution.findUnique({
+        where: { id: buyer.institutionId },
+        select: { deliveryFeeKobo: true },
+      }),
+    ]);
+    return toCartDto(lines, buyer, school?.deliveryFeeKobo ?? null);
   }
 }
 
@@ -246,7 +267,11 @@ const cartFull = () =>
   });
 
 // Groups lines by seller, in the order the buyer first added from each (guide 4.1)
-export function toCartDto(lines: CartLine[], buyer: Buyer): CartDto {
+export function toCartDto(
+  lines: CartLine[],
+  buyer: Buyer,
+  campusDeliveryFeeKobo: number | null,
+): CartDto {
   const groups = new Map<string, CartGroupDto>();
   const issues: CartIssue[] = [];
   let subtotalKobo = 0;
@@ -263,8 +288,13 @@ export function toCartDto(lines: CartLine[], buyer: Buyer): CartDto {
 
     let group = groups.get(card.seller.id);
     if (!group) {
+      const delivery = line.listing.seller.sellerProfile;
       group = {
-        seller: { id: card.seller.id, storeName: card.seller.displayName },
+        seller: {
+          id: card.seller.id,
+          storeName: card.seller.displayName,
+          pickupArea: offersPickup(delivery) ? delivery!.pickupArea : null,
+        },
         items: [],
         subtotalKobo: 0,
       };
@@ -294,5 +324,11 @@ export function toCartDto(lines: CartLine[], buyer: Buyer): CartDto {
     if (issue) issues.push(issue);
   }
 
-  return { groups: [...groups.values()], subtotalKobo, itemCount, issues };
+  return {
+    groups: [...groups.values()],
+    subtotalKobo,
+    itemCount,
+    issues,
+    campusDeliveryFeeKobo,
+  };
 }

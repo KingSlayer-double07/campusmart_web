@@ -6,16 +6,20 @@ import {
 import type { AuthUser } from '../auth/auth-user';
 import { CursorQueryDto, cursorArgs, toPage } from '../common/pagination';
 import type { Prisma } from '../generated/prisma/client';
-import { OrderStatus } from '../generated/prisma/enums';
+import { DeliveryMethod, OrderStatus } from '../generated/prisma/enums';
 import type { OpeningHoursDto } from '../admin/dto/opening-hours.dto';
 import { requireActiveInstitution } from '../institutions/institution-access';
 import { sellerDisplayName } from '../listings/listing-rules';
 import { PrismaService } from '../prisma/prisma.service';
+import { deliveryDetailsSelect } from '../sellers/seller-delivery';
 import {
+  CampusPlaceDto,
+  OrderDestinationDto,
   OrderDto,
   OrderPageDto,
   OrderSummaryDto,
   PickupStationDto,
+  SellerPickupDto,
 } from './dto/order.dto';
 import { closeUnpaidOrder } from './order-lifecycle';
 
@@ -32,7 +36,7 @@ const sellerSelect = {
   id: true,
   username: true,
   firstName: true,
-  sellerProfile: { select: { storeName: true } },
+  sellerProfile: { select: { storeName: true, ...deliveryDetailsSelect } },
 } satisfies Prisma.UserSelect;
 
 const itemSelect = {
@@ -55,6 +59,10 @@ const orderSelect = {
   createdAt: true,
   expiresAt: true,
   paidAt: true,
+  deliveryFeeKobo: true,
+  deliveryAddress: true,
+  buyerPhone: true,
+  campusPlace: { select: { id: true, name: true } },
   pickupStation: { select: stationSelect },
   sellerOrders: {
     orderBy: { createdAt: 'asc' },
@@ -62,6 +70,7 @@ const orderSelect = {
       id: true,
       code: true,
       collectionCode: true,
+      deliveryMethod: true,
       fulfillmentStatus: true,
       subtotalKobo: true,
       dropOffDeadline: true,
@@ -78,16 +87,39 @@ const orderSelect = {
 type OrderRow = Prisma.OrderGetPayload<{ select: typeof orderSelect }>;
 type SellerOrderRow = OrderRow['sellerOrders'][number];
 
-const toStation = (row: OrderRow['pickupStation']): PickupStationDto => ({
+const toStation = (
+  row: NonNullable<OrderRow['pickupStation']>,
+): PickupStationDto => ({
   ...row,
   openingHours: row.openingHours as unknown as OpeningHoursDto[],
 });
+
+const toDestination = (row: OrderRow): OrderDestinationDto | null =>
+  row.campusPlace || row.deliveryAddress
+    ? { campusPlace: row.campusPlace, address: row.deliveryAddress }
+    : null;
+
+// Decisions SA2 and SA3: the area always, the seller's address and phone once the order is paid
+function pickupFrom(so: SellerOrderRow, paid: boolean): SellerPickupDto | null {
+  const details = so.seller.sellerProfile;
+  if (
+    so.deliveryMethod !== DeliveryMethod.SELLER_PICKUP ||
+    !details?.pickupArea
+  )
+    return null;
+  return {
+    area: details.pickupArea,
+    address: paid ? details.pickupAddress : null,
+    phone: paid ? details.contactPhone : null,
+  };
+}
 
 function summary(so: SellerOrderRow) {
   return {
     id: so.id,
     code: so.code,
     seller: { id: so.seller.id, storeName: sellerDisplayName(so.seller) },
+    deliveryMethod: so.deliveryMethod,
     fulfillmentStatus: so.fulfillmentStatus,
     subtotalKobo: so.subtotalKobo,
     itemCount: so.items.reduce((sum, i) => sum + i.quantity, 0),
@@ -106,10 +138,14 @@ export function toOrderDto(row: OrderRow): OrderDto {
     createdAt: row.createdAt,
     expiresAt: row.expiresAt,
     paidAt: row.paidAt,
-    pickupStation: toStation(row.pickupStation),
+    pickupStation: row.pickupStation && toStation(row.pickupStation),
+    destination: toDestination(row),
+    deliveryFeeKobo: row.deliveryFeeKobo,
+    buyerPhone: row.buyerPhone,
     sellerOrders: row.sellerOrders.map((so) => ({
       ...summary(so),
       collectionCode: so.collectionCode,
+      pickupFrom: pickupFrom(so, row.paidAt !== null),
       dropOffDeadline: so.dropOffDeadline,
       droppedOffAt: so.droppedOffAt,
       collectedAt: so.collectedAt,
@@ -137,7 +173,12 @@ function toSummaryDto(row: OrderRow): OrderSummaryDto {
     totalKobo: row.totalKobo,
     createdAt: row.createdAt,
     expiresAt: row.expiresAt,
-    pickupStation: { id: row.pickupStation.id, name: row.pickupStation.name },
+    pickupStation: row.pickupStation && {
+      id: row.pickupStation.id,
+      name: row.pickupStation.name,
+    },
+    destination: toDestination(row),
+    deliveryFeeKobo: row.deliveryFeeKobo,
     sellerOrders: row.sellerOrders.map(summary),
   };
 }
@@ -157,6 +198,16 @@ export class OrdersService {
       select: stationSelect,
     });
     return rows.map(toStation);
+  }
+
+  // Decision DF3: the places at the buyer's school a rider can deliver to
+  async campusPlaces(user: AuthUser): Promise<CampusPlaceDto[]> {
+    const buyer = await requireActiveInstitution(this.prisma, user);
+    return this.prisma.campusPlace.findMany({
+      where: { institutionId: buyer.institutionId, isActive: true },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      select: { id: true, name: true },
+    });
   }
 
   // The buyer's orders, newest first. Never anyone else's.

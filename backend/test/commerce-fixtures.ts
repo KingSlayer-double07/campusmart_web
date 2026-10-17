@@ -6,7 +6,7 @@ import {
   VerificationStatus,
 } from '../src/generated/prisma/enums';
 import type { PrismaService } from '../src/prisma/prisma.service';
-import { createUser } from './utils';
+import { createUser, DELIVERY_DETAILS } from './utils';
 
 // Rows for the cart and checkout suites, written straight through Prisma (Phase 3's API paths
 // are covered by their own suites).
@@ -27,14 +27,26 @@ export async function createSeller(
   prisma: PrismaService,
   institutionId: string,
   storeName = 'Ada Wears',
+  { allowsPickup = false } = {},
 ) {
   const seller = await createUser(prisma, {
     role: UserRole.SELLER,
     institutionId,
     verificationStatus: VerificationStatus.VERIFIED,
   });
-  await prisma.sellerProfile.create({ data: { userId: seller.id, storeName } });
+  await prisma.sellerProfile.create({
+    data: { userId: seller.id, storeName, ...DELIVERY_DETAILS, allowsPickup },
+  });
   return seller;
+}
+
+export async function createCampusPlace(
+  prisma: PrismaService,
+  institutionId: string,
+  name = 'Faculty of Science',
+  isActive = true,
+) {
+  return prisma.campusPlace.create({ data: { institutionId, name, isActive } });
 }
 
 export async function createListing(

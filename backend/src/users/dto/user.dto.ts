@@ -19,6 +19,14 @@ export class UserDto {
   @ApiProperty({ type: String, nullable: true })
   lastName!: string | null;
 
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      'Saved at checkout for the rider (decision PH2), and filled in there next time',
+  })
+  phone!: string | null;
+
   @ApiProperty({ enum: UserRole, enumName: 'UserRole' })
   role!: UserRole;
 
@@ -58,6 +66,7 @@ export function toUserDto(user: SafeUser): UserDto {
     username: user.username,
     firstName: user.firstName,
     lastName: user.lastName,
+    phone: user.phone,
     role: user.role,
     verificationStatus: user.verificationStatus,
     emailVerifiedAt: user.emailVerifiedAt,

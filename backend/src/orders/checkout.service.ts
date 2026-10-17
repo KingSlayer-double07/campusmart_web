@@ -10,9 +10,12 @@ import { lineListingSelect } from '../cart/cart.service';
 import { lineState } from '../cart/cart-rules';
 import type { Env } from '../config/env';
 import { Prisma } from '../generated/prisma/client';
-import { OrderStatus } from '../generated/prisma/enums';
+import { DeliveryMethod, OrderStatus } from '../generated/prisma/enums';
 import { requireActiveInstitution } from '../institutions/institution-access';
+import { sellerDisplayName } from '../listings/listing-rules';
 import { PrismaService } from '../prisma/prisma.service';
+import { offersPickup } from '../sellers/seller-delivery';
+import { assertOneDestination, chooseMethods } from './delivery-choice';
 import { CheckoutDto, CheckoutResultDto } from './dto/order.dto';
 import { collectionCode, sellerOrderCode, splitFee } from './order-codes';
 import { reserveStock } from './order-stock';
@@ -75,21 +78,7 @@ export class CheckoutService {
     buyer: Buyer,
     dto: CheckoutDto,
   ) {
-    // Step 2: a station at the buyer's school, a cart that isn't empty, lines that pass 4.1
-    const station = await tx.pickupStation.findFirst({
-      where: {
-        id: dto.pickupStationId,
-        institutionId: buyer.institutionId,
-        isActive: true,
-      },
-      select: { id: true },
-    });
-    if (!station) {
-      throw new NotFoundException({
-        code: 'NOT_FOUND',
-        message: 'Choose a pickup station at your school',
-      });
-    }
+    // Step 2: a cart that isn't empty, lines that pass 4.1, and a way for each store to arrive
     const lines = await tx.cartItem.findMany({
       where: { userId: buyer.id },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
@@ -105,6 +94,7 @@ export class CheckoutService {
       line,
       ...this.checkLine(line, buyer),
     }));
+    const delivery = await this.resolveDelivery(tx, buyer, dto, lines);
 
     // Steps 3 and 4: reserve stock with conditional decrements, then recalculate the listings
     await reserveStock(
@@ -130,6 +120,7 @@ export class CheckoutService {
       );
       return {
         sellerId,
+        deliveryMethod: delivery.methods.get(sellerId),
         code: sellerOrderCode(),
         collectionCode: collectionCode(),
         subtotalKobo,
@@ -158,11 +149,14 @@ export class CheckoutService {
       data: {
         buyerId: buyer.id,
         institutionId: buyer.institutionId,
-        pickupStationId: station.id,
+        campusPlaceId: delivery.campusPlaceId,
+        deliveryAddress: delivery.deliveryAddress,
+        buyerPhone: delivery.buyerPhone,
+        deliveryFeeKobo: delivery.deliveryFeeKobo,
         status: OrderStatus.PENDING_PAYMENT,
         paymentMethod: dto.paymentMethod,
         subtotalKobo,
-        totalKobo: subtotalKobo,
+        totalKobo: subtotalKobo + delivery.deliveryFeeKobo,
         idempotencyKey: dto.idempotencyKey,
         expiresAt: new Date(Date.now() + ttl * 60_000),
         sellerOrders: { create: sellerOrders },
@@ -170,9 +164,96 @@ export class CheckoutService {
       select: { id: true, totalKobo: true },
     });
 
-    // Step 7: the cart is spent
+    // Step 7: the cart is spent, and the rider's number is kept for next time (decision PH2)
     await tx.cartItem.deleteMany({ where: { userId: buyer.id } });
+    if (delivery.buyerPhone) {
+      await tx.user.update({
+        where: { id: buyer.id },
+        data: { phone: delivery.buyerPhone },
+      });
+    }
     return order;
+  }
+
+  // Each store's method (DM1), and for anything going by dispatch one destination (DF6), the
+  // buyer's phone (C9) and one fee for the order (DF2): the campus fee, or nothing off campus,
+  // where it's settled outside the app (DF4)
+  private async resolveDelivery(
+    tx: Prisma.TransactionClient,
+    buyer: Buyer,
+    dto: CheckoutDto,
+    lines: CheckoutLine[],
+  ) {
+    const stores = new Map(
+      lines.map(({ listing: { seller } }) => [
+        seller.id,
+        {
+          sellerId: seller.id,
+          storeName: sellerDisplayName(seller),
+          offersPickup: offersPickup(seller.sellerProfile),
+        },
+      ]),
+    );
+    const methods = chooseMethods([...stores.values()], dto.stores);
+    const none = {
+      methods,
+      campusPlaceId: null,
+      deliveryAddress: null,
+      buyerPhone: null,
+      deliveryFeeKobo: 0,
+    };
+    if (![...methods.values()].includes(DeliveryMethod.DISPATCH)) return none;
+
+    assertOneDestination(dto.destination);
+    if (!dto.phone) {
+      throw new BadRequestException({
+        code: 'PHONE_REQUIRED',
+        message: 'Add a phone number so the rider can call you',
+      });
+    }
+    const { campusPlaceId, address } = dto.destination!;
+    if (!campusPlaceId) {
+      return {
+        ...none,
+        deliveryAddress: address!,
+        buyerPhone: dto.phone,
+      };
+    }
+
+    const [place, school] = await Promise.all([
+      tx.campusPlace.findFirst({
+        where: {
+          id: campusPlaceId,
+          institutionId: buyer.institutionId,
+          isActive: true,
+        },
+        select: { id: true },
+      }),
+      tx.institution.findUnique({
+        where: { id: buyer.institutionId },
+        select: { deliveryFeeKobo: true },
+      }),
+    ]);
+    if (!place) {
+      throw new NotFoundException({
+        code: 'NOT_FOUND',
+        message: 'Choose a place at your school',
+      });
+    }
+    // Decision C10: on-campus dispatch only once an admin has set the fee
+    if (school?.deliveryFeeKobo == null) {
+      throw new ConflictException({
+        code: 'DELIVERY_UNAVAILABLE',
+        message:
+          "Delivery on campus isn't available at your school yet. Choose pickup, or an address off campus.",
+      });
+    }
+    return {
+      ...none,
+      campusPlaceId: place.id,
+      buyerPhone: dto.phone,
+      deliveryFeeKobo: school.deliveryFeeKobo,
+    };
   }
 
   // The 4.1 checks again, now that money is involved. Prices come from the database only.

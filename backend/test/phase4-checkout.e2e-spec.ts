@@ -41,11 +41,15 @@ describe('Phase 4 checkout and orders (e2e)', () => {
     await ctx.app.close();
   });
 
+  // Both sellers, so the checkout helper can name every store a cart might hold
+  let sellerIds: string[] = [];
+
   async function world() {
     const school = await createSchool(ctx.prisma);
     const station = await createStation(ctx.prisma, school.id);
     const ada = await createSeller(ctx.prisma, school.id, 'Ada Wears');
     const tunde = await createSeller(ctx.prisma, school.id, 'Tunde Tech');
+    sellerIds = [ada.id, tunde.id];
     const buyer = await createUser(ctx.prisma, { institutionId: school.id });
     const agent = await signIn(ctx.app, buyer.email);
     return { school, station, ada, tunde, buyer, agent };
@@ -62,18 +66,21 @@ describe('Phase 4 checkout and orders (e2e)', () => {
       .send({ listingId, quantity, ...(variantId && { variantId }) })
       .expect(200);
 
-  const checkout = (
-    agent: Agent,
-    pickupStationId: string,
-    idempotencyKey = randomUUID(),
-  ) =>
+  // Every store by dispatch to an address off campus, where there's no fee in the app (decision
+  // DF4), so these totals are items only. Delivery itself is covered in phase4b-delivery.
+  const delivery = (sellers = sellerIds) => ({
+    stores: sellers.map((sellerId) => ({ sellerId, method: 'DISPATCH' })),
+    destination: { address: '14 Akoka Road, Yaba' },
+    phone: '+234 801 234 5678',
+  });
+  const checkout = (agent: Agent, idempotencyKey = randomUUID()) =>
     agent
       .post('/api/orders/checkout')
-      .send({ pickupStationId, paymentMethod: 'CARD', idempotencyKey });
+      .send({ ...delivery(), paymentMethod: 'CARD', idempotencyKey });
 
   describe('checklist', () => {
     it('two buyers checking out the last unit at the same time: one succeeds, one gets OUT_OF_STOCK', async () => {
-      const { school, station, tunde, agent } = await world();
+      const { school, tunde, agent } = await world();
       const rival = await createUser(ctx.prisma, { institutionId: school.id });
       const rivalAgent = await signIn(ctx.app, rival.email);
 
@@ -86,8 +93,8 @@ describe('Phase 4 checkout and orders (e2e)', () => {
         await add(rivalAgent, lamp.id);
 
         const results = await Promise.all([
-          checkout(agent, station.id),
-          checkout(rivalAgent, station.id),
+          checkout(agent),
+          checkout(rivalAgent),
         ]);
         const statuses = results.map((r) => r.status).sort();
         expect(statuses).toEqual([201, 409]);
@@ -111,7 +118,7 @@ describe('Phase 4 checkout and orders (e2e)', () => {
     });
 
     it('the last unit of an option goes to one buyer only', async () => {
-      const { school, station, ada, agent } = await world();
+      const { school, ada, agent } = await world();
       const rival = await createUser(ctx.prisma, { institutionId: school.id });
       const rivalAgent = await signIn(ctx.app, rival.email);
       const pants = await createListing(ctx.prisma, ada, {
@@ -125,8 +132,8 @@ describe('Phase 4 checkout and orders (e2e)', () => {
       await add(rivalAgent, pants.id, 1, large.id);
 
       const results = await Promise.all([
-        checkout(agent, station.id),
-        checkout(rivalAgent, station.id),
+        checkout(agent),
+        checkout(rivalAgent),
       ]);
       expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
       await expect(
@@ -141,7 +148,7 @@ describe('Phase 4 checkout and orders (e2e)', () => {
     });
 
     it("changing a price after items are in a cart doesn't change the snapshot on an order already placed", async () => {
-      const { station, tunde, agent } = await world();
+      const { tunde, agent } = await world();
       const lamp = await createListing(ctx.prisma, tunde, {
         title: 'Desk lamp',
         priceKobo: 450_000,
@@ -152,7 +159,7 @@ describe('Phase 4 checkout and orders (e2e)', () => {
         where: { id: lamp.id },
         data: { priceKobo: 470_000 },
       });
-      const placed = await checkout(agent, station.id).expect(201);
+      const placed = await checkout(agent).expect(201);
       expect(placed.body.data.totalKobo).toBe(940_000);
 
       // ...and later changes don't touch the order
@@ -173,21 +180,21 @@ describe('Phase 4 checkout and orders (e2e)', () => {
     });
 
     it('resubmitting checkout with the same idempotencyKey returns the same order', async () => {
-      const { station, tunde, agent } = await world();
+      const { tunde, agent } = await world();
       const lamp = await createListing(ctx.prisma, tunde, { stock: 5 });
       await add(agent, lamp.id, 2);
       const key = randomUUID();
 
-      const first = await checkout(agent, station.id, key).expect(201);
-      const again = await checkout(agent, station.id, key).expect(201);
+      const first = await checkout(agent, key).expect(201);
+      const again = await checkout(agent, key).expect(201);
       expect(again.body.data).toEqual(first.body.data);
 
       // Even at the same moment, with a full cart again
       await add(agent, lamp.id, 1);
       const key2 = randomUUID();
       const racing = await Promise.all([
-        checkout(agent, station.id, key2),
-        checkout(agent, station.id, key2),
+        checkout(agent, key2),
+        checkout(agent, key2),
       ]);
       expect(racing.map((r) => r.status)).toEqual([201, 201]);
       expect(racing[0].body.data.orderId).toBe(racing[1].body.data.orderId);
@@ -203,19 +210,19 @@ describe('Phase 4 checkout and orders (e2e)', () => {
         institutionId: lamp.institutionId,
       });
       const s = await signIn(ctx.app, stranger.email);
-      const reused = await checkout(s, station.id, key).expect(409);
+      const reused = await checkout(s, key).expect(409);
       expect(reused.body.code).toBe('IDEMPOTENCY_KEY_REUSED');
     });
 
     it('an unpaid order expires after 30 minutes and its stock returns', async () => {
-      const { station, tunde, ada, agent } = await world();
+      const { tunde, ada, agent } = await world();
       const lamp = await createListing(ctx.prisma, tunde, { stock: 1 });
       const pants = await createListing(ctx.prisma, ada, {
         variants: [{ label: 'M', stock: 2 }],
       });
       await add(agent, lamp.id, 1);
       await add(agent, pants.id, 2, pants.variants[0].id);
-      const placed = await checkout(agent, station.id).expect(201);
+      const placed = await checkout(agent).expect(201);
       const orderId = placed.body.data.orderId;
 
       const order = await ctx.prisma.order.findUniqueOrThrow({
@@ -280,7 +287,7 @@ describe('Phase 4 checkout and orders (e2e)', () => {
     });
 
     it('a cart with items from 2 sellers produces 2 seller orders with different codes', async () => {
-      const { station, tunde, ada, agent } = await world();
+      const { tunde, ada, agent } = await world();
       const lamp = await createListing(ctx.prisma, tunde, {
         priceKobo: 450_000,
       });
@@ -305,7 +312,7 @@ describe('Phase 4 checkout and orders (e2e)', () => {
         pants.variants.find((v) => v.label === 'M')!.id,
       );
 
-      const placed = await checkout(agent, station.id).expect(201);
+      const placed = await checkout(agent).expect(201);
       expect(placed.body.data).toEqual({
         orderId: expect.any(String),
         totalKobo: 900_000 + 1_500_000 + 1_450_000,
@@ -322,10 +329,12 @@ describe('Phase 4 checkout and orders (e2e)', () => {
         subtotalKobo: 3_850_000,
         totalKobo: 3_850_000,
       });
-      expect(order.pickupStation).toMatchObject({
-        id: station.id,
-        name: 'Library Pickup Point',
-        openingHours: [{ day: 'MON', open: '09:00', close: '17:00' }],
+      // Delivered, not through a pickup station (decisions F2, DL9)
+      expect(order).toMatchObject({
+        pickupStation: null,
+        destination: { campusPlace: null, address: '14 Akoka Road, Yaba' },
+        deliveryFeeKobo: 0,
+        buyerPhone: '+234 801 234 5678',
       });
       const [first, second] = order.sellerOrders;
       expect(order.sellerOrders).toHaveLength(2);
@@ -334,6 +343,7 @@ describe('Phase 4 checkout and orders (e2e)', () => {
         expect(so.code).toMatch(/^CM-[2-9A-HJ-NP-Z]{6}$/);
         expect(so.collectionCode).toMatch(/^\d{6}$/);
         expect(so.fulfillmentStatus).toBe('PENDING');
+        expect(so.deliveryMethod).toBe('DISPATCH');
       }
       expect(
         order.sellerOrders.map(
@@ -373,25 +383,20 @@ describe('Phase 4 checkout and orders (e2e)', () => {
   });
 
   describe('refusals', () => {
-    it('needs a cart, a station at your school, and items that can still be bought', async () => {
-      const { station, tunde, agent } = await world();
-      const empty = await checkout(agent, station.id).expect(400);
+    it('needs a cart, and items that can still be bought', async () => {
+      const { tunde, agent } = await world();
+      const empty = await checkout(agent).expect(400);
       expect(empty.body.code).toBe('CART_EMPTY');
 
       const lamp = await createListing(ctx.prisma, tunde, { stock: 3 });
       await add(agent, lamp.id, 2);
-      const elsewhere = await createSchool(ctx.prisma);
-      const farStation = await createStation(ctx.prisma, elsewhere.id);
-      const closed = await createStation(ctx.prisma, lamp.institutionId, false);
-      await checkout(agent, farStation.id).expect(404);
-      await checkout(agent, closed.id).expect(404);
 
       // Archived after it went in the cart
       await ctx.prisma.listing.update({
         where: { id: lamp.id },
         data: { status: ListingStatus.ARCHIVED },
       });
-      const gone = await checkout(agent, station.id).expect(409);
+      const gone = await checkout(agent).expect(409);
       expect(gone.body).toMatchObject({
         code: 'ITEM_UNAVAILABLE',
         details: { listingId: lamp.id },
@@ -402,7 +407,7 @@ describe('Phase 4 checkout and orders (e2e)', () => {
         where: { id: lamp.id },
         data: { status: ListingStatus.ACTIVE, stock: 1 },
       });
-      const short = await checkout(agent, station.id).expect(409);
+      const short = await checkout(agent).expect(409);
       expect(short.body).toMatchObject({
         code: 'OUT_OF_STOCK',
         details: { listingId: lamp.id, available: 1 },
@@ -417,13 +422,13 @@ describe('Phase 4 checkout and orders (e2e)', () => {
     });
 
     it('takes no prices from the client, and only known payment methods', async () => {
-      const { station, tunde, agent } = await world();
+      const { tunde, agent } = await world();
       const lamp = await createListing(ctx.prisma, tunde);
       await add(agent, lamp.id);
       await agent
         .post('/api/orders/checkout')
         .send({
-          pickupStationId: station.id,
+          ...delivery(),
           paymentMethod: 'CARD',
           idempotencyKey: randomUUID(),
           totalKobo: 1,
@@ -432,7 +437,7 @@ describe('Phase 4 checkout and orders (e2e)', () => {
       await agent
         .post('/api/orders/checkout')
         .send({
-          pickupStationId: station.id,
+          ...delivery(),
           paymentMethod: 'CASH',
           idempotencyKey: randomUUID(),
         })
@@ -440,7 +445,7 @@ describe('Phase 4 checkout and orders (e2e)', () => {
       await agent
         .post('/api/orders/checkout')
         .send({
-          pickupStationId: station.id,
+          ...delivery(),
           paymentMethod: 'CARD',
           idempotencyKey: 'not-a-uuid',
         })
@@ -448,7 +453,7 @@ describe('Phase 4 checkout and orders (e2e)', () => {
     });
 
     it('needs a verified email and a school that is switched on', async () => {
-      const { school, station, tunde, agent } = await world();
+      const { school, tunde, agent } = await world();
       await request(ctx.app.getHttpServer())
         .post('/api/orders/checkout')
         .send({})
@@ -463,7 +468,7 @@ describe('Phase 4 checkout and orders (e2e)', () => {
         emailVerifiedAt: null,
       });
       const u = await signIn(ctx.app, unverified.email);
-      expect((await checkout(u, station.id).expect(403)).body.code).toBe(
+      expect((await checkout(u).expect(403)).body.code).toBe(
         'EMAIL_NOT_VERIFIED',
       );
 
@@ -473,7 +478,7 @@ describe('Phase 4 checkout and orders (e2e)', () => {
         where: { id: school.id },
         data: { isActive: false },
       });
-      expect((await checkout(agent, station.id).expect(403)).body.code).toBe(
+      expect((await checkout(agent).expect(403)).body.code).toBe(
         'INSTITUTION_INACTIVE',
       );
       expect(
@@ -485,14 +490,12 @@ describe('Phase 4 checkout and orders (e2e)', () => {
 
   describe('orders', () => {
     it("lists only your orders, newest first, and someone else's order is 404", async () => {
-      const { school, station, tunde, agent } = await world();
+      const { school, tunde, agent } = await world();
       const lamp = await createListing(ctx.prisma, tunde, { stock: 10 });
       const ids: string[] = [];
       for (let i = 0; i < 3; i += 1) {
         await add(agent, lamp.id);
-        ids.push(
-          (await checkout(agent, station.id).expect(201)).body.data.orderId,
-        );
+        ids.push((await checkout(agent).expect(201)).body.data.orderId);
       }
       const page1 = (await agent.get('/api/orders?limit=2').expect(200)).body
         .data;
@@ -502,8 +505,15 @@ describe('Phase 4 checkout and orders (e2e)', () => {
       ]);
       expect(page1.items[0]).toMatchObject({
         status: 'PENDING_PAYMENT',
-        pickupStation: { id: station.id, name: 'Library Pickup Point' },
-        sellerOrders: [{ seller: { storeName: 'Tunde Tech' }, itemCount: 1 }],
+        pickupStation: null,
+        destination: { campusPlace: null, address: '14 Akoka Road, Yaba' },
+        sellerOrders: [
+          {
+            seller: { storeName: 'Tunde Tech' },
+            deliveryMethod: 'DISPATCH',
+            itemCount: 1,
+          },
+        ],
       });
       expect(page1.items[0].sellerOrders[0]).not.toHaveProperty(
         'collectionCode',
@@ -533,11 +543,10 @@ describe('Phase 4 checkout and orders (e2e)', () => {
     });
 
     it('cancels an order waiting for payment and puts its stock back; only once', async () => {
-      const { station, tunde, agent } = await world();
+      const { tunde, agent } = await world();
       const lamp = await createListing(ctx.prisma, tunde, { stock: 2 });
       await add(agent, lamp.id, 2);
-      const { orderId } = (await checkout(agent, station.id).expect(201)).body
-        .data;
+      const { orderId } = (await checkout(agent).expect(201)).body.data;
       await expect(
         ctx.prisma.listing.findUniqueOrThrow({ where: { id: lamp.id } }),
       ).resolves.toMatchObject({ stock: 0, status: ListingStatus.SOLDOUT });
@@ -570,11 +579,10 @@ describe('Phase 4 checkout and orders (e2e)', () => {
     });
 
     it('a completed payment wins: the order is neither expired nor cancellable', async () => {
-      const { station, tunde, agent } = await world();
+      const { tunde, agent } = await world();
       const lamp = await createListing(ctx.prisma, tunde, { stock: 1 });
       await add(agent, lamp.id);
-      const { orderId } = (await checkout(agent, station.id).expect(201)).body
-        .data;
+      const { orderId } = (await checkout(agent).expect(201)).body.data;
       // What Phase 5's webhook will write
       await ctx.prisma.payment.create({
         data: {

@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import type { AuthUser } from '../auth/auth-user';
 import { Prisma } from '../generated/prisma/client';
 import {
+  DeliveryMethod,
   ListingStatus,
   OrderStatus,
   PaymentMethod,
@@ -21,8 +22,12 @@ const buyer = {
   role: UserRole.BUYER,
   institutionId: 'school-a',
 } as AuthUser;
+const { DISPATCH, SELLER_PICKUP } = DeliveryMethod;
+// Every store by dispatch to a campus place: one fee for the order (decisions DF2, DF6)
 const dto = {
-  pickupStationId: 'station-1',
+  stores: ['s1', 's2'].map((sellerId) => ({ sellerId, method: DISPATCH })),
+  destination: { campusPlaceId: 'place-1' },
+  phone: '+234 801 234 5678',
   paymentMethod: PaymentMethod.CARD,
   idempotencyKey: '7d3f5b2e-1c4a-4f6e-9b8d-2a1c3e5f7a9b',
 };
@@ -43,6 +48,18 @@ const line = (id: string, sellerId: string, overrides: object = {}) => ({
     sellerId,
     images: [{ url: `https://img/${id}.jpg` }],
     variants: [] as object[],
+    seller: {
+      id: sellerId,
+      username: null,
+      firstName: null,
+      sellerProfile: {
+        storeName: `Store ${sellerId}`,
+        pickupArea: 'Moremi Hall',
+        pickupAddress: 'Room 12, Block B',
+        contactPhone: '+234 809 000 0000',
+        allowsPickup: sellerId === 's1',
+      },
+    },
     ...overrides,
   },
 });
@@ -50,9 +67,11 @@ const line = (id: string, sellerId: string, overrides: object = {}) => ({
 describe('CheckoutService', () => {
   let service: CheckoutService;
   const tx = {
-    pickupStation: { findFirst: jest.fn() },
+    campusPlace: { findFirst: jest.fn() },
+    institution: { findUnique: jest.fn() },
     cartItem: { findMany: jest.fn(), deleteMany: jest.fn() },
     order: { create: jest.fn() },
+    user: { update: jest.fn() },
   };
   const prisma = {
     institution: { findUnique: jest.fn() },
@@ -74,7 +93,8 @@ describe('CheckoutService', () => {
     prisma.$transaction.mockImplementation((fn: (t: typeof tx) => unknown) =>
       fn(tx),
     );
-    tx.pickupStation.findFirst.mockResolvedValue({ id: 'station-1' });
+    tx.campusPlace.findFirst.mockResolvedValue({ id: 'place-1' });
+    tx.institution.findUnique.mockResolvedValue({ deliveryFeeKobo: 50_000 });
     tx.order.create.mockResolvedValue({ id: 'order-1', totalKobo: 0 });
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -115,23 +135,117 @@ describe('CheckoutService', () => {
     ).toBe('IDEMPOTENCY_KEY_REUSED');
   });
 
-  it('needs a station at your school and a cart with something in it', async () => {
-    tx.pickupStation.findFirst.mockResolvedValue(null);
-    await expect(service.checkout(buyer, dto)).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-    expect(tx.pickupStation.findFirst.mock.calls[0][0].where).toEqual({
-      id: 'station-1',
-      institutionId: 'school-a',
-      isActive: true,
-    });
-
-    tx.pickupStation.findFirst.mockResolvedValue({ id: 'station-1' });
+  it('needs a cart with something in it', async () => {
     tx.cartItem.findMany.mockResolvedValue([]);
     expect(
       codeOf(await service.checkout(buyer, dto).catch((e: unknown) => e)),
     ).toBe('CART_EMPTY');
     expect(reserve).not.toHaveBeenCalled();
+  });
+
+  describe('delivery', () => {
+    const failure = async (body: object) =>
+      codeOf(
+        await service
+          .checkout(buyer, { ...dto, ...body })
+          .catch((e: unknown) => e),
+      );
+
+    beforeEach(() => {
+      tx.cartItem.findMany.mockResolvedValue([
+        line('a', 's1'),
+        line('b', 's2'),
+      ]);
+    });
+
+    it('charges the campus fee once for the whole order, and keeps the phone for the rider (DF2, PH2)', async () => {
+      await service.checkout(buyer, dto);
+      expect(tx.campusPlace.findFirst.mock.calls[0][0].where).toEqual({
+        id: 'place-1',
+        institutionId: 'school-a',
+        isActive: true,
+      });
+      const { data } = tx.order.create.mock.calls[0][0];
+      expect(data).toMatchObject({
+        campusPlaceId: 'place-1',
+        deliveryAddress: null,
+        buyerPhone: '+234 801 234 5678',
+        deliveryFeeKobo: 50_000,
+        subtotalKobo: 200_000,
+        totalKobo: 250_000,
+      });
+      expect(
+        data.sellerOrders.create.map(
+          (so: { deliveryMethod: string }) => so.deliveryMethod,
+        ),
+      ).toEqual([DISPATCH, DISPATCH]);
+      expect(tx.user.update).toHaveBeenCalledWith({
+        where: { id: 'buyer' },
+        data: { phone: '+234 801 234 5678' },
+      });
+      expect(data).not.toHaveProperty('pickupStationId');
+    });
+
+    it('off campus: the address, and no fee in the app (DF4)', async () => {
+      await service.checkout(buyer, {
+        ...dto,
+        destination: { address: '14 Akoka Road, Yaba' },
+      });
+      expect(tx.order.create.mock.calls[0][0].data).toMatchObject({
+        campusPlaceId: null,
+        deliveryAddress: '14 Akoka Road, Yaba',
+        deliveryFeeKobo: 0,
+        totalKobo: 200_000,
+      });
+      expect(tx.campusPlace.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('pickup from every store needs no destination, phone or fee (C2, C9)', async () => {
+      tx.cartItem.findMany.mockResolvedValue([line('a', 's1')]);
+      await service.checkout(buyer, {
+        stores: [{ sellerId: 's1', method: SELLER_PICKUP }],
+        paymentMethod: PaymentMethod.CARD,
+        idempotencyKey: dto.idempotencyKey,
+      });
+      const { data } = tx.order.create.mock.calls[0][0];
+      expect(data).toMatchObject({
+        campusPlaceId: null,
+        deliveryAddress: null,
+        buyerPhone: null,
+        deliveryFeeKobo: 0,
+        totalKobo: 100_000,
+      });
+      expect(data.sellerOrders.create[0].deliveryMethod).toBe(SELLER_PICKUP);
+      expect(tx.user.update).not.toHaveBeenCalled();
+    });
+
+    it('refuses before reserving any stock', async () => {
+      expect(
+        await failure({
+          stores: [
+            { sellerId: 's1', method: DISPATCH },
+            { sellerId: 's2', method: SELLER_PICKUP },
+          ],
+        }),
+      ).toBe('PICKUP_NOT_OFFERED');
+      expect(
+        await failure({ stores: [{ sellerId: 's1', method: DISPATCH }] }),
+      ).toBe('DELIVERY_CHOICE_REQUIRED');
+      expect(await failure({ phone: undefined })).toBe('PHONE_REQUIRED');
+      expect(await failure({ destination: undefined })).toBe(
+        'DESTINATION_REQUIRED',
+      );
+
+      tx.institution.findUnique.mockResolvedValue({ deliveryFeeKobo: null });
+      expect(await failure({})).toBe('DELIVERY_UNAVAILABLE');
+
+      tx.campusPlace.findFirst.mockResolvedValue(null);
+      await expect(service.checkout(buyer, dto)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(reserve).not.toHaveBeenCalled();
+      expect(tx.order.create).not.toHaveBeenCalled();
+    });
   });
 
   it('checks every line before reserving anything', async () => {
@@ -182,11 +296,10 @@ describe('CheckoutService', () => {
     expect(data).toMatchObject({
       buyerId: 'buyer',
       institutionId: 'school-a',
-      pickupStationId: 'station-1',
       status: OrderStatus.PENDING_PAYMENT,
       paymentMethod: PaymentMethod.CARD,
       subtotalKobo: 600_000,
-      totalKobo: 600_000,
+      totalKobo: 650_000,
       idempotencyKey: dto.idempotencyKey,
     });
     expect(data.expiresAt.getTime()).toBeGreaterThanOrEqual(

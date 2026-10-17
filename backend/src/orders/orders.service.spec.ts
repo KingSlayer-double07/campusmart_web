@@ -1,10 +1,16 @@
 import { HttpException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { AuthUser } from '../auth/auth-user';
-import { OrderStatus, UserRole } from '../generated/prisma/enums';
+import {
+  DeliveryMethod,
+  FulfillmentStatus,
+  OrderStatus,
+  PaymentMethod,
+  UserRole,
+} from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import * as lifecycle from './order-lifecycle';
-import { OrdersService } from './orders.service';
+import { OrdersService, toOrderDto } from './orders.service';
 
 const codeOf = (error: unknown) =>
   ((error as HttpException).getResponse() as { code?: string }).code;
@@ -20,6 +26,7 @@ describe('OrdersService', () => {
   const prisma = {
     institution: { findUnique: jest.fn() },
     pickupStation: { findMany: jest.fn() },
+    campusPlace: { findMany: jest.fn() },
     order: { findMany: jest.fn(), findFirst: jest.fn() },
     $transaction: jest.fn(),
   };
@@ -94,6 +101,93 @@ describe('OrdersService', () => {
     expect(prisma.pickupStation.findMany.mock.calls[0][0].where).toEqual({
       institutionId: 'school-a',
       isActive: true,
+    });
+  });
+
+  it("lists active campus places at the buyer's school only (decision DF3)", async () => {
+    prisma.institution.findUnique.mockResolvedValue({ isActive: true });
+    prisma.campusPlace.findMany.mockResolvedValue([]);
+    await service.campusPlaces(buyer);
+    expect(prisma.campusPlace.findMany.mock.calls[0][0]).toMatchObject({
+      where: { institutionId: 'school-a', isActive: true },
+      select: { id: true, name: true },
+    });
+  });
+
+  describe('toOrderDto', () => {
+    const sellerOrder = (deliveryMethod: DeliveryMethod) => ({
+      id: `so-${deliveryMethod}`,
+      code: 'CM-7F3K2Q',
+      collectionCode: '123456',
+      deliveryMethod,
+      fulfillmentStatus: FulfillmentStatus.PENDING,
+      subtotalKobo: 100_000,
+      dropOffDeadline: null,
+      droppedOffAt: null,
+      collectedAt: null,
+      cancelledAt: null,
+      cancelReason: null,
+      seller: {
+        id: 'ada',
+        username: null,
+        firstName: null,
+        sellerProfile: {
+          storeName: 'Ada Wears',
+          pickupArea: 'Moremi Hall',
+          pickupAddress: 'Room 12, Block B',
+          contactPhone: '+234 809 000 0000',
+          allowsPickup: true,
+        },
+      },
+      items: [],
+    });
+    const order = (paidAt: Date | null) => ({
+      id: 'o1',
+      status: paidAt ? OrderStatus.PAID : OrderStatus.PENDING_PAYMENT,
+      paymentMethod: PaymentMethod.CARD,
+      subtotalKobo: 200_000,
+      totalKobo: 250_000,
+      createdAt: new Date(),
+      expiresAt: new Date(),
+      paidAt,
+      deliveryFeeKobo: 50_000,
+      deliveryAddress: null,
+      buyerPhone: '+234 801 234 5678',
+      campusPlace: { id: 'p1', name: 'Faculty of Science' },
+      pickupStation: null,
+      sellerOrders: [
+        sellerOrder(DeliveryMethod.SELLER_PICKUP),
+        sellerOrder(DeliveryMethod.DISPATCH),
+      ],
+    });
+
+    it("shows the seller's area before payment, and their address and phone only after (SA2, SA3)", () => {
+      const unpaid = toOrderDto(order(null));
+      expect(unpaid.sellerOrders[0].pickupFrom).toEqual({
+        area: 'Moremi Hall',
+        address: null,
+        phone: null,
+      });
+      expect(JSON.stringify(unpaid)).not.toContain('Room 12');
+      expect(JSON.stringify(unpaid)).not.toContain('809 000');
+
+      const paid = toOrderDto(order(new Date()));
+      expect(paid.sellerOrders[0].pickupFrom).toEqual({
+        area: 'Moremi Hall',
+        address: 'Room 12, Block B',
+        phone: '+234 809 000 0000',
+      });
+      // Dispatch orders never show it: the rider collects
+      expect(paid.sellerOrders[1].pickupFrom).toBeNull();
+      expect(paid).toMatchObject({
+        pickupStation: null,
+        destination: {
+          campusPlace: { id: 'p1', name: 'Faculty of Science' },
+          address: null,
+        },
+        deliveryFeeKobo: 50_000,
+        buyerPhone: '+234 801 234 5678',
+      });
     });
   });
 });

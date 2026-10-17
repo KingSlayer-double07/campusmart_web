@@ -334,6 +334,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/campus-places": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List campus places
+         * @description Every delivery place, active or not, by institution then name. `q` matches the name.
+         */
+        get: operations["AdminCampusPlacesController_list"];
+        put?: never;
+        /**
+         * Add a campus place
+         * @description Buyers at that school can choose it for delivery straight away
+         */
+        post: operations["AdminCampusPlacesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/campus-places/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Rename or switch a campus place on or off
+         * @description The institution cannot change. Switching it off (isActive: false) needs a reason; orders already placed keep it.
+         */
+        patch: operations["AdminCampusPlacesController_update"];
+        trace?: never;
+    };
     "/api/admin/institutions": {
         parameters: {
             query?: never;
@@ -740,6 +784,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/campus-places": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Places a rider can deliver to at your school
+         * @description Active campus places, by name (decision DF3)
+         */
+        get: operations["OrdersController_campusPlaces"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orders/checkout": {
         parameters: {
             query?: never;
@@ -751,7 +815,7 @@ export interface paths {
         put?: never;
         /**
          * Turn the cart into an order
-         * @description Reserves stock and snapshots prices from the database in one transaction; the client sends no prices. The same idempotencyKey returns the same order. authorizationUrl is null until payments are switched on.
+         * @description Reserves stock and snapshots prices from the database in one transaction; the client sends no prices. Each store in the cart is delivered by dispatch or collected from the seller. Anything by dispatch needs one destination and a phone number, and the order pays one delivery fee: the campus fee for a campus place, nothing in the app for an address off campus. The same idempotencyKey returns the same order. authorizationUrl is null until payments are switched on.
          */
         post: operations["OrdersController_checkout"];
         delete?: never;
@@ -786,7 +850,7 @@ export interface paths {
         };
         /**
          * One of your orders
-         * @description Includes each seller order's collection code (yours only)
+         * @description Includes each seller order's handover code (yours only). For pickup from a seller, their address and phone appear once the order is paid.
          */
         get: operations["OrdersController_detail"];
         put?: never;
@@ -862,6 +926,8 @@ export interface components {
             username: string | null;
             firstName: string | null;
             lastName: string | null;
+            /** @description Saved at checkout for the rider (decision PH2), and filled in there next time */
+            phone: string | null;
             role: components["schemas"]["UserRole"];
             verificationStatus: components["schemas"]["VerificationStatus"];
             /**
@@ -973,6 +1039,44 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        StationInstitutionDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            isActive: boolean;
+        };
+        AdminCampusPlaceDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example Moremi Hall */
+            name: string;
+            /** @description Only active places are offered at checkout */
+            isActive: boolean;
+            institution: components["schemas"]["StationInstitutionDto"];
+            /** @description Orders delivered to this place */
+            orderCount: number;
+        };
+        AdminCampusPlacePageDto: {
+            items: components["schemas"]["AdminCampusPlaceDto"][];
+            /** Format: uuid */
+            nextCursor: string | null;
+        };
+        /** @enum {string} */
+        ActiveFilter: "ACTIVE" | "INACTIVE";
+        CreateCampusPlaceDto: {
+            /** Format: uuid */
+            institutionId: string;
+            /** @example Moremi Hall */
+            name: string;
+        };
+        UpdateCampusPlaceDto: {
+            /** @example Moremi Hall */
+            name?: string;
+            /** @description false switches it off (needs a reason) */
+            isActive?: boolean;
+            /** @description Required when isActive is false. Kept in the audit log. */
+            reason?: string;
+        };
         AdminInstitutionDto: {
             /** Format: uuid */
             id: string;
@@ -988,8 +1092,12 @@ export interface components {
             isActive: boolean;
             /** Format: date-time */
             createdAt: string;
+            /** @description Flat on-campus delivery fee in kobo, once per order. null: on-campus dispatch is not offered yet. */
+            deliveryFeeKobo: number | null;
             /** @description Pickup stations, active or not */
             stationCount: number;
+            /** @description Campus places, active or not */
+            placeCount: number;
             /** @description Accounts that belong to this institution */
             userCount: number;
         };
@@ -998,8 +1106,6 @@ export interface components {
             /** Format: uuid */
             nextCursor: string | null;
         };
-        /** @enum {string} */
-        ActiveFilter: "ACTIVE" | "INACTIVE";
         CreateInstitutionDto: {
             /** @example University of Lagos */
             name: string;
@@ -1025,6 +1131,11 @@ export interface components {
             isActive?: boolean;
             /** @description Required when isActive is false. Kept in the audit log. */
             reason?: string;
+            /**
+             * @description The flat fee for dispatch to a campus place, in kobo, charged once per order. null stops on-campus dispatch at this school.
+             * @example 50000
+             */
+            deliveryFeeKobo?: number | null;
         };
         /** @enum {string} */
         Weekday: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
@@ -1040,12 +1151,6 @@ export interface components {
              * @example 17:00
              */
             close: string;
-        };
-        StationInstitutionDto: {
-            /** Format: uuid */
-            id: string;
-            name: string;
-            isActive: boolean;
         };
         AdminPickupStationDto: {
             /** Format: uuid */
@@ -1319,6 +1424,19 @@ export interface components {
             payoutAccountName: string | null;
             /** @description A payout account is set up (Phase 5) */
             hasPayoutAccount: boolean;
+            /**
+             * @description Buyers see this before paying (decision SA2)
+             * @example Moremi Hall
+             */
+            pickupArea: string | null;
+            /** @description Where riders collect. A buyer who picks up sees it only after paying (decision SA3). */
+            pickupAddress: string | null;
+            /** @example +234 801 234 5678 */
+            contactPhone: string | null;
+            /** @description Buyers may choose to collect from you (decision DL1) */
+            allowsPickup: boolean;
+            /** @description The area, address and phone are all set. Publishing needs them (decision SA1). */
+            deliveryDetailsComplete: boolean;
         };
         UpdateSellerProfileDto: {
             /** @example TrendHUB NG */
@@ -1327,6 +1445,14 @@ export interface components {
             /** @description Uploaded with an AVATAR signature; null removes it */
             logoUrl?: string | null;
             isOnline?: boolean;
+            /** @example Moremi Hall */
+            pickupArea?: string;
+            /** @example Room 12, Block B, Moremi Hall */
+            pickupAddress?: string;
+            /** @example +234 801 234 5678 */
+            contactPhone?: string;
+            /** @description Needs the area, address and phone to be set */
+            allowsPickup?: boolean;
         };
         VerificationRequestDto: {
             /** Format: uuid */
@@ -1353,6 +1479,11 @@ export interface components {
             id: string;
             /** @description Store name, else username, else first name */
             storeName: string;
+            /**
+             * @description Set when the seller lets buyers collect from them (decision DL1). Only the area: the address comes after payment (SA2, SA3).
+             * @example Moremi Hall
+             */
+            pickupArea: string | null;
         };
         CartVariantDto: {
             /** Format: uuid */
@@ -1404,6 +1535,8 @@ export interface components {
             /** @description Units across all lines */
             itemCount: number;
             issues: components["schemas"]["CartIssueDto"][];
+            /** @description Your school's flat fee for dispatch to a campus place, in kobo, charged once per order (decisions DF1, DF2). null: on-campus dispatch isn't offered yet (C10). */
+            campusDeliveryFeeKobo: number | null;
         };
         SetCartItemDto: {
             /** Format: uuid */
@@ -1436,24 +1569,60 @@ export interface components {
             contactPhone: string;
             openingHours: components["schemas"]["OpeningHoursDto"][];
         };
+        CampusPlaceDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example Moremi Hall */
+            name: string;
+        };
         CheckoutResultDto: {
             /** Format: uuid */
             orderId: string;
-            /** @description What the buyer pays, in kobo */
+            /** @description What the buyer pays, in kobo: items plus the delivery fee */
             totalKobo: number;
             /** @description Paystack's payment page. null until payments are switched on (Phase 5). */
             authorizationUrl: string | null;
             /** @description Payment reference */
             reference: string | null;
         };
+        /**
+         * @description DISPATCH: a rider brings it. SELLER_PICKUP: you collect from the seller, only if they offer it.
+         * @enum {string}
+         */
+        DeliveryMethod: "DISPATCH" | "SELLER_PICKUP";
+        StoreDeliveryDto: {
+            /**
+             * Format: uuid
+             * @description A seller in your cart
+             */
+            sellerId: string;
+            /** @description DISPATCH: a rider brings it. SELLER_PICKUP: you collect from the seller, only if they offer it. */
+            method: components["schemas"]["DeliveryMethod"];
+        };
+        DeliveryDestinationDto: {
+            /**
+             * Format: uuid
+             * @description An active campus place at your school
+             */
+            campusPlaceId?: string;
+            /**
+             * @description Off campus: the address the rider brings it to
+             * @example 14 Akoka Road, Yaba
+             */
+            address?: string;
+        };
         /** @enum {string} */
         PaymentMethod: "CARD" | "BANK_TRANSFER" | "OPAY" | "PALMPAY";
         CheckoutDto: {
+            /** @description One entry per store in your cart */
+            stores: components["schemas"]["StoreDeliveryDto"][];
+            /** @description Needed when any store goes by dispatch: exactly one of campusPlaceId or address */
+            destination?: components["schemas"]["DeliveryDestinationDto"];
             /**
-             * Format: uuid
-             * @description An active station at your school
+             * @description Needed when any store goes by dispatch, so the rider can call you (decisions PH2, C9). Saved to your profile.
+             * @example +234 801 234 5678
              */
-            pickupStationId: string;
+            phone?: string;
             paymentMethod: components["schemas"]["PaymentMethod"];
             /**
              * Format: uuid
@@ -1467,6 +1636,11 @@ export interface components {
             /** Format: uuid */
             id: string;
             name: string;
+        };
+        OrderDestinationDto: {
+            campusPlace: components["schemas"]["CampusPlaceDto"] | null;
+            /** @description Off campus: the address the buyer typed */
+            address: string | null;
         };
         OrderSellerDto: {
             /** Format: uuid */
@@ -1482,6 +1656,8 @@ export interface components {
             /** @example CM-7F3K2Q */
             code: string;
             seller: components["schemas"]["OrderSellerDto"];
+            /** @description Empty on orders placed through a pickup station */
+            deliveryMethod: components["schemas"]["DeliveryMethod"] | null;
             fulfillmentStatus: components["schemas"]["FulfillmentStatus"];
             subtotalKobo: number;
             /** @description Units across its items */
@@ -1502,13 +1678,26 @@ export interface components {
              * @description An unpaid order is released after this
              */
             expiresAt: string;
-            pickupStation: components["schemas"]["OrderStationDto"];
+            /** @description Only on orders placed through a pickup station */
+            pickupStation: components["schemas"]["OrderStationDto"] | null;
+            /** @description Set when any store goes by dispatch */
+            destination: components["schemas"]["OrderDestinationDto"] | null;
+            /** @description In kobo, once per order */
+            deliveryFeeKobo: number;
             sellerOrders: components["schemas"]["SellerOrderSummaryDto"][];
         };
         OrderPageDto: {
             items: components["schemas"]["OrderSummaryDto"][];
             /** Format: uuid */
             nextCursor: string | null;
+        };
+        SellerPickupDto: {
+            /** @example Moremi Hall */
+            area: string;
+            /** @description Shown once the order is paid */
+            address: string | null;
+            /** @description Shown once the order is paid */
+            phone: string | null;
         };
         OrderItemDto: {
             /** Format: uuid */
@@ -1531,14 +1720,18 @@ export interface components {
             /** @example CM-7F3K2Q */
             code: string;
             seller: components["schemas"]["OrderSellerDto"];
+            /** @description Empty on orders placed through a pickup station */
+            deliveryMethod: components["schemas"]["DeliveryMethod"] | null;
             fulfillmentStatus: components["schemas"]["FulfillmentStatus"];
             subtotalKobo: number;
             /** @description Units across its items */
             itemCount: number;
             /** @description First item photo */
             imageUrl: string | null;
-            /** @description 6 digits the buyer gives the agent at collection. Only the buyer's own order includes it. */
+            /** @description The code the buyer gives at handover. Only the buyer's own order includes it. */
             collectionCode: string;
+            /** @description Set when you collect from the seller (SELLER_PICKUP) */
+            pickupFrom: components["schemas"]["SellerPickupDto"] | null;
             items: components["schemas"]["OrderItemDto"][];
             /** Format: date-time */
             dropOffDeadline: string | null;
@@ -1566,7 +1759,14 @@ export interface components {
             expiresAt: string;
             /** Format: date-time */
             paidAt: string | null;
-            pickupStation: components["schemas"]["PickupStationDto"];
+            /** @description Only on orders placed through a pickup station */
+            pickupStation: components["schemas"]["PickupStationDto"] | null;
+            /** @description Set when any store goes by dispatch */
+            destination: components["schemas"]["OrderDestinationDto"] | null;
+            /** @description In kobo, once per order: the campus fee when anything goes by dispatch to a campus place, else 0 (off campus it is settled outside the app) */
+            deliveryFeeKobo: number;
+            /** @description The number the rider calls, when any store goes by dispatch */
+            buyerPhone: string | null;
             sellerOrders: components["schemas"]["SellerOrderDto"][];
         };
     };
@@ -2315,6 +2515,211 @@ export interface operations {
                 };
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminCampusPlacesController_list: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+                /** @description Search text */
+                q?: string;
+                status?: components["schemas"]["ActiveFilter"];
+                institutionId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminCampusPlacePageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminCampusPlacesController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCampusPlaceDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminCampusPlaceDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description VALIDATION_FAILED, or INVALID_REFERENCE for an unknown institution */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description The institution already has a place with this name */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminCampusPlacesController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCampusPlaceDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminCampusPlaceDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3991,6 +4396,57 @@ export interface operations {
             };
         };
     };
+    OrdersController_campusPlaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["CampusPlaceDto"][];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
     OrdersController_checkout: {
         parameters: {
             query?: never;
@@ -4018,7 +4474,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description CART_EMPTY or VALIDATION_FAILED */
+            /** @description CART_EMPTY, DELIVERY_CHOICE_REQUIRED (details.sellerId), DESTINATION_REQUIRED, PHONE_REQUIRED or VALIDATION_FAILED */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -4044,7 +4500,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description No such active station at your school */
+            /** @description No such active campus place at your school */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4053,7 +4509,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description OUT_OF_STOCK or ITEM_UNAVAILABLE (details name the item), or IDEMPOTENCY_KEY_REUSED */
+            /** @description OUT_OF_STOCK or ITEM_UNAVAILABLE (details name the item), PICKUP_NOT_OFFERED (details.sellerId), DELIVERY_UNAVAILABLE (no campus fee set yet), or IDEMPOTENCY_KEY_REUSED */
             409: {
                 headers: {
                     [name: string]: unknown;
