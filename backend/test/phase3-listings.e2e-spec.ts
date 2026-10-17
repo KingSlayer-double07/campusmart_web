@@ -6,6 +6,7 @@ import { CloudinaryService } from '../src/uploads/cloudinary.service';
 import {
   createTestApp,
   createUser,
+  DELIVERY_DETAILS,
   resetRateLimits,
   signIn,
   TestContext,
@@ -73,6 +74,13 @@ describe('Phase 3 listings (e2e)', () => {
       role: UserRole.SELLER,
       institutionId: schoolB.id,
       verificationStatus: VerificationStatus.VERIFIED,
+    });
+    // ...and they have said where riders collect from (decision SA1)
+    await ctx.prisma.sellerProfile.createMany({
+      data: [sellerA, sellerB].map((s) => ({
+        userId: s.id,
+        ...DELIVERY_DETAILS,
+      })),
     });
     const buyerA = await createUser(ctx.prisma, { institutionId: schoolA.id });
     const buyerB = await createUser(ctx.prisma, { institutionId: schoolB.id });

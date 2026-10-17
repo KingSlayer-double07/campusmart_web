@@ -99,22 +99,45 @@ describe('SellerVerificationService', () => {
     expect(prisma.verificationRequest.create).not.toHaveBeenCalled();
   });
 
+  const details = {
+    pickupArea: 'Moremi Hall',
+    pickupAddress: 'Room 12, Block B',
+    contactPhone: '+234 801 234 5678',
+  };
+  const publishError = (...args: Parameters<typeof assertCanPublish>) => {
+    try {
+      assertCanPublish(...args);
+    } catch (e) {
+      return codeOf(e);
+    }
+    return null;
+  };
+
   it('only a VERIFIED seller can publish', () => {
-    expect(() =>
-      assertCanPublish({ verificationStatus: VerificationStatus.VERIFIED }),
-    ).not.toThrow();
+    expect(
+      publishError(
+        { verificationStatus: VerificationStatus.VERIFIED },
+        details,
+      ),
+    ).toBeNull();
     for (const verificationStatus of [
       VerificationStatus.UNVERIFIED,
       VerificationStatus.PENDING,
       VerificationStatus.REJECTED,
     ]) {
-      let error: unknown;
-      try {
-        assertCanPublish({ verificationStatus });
-      } catch (e) {
-        error = e;
-      }
-      expect(codeOf(error)).toBe('SELLER_NOT_VERIFIED');
+      expect(publishError({ verificationStatus }, details)).toBe(
+        'SELLER_NOT_VERIFIED',
+      );
+    }
+  });
+
+  it('a verified seller also needs an area, address and phone (decision SA1)', () => {
+    const verified = { verificationStatus: VerificationStatus.VERIFIED };
+    expect(publishError(verified, null)).toBe('SELLER_PROFILE_INCOMPLETE');
+    for (const missing of ['pickupArea', 'pickupAddress', 'contactPhone']) {
+      expect(publishError(verified, { ...details, [missing]: null })).toBe(
+        'SELLER_PROFILE_INCOMPLETE',
+      );
     }
   });
 });

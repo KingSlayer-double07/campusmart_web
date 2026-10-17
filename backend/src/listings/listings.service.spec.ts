@@ -62,6 +62,13 @@ const fullRow = {
   },
 };
 
+const deliveryDetails = {
+  pickupArea: 'Moremi Hall',
+  pickupAddress: 'Room 12, Block B',
+  contactPhone: '+234 801 234 5678',
+  allowsPickup: false,
+};
+
 describe('ListingsService', () => {
   let service: ListingsService;
   const prisma = {
@@ -80,6 +87,7 @@ describe('ListingsService', () => {
     },
     sellerOrder: { count: jest.fn() },
     orderItem: { findMany: jest.fn() },
+    sellerProfile: { findUnique: jest.fn() },
     $transaction: jest.fn(),
     $executeRaw: jest.fn(),
     $queryRaw: jest.fn(),
@@ -95,6 +103,7 @@ describe('ListingsService', () => {
       fn(prisma),
     );
     prisma.$executeRaw.mockReturnValue(Promise.resolve(1));
+    prisma.sellerProfile.findUnique.mockResolvedValue(deliveryDetails);
     cloudinary.requireSettings.mockReturnValue({
       cloudName: 'campusmart',
       apiKey: 'k',
@@ -329,6 +338,25 @@ describe('ListingsService', () => {
       expect(prisma.listing.update.mock.calls[0][0].data).toEqual({
         status: ListingStatus.ARCHIVED,
       });
+    });
+
+    it('a verified seller without delivery details cannot publish (decision SA1)', async () => {
+      prisma.listing.findFirst.mockResolvedValue({
+        status: ListingStatus.DRAFT,
+        stock: 3,
+      });
+      prisma.sellerProfile.findUnique.mockResolvedValue({
+        ...deliveryDetails,
+        pickupAddress: null,
+      });
+      const error = await service
+        .setStatus(seller, 'l1', 'ACTIVE')
+        .catch((e: unknown) => e);
+      expect(codeOf(error)).toBe('SELLER_PROFILE_INCOMPLETE');
+      expect(prisma.listing.update).not.toHaveBeenCalled();
+      expect(prisma.sellerProfile.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: seller.id } }),
+      );
     });
 
     it('publishing with no stock gives SOLDOUT', async () => {

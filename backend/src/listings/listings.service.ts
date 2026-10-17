@@ -11,6 +11,7 @@ import { openSellerOrdersWithListing } from '../common/open-seller-orders';
 import { Prisma } from '../generated/prisma/client';
 import { ListingStatus } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
+import { deliveryDetailsSelect } from '../sellers/seller-delivery';
 import { assertCanPublish } from '../sellers/seller-verification';
 import { CloudinaryService } from '../uploads/cloudinary.service';
 import { isOwnUpload, uploadFolder } from '../uploads/cloudinary-urls';
@@ -153,7 +154,7 @@ export class ListingsService {
         message: 'Your account is not linked to a school, so it cannot sell',
       });
     }
-    if (dto.status === ListingStatus.ACTIVE) assertCanPublish(user);
+    if (dto.status === ListingStatus.ACTIVE) await this.publishGate(user);
     this.assertImages(user.id, dto.images);
     const variants = dto.variants ?? [];
     this.assertVariants(variants);
@@ -269,7 +270,7 @@ export class ListingsService {
     status: OwnerStatus,
   ): Promise<ListingDto> {
     const current = await this.owned(user, id, { status: true, stock: true });
-    if (status === ListingStatus.ACTIVE) assertCanPublish(user);
+    if (status === ListingStatus.ACTIVE) await this.publishGate(user);
     if (current.status === ListingStatus.FLAGGED) {
       throw new ConflictException({
         code: 'LISTING_UNDER_REVIEW',
@@ -429,6 +430,15 @@ export class ListingsService {
   }
 
   // Guide 3.1 rule 2: owner routes match on the seller too, and miss with a 404
+  // Going live needs a verified seller with their delivery details saved (seller-verification.ts)
+  private async publishGate(user: AuthUser): Promise<void> {
+    const delivery = await this.prisma.sellerProfile.findUnique({
+      where: { userId: user.id },
+      select: deliveryDetailsSelect,
+    });
+    assertCanPublish(user, delivery);
+  }
+
   private async owned<S extends Prisma.ListingSelect>(
     user: AuthUser,
     id: string,

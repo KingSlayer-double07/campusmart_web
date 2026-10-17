@@ -17,11 +17,10 @@ import {
   Matches,
   ValidateNested,
 } from 'class-validator';
+import { PHONE_MESSAGE, PHONE_RE } from '../../common/phone';
 import { Trim } from '../../common/transforms';
 import { ActiveToggleDto, AdminListQueryDto } from './active-toggle.dto';
 import { IsOpeningHours, OpeningHoursDto } from './opening-hours.dto';
-
-const PHONE_RE = /^\+?\d[\d ()-]{6,19}$/;
 
 export class CreatePickupStationDto {
   @ApiProperty({ format: 'uuid' })
@@ -57,9 +56,7 @@ export class CreatePickupStationDto {
   @ApiProperty({ example: '+234 801 234 5678' })
   @Trim()
   @IsString()
-  @Matches(PHONE_RE, {
-    message: 'Enter a phone number such as +234 801 234 5678',
-  })
+  @Matches(PHONE_RE, { message: PHONE_MESSAGE })
   contactPhone!: string;
 
   @ApiProperty({

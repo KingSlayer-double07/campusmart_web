@@ -78,6 +78,13 @@ export function client(app: INestApplication<App>, ip = nextIp()) {
 
 export const TEST_PASSWORD = 'Password123';
 
+// A seller needs these before publishing (decision SA1)
+export const DELIVERY_DETAILS = {
+  pickupArea: 'Moremi Hall',
+  pickupAddress: 'Room 12, Block B, Moremi Hall',
+  contactPhone: '+234 809 000 0000',
+};
+
 export async function createUser(
   prisma: PrismaService,
   overrides: {

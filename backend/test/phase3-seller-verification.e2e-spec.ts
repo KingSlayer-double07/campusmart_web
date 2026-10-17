@@ -2,6 +2,7 @@ import { UserRole, VerificationStatus } from '../src/generated/prisma/enums';
 import {
   createTestApp,
   createUser,
+  DELIVERY_DETAILS,
   resetRateLimits,
   signIn,
   TestContext,
@@ -57,7 +58,11 @@ describe('Seller verification (e2e)', () => {
       institutionId: school.id,
     });
     await ctx.prisma.sellerProfile.create({
-      data: { userId: seller.id, storeName: 'Amaka Styles' },
+      data: {
+        userId: seller.id,
+        storeName: 'Amaka Styles',
+        ...DELIVERY_DETAILS,
+      },
     });
     const buyer = await createUser(ctx.prisma, { institutionId: school.id });
     const admin = await createUser(ctx.prisma, {
