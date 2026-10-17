@@ -2,15 +2,17 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Bike, Pencil, School } from "lucide-react";
+import { Bike, Percent, Pencil, School } from "lucide-react";
 import { ToastContainer, useToast } from "@/app/components/Toast";
 import type { AdminInstitution } from "@/lib/api/admin";
+import { useAdminSettings } from "@/lib/api/hooks/useAdminPayments";
 import { useAdminInstitutions } from "@/lib/api/hooks/useAdminInstitutions";
 import { formatNaira } from "@/lib/labels";
 import AdminPageHeader from "../components/AdminPageHeader";
 import DataTable, { RowAction, type Column } from "../components/DataTable";
 import EmptyState from "../components/EmptyState";
 import DeliveryFeeDialog from "./DeliveryFeeDialog";
+import PlatformSettingsForm from "./PlatformSettingsForm";
 
 const columns: Column<AdminInstitution>[] = [
   {
@@ -45,11 +47,12 @@ const columns: Column<AdminInstitution>[] = [
   },
 ];
 
-// Platform settings an admin can change (decision R1a). Phase 4b starts it with each campus's
-// delivery fee; the platform fee, deadlines and other settings join in later phases.
+// Platform settings an admin can change (decision R1a): the platform fee and seller deadline
+// (Phase 5) and each campus's delivery fee (Phase 4b). More settings join in later phases.
 export default function AdminSettingsPage() {
   const toast = useToast();
   const institutions = useAdminInstitutions({ limit: 100 });
+  const settings = useAdminSettings();
   const [editing, setEditing] = useState<AdminInstitution | null>(null);
   const rows = institutions.data?.pages.flatMap((p) => p.items);
 
@@ -58,6 +61,32 @@ export default function AdminSettingsPage() {
       <ToastContainer toasts={toast.toasts} onDismiss={toast.dismiss} />
       <div className="flex flex-col gap-6">
         <AdminPageHeader title="Settings" description="Fees and rules that apply across CampusMart." />
+
+        <section aria-labelledby="platform-heading" className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Percent size={18} className="text-main" />
+            <h2 id="platform-heading" className="text-base font-semibold text-foreground">
+              Platform fee and deadlines
+            </h2>
+          </div>
+          {settings.isPending ? (
+            <div className="h-40 animate-pulse rounded-2xl bg-surface-muted" aria-busy="true" aria-label="Loading settings" />
+          ) : settings.isError ? (
+            <div className="flex flex-col items-center gap-2 rounded-2xl border border-border-default bg-card p-6 text-center">
+              <p className="text-sm font-medium">We couldn&apos;t load the settings</p>
+              <button type="button" onClick={() => settings.refetch()} className="text-sm font-semibold text-main">
+                Try again
+              </button>
+            </div>
+          ) : (
+            <PlatformSettingsForm
+              settings={settings.data}
+              onSaved={(saved) =>
+                toast.success("Settings saved", `Platform fee ${saved.platformFeeBps / 100}% · ${saved.pickupDeadlineDays} days to hand over`)
+              }
+            />
+          )}
+        </section>
 
         <section aria-labelledby="fees-heading" className="flex flex-col gap-3">
           <div className="flex items-center gap-2">

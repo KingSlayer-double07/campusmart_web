@@ -140,7 +140,8 @@ export default function DataTable<T>({
                 ))}
               </dl>
             )}
-            {rowActions && (
+            {/* Rows with nothing to do get no empty action strip */}
+            {rowActions?.(row) && (
               <div className="mt-4 flex flex-wrap gap-2 border-t border-border-default pt-3">{rowActions(row)}</div>
             )}
           </li>
