@@ -62,7 +62,7 @@ export const envSchema = z
       .int()
       .nonnegative()
       .default(48),
-    LOW_STOCK_THRESHOLD: z.coerce.number().int().nonnegative().default(3),
+    LOW_STOCK_THRESHOLD: z.coerce.number().int().nonnegative().default(5), // A1
 
     // Seed only (prisma/seed.ts, Phase 2); the API itself never reads them
     SEED_ADMIN_EMAIL: z.email().optional(),

@@ -1649,6 +1649,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sellers/me/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Your views, orders, revenue and payouts for a range
+         * @description Orders are your store orders in a PAID order, placed in the range, not cancelled; revenue is their item subtotals. Kept for 60 seconds, so a new order can take a minute to show.
+         */
+        get: operations["AnalyticsController_stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sellers/me/analytics/timeseries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One value per Lagos day of the range
+         * @description Revenue in kobo, orders or views; days with none are 0. Kept for 60 seconds, so a new order can take a minute to show.
+         */
+        get: operations["AnalyticsController_timeseries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sellers/me/analytics/top-listings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Your best sellers in the range
+         * @description By units sold, then revenue. Only listings that sold appear. Kept for 60 seconds, so a new order can take a minute to show.
+         */
+        get: operations["AnalyticsController_topListings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sellers/me/inventory/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Items running low
+         * @description Live and sold-out listings, or their options, with the low-stock level or fewer left. Always fresh, so a restock shows at once.
+         */
+        get: operations["AnalyticsController_inventoryAlerts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2679,12 +2759,19 @@ export interface components {
              * @example 3
              */
             pickupDeadlineDays: number;
+            /**
+             * @description Sellers are alerted when an item has this many left or fewer
+             * @example 5
+             */
+            lowStockThreshold: number;
         };
         UpdateSettingsDto: {
             /** @description Platform fee (basis points; 100 = 1%), taken from the seller payout */
             platformFeeBps?: number;
             /** @description Days after payment for the rider to collect from the seller */
             pickupDeadlineDays?: number;
+            /** @description Sellers are alerted when an item has this many left or fewer */
+            lowStockThreshold?: number;
         };
         AdminRiderDto: {
             /** Format: uuid */
@@ -3150,6 +3237,72 @@ export interface components {
         AdminRefundDto: {
             fault: components["schemas"]["Fault"];
             reason: string;
+        };
+        /** @enum {string} */
+        AnalyticsRange: "7d" | "30d" | "90d";
+        SellerStatsDto: {
+            range: components["schemas"]["AnalyticsRange"];
+            /** @description Views of your listings: one per viewer per listing per day; your own views don’t count (A2) */
+            views: number;
+            /** @description Change against the previous range, in %; null when it was 0 */
+            viewsChangePct: number | null;
+            /** @description Your store orders whose order is PAID, placed in the range, not cancelled */
+            orders: number;
+            ordersChangePct: number | null;
+            /** @description The item subtotals of those orders, in kobo. Delivery fees aren’t yours, so they’re left out. */
+            revenueKobo: number;
+            revenueChangePct: number | null;
+            /** @description Held for you now: your payout on store orders whose escrow is HELD, in kobo. Not limited to the range. */
+            heldKobo: number;
+            /** @description Released but not in your bank yet: payouts waiting for your account, being sent or to be retried, in kobo. Not limited to the range. */
+            releasedKobo: number;
+            /** @description Payouts PAID to your bank in the range, in kobo */
+            paidOutKobo: number;
+        };
+        TimeseriesPointDto: {
+            /**
+             * @description A Lagos day
+             * @example 2026-10-17
+             */
+            date: string;
+            /** @description Revenue in kobo, orders, or views that day; 0 when there were none */
+            value: number;
+        };
+        /** @enum {string} */
+        AnalyticsMetric: "revenue" | "orders" | "views";
+        TopListingDto: {
+            /** Format: uuid */
+            listingId: string;
+            title: string;
+            imageUrl: string | null;
+            /** @description Units in counted orders in the range */
+            unitsSold: number;
+            /** @description Their item subtotal, in kobo */
+            revenueKobo: number;
+            /** @description Views in the range */
+            views: number;
+            /** @description Units sold per view, in %; null with no views */
+            conversionPct: number | null;
+        };
+        InventoryAlertDto: {
+            /** Format: uuid */
+            listingId: string;
+            /**
+             * Format: uuid
+             * @description The option running low, for an item with options
+             */
+            variantId: string | null;
+            title: string;
+            variantLabel: string | null;
+            imageUrl: string | null;
+            /** @description Units left; 0 is out of stock */
+            stock: number;
+        };
+        InventoryAlertsDto: {
+            /** @description Items with this many left or fewer are listed (A1; admins can change it) */
+            threshold: number;
+            /** @description Live and sold-out listings, or their options, at or below the threshold. Out of stock first. */
+            items: components["schemas"]["InventoryAlertDto"][];
         };
     };
     responses: never;
@@ -9017,6 +9170,237 @@ export interface operations {
             };
             /** @description NOT_REFUNDABLE or DISPUTE_OPEN */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AnalyticsController_stats: {
+        parameters: {
+            query?: {
+                /** @description The last 7, 30 or 90 days in Lagos time, today included. Changes compare with the same number of days before. */
+                range?: components["schemas"]["AnalyticsRange"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["SellerStatsDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description Not a seller
+             *
+             *     EMAIL_NOT_VERIFIED
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AnalyticsController_timeseries: {
+        parameters: {
+            query?: {
+                /** @description The last 7, 30 or 90 days in Lagos time, today included. Changes compare with the same number of days before. */
+                range?: components["schemas"]["AnalyticsRange"];
+                metric?: components["schemas"]["AnalyticsMetric"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["TimeseriesPointDto"][];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description Not a seller
+             *
+             *     EMAIL_NOT_VERIFIED
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AnalyticsController_topListings: {
+        parameters: {
+            query?: {
+                /** @description The last 7, 30 or 90 days in Lagos time, today included. Changes compare with the same number of days before. */
+                range?: components["schemas"]["AnalyticsRange"];
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["TopListingDto"][];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description Not a seller
+             *
+             *     EMAIL_NOT_VERIFIED
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AnalyticsController_inventoryAlerts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["InventoryAlertsDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description Not a seller
+             *
+             *     EMAIL_NOT_VERIFIED
+             */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

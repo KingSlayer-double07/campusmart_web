@@ -946,7 +946,11 @@ describe('Phase 5 payments, escrow and refunds (e2e)', () => {
       const a = await utils.signIn(ctx.app, admin.email);
       expect(
         (await a.get('/api/admin/settings').expect(200)).body.data,
-      ).toEqual({ platformFeeBps: 0, pickupDeadlineDays: 3 });
+      ).toEqual({
+        platformFeeBps: 0,
+        pickupDeadlineDays: 3,
+        lowStockThreshold: 5,
+      });
       await a
         .patch('/api/admin/settings')
         .send({ platformFeeBps: 6000 })

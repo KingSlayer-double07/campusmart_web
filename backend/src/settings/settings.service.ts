@@ -5,8 +5,8 @@ import type { Env } from '../config/env';
 import { PrismaService } from '../prisma/prisma.service';
 
 // Decision R1a: numbers an admin can change without a deploy. Each starts from its environment
-// variable until an admin saves a value; later phases add the low-stock level, trust-score weights
-// and report threshold.
+// variable until an admin saves a value; later phases add the trust-score weights and report
+// threshold.
 export const SETTINGS = {
   platformFeeBps: {
     env: 'PLATFORM_FEE_BPS',
@@ -20,6 +20,12 @@ export const SETTINGS = {
     min: 1,
     max: 14,
     label: 'Days after payment for the rider to collect from the seller',
+  },
+  lowStockThreshold: {
+    env: 'LOW_STOCK_THRESHOLD',
+    min: 0,
+    max: 100,
+    label: 'Sellers are alerted when an item has this many left or fewer',
   },
 } as const satisfies Record<
   string,

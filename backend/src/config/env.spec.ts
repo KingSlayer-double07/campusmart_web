@@ -31,7 +31,7 @@ describe('envSchema', () => {
     expect(env.ORDER_PAYMENT_TTL_MINUTES).toBe(30);
     expect(env.DROP_OFF_DEADLINE_DAYS).toBe(3);
     expect(env.ESCROW_DISPUTE_WINDOW_HOURS).toBe(48);
-    expect(env.LOW_STOCK_THRESHOLD).toBe(3);
+    expect(env.LOW_STOCK_THRESHOLD).toBe(5);
   });
 
   it('fails when JWT_SECRET is missing', () => {

@@ -92,7 +92,7 @@ export class ListingsService {
   async findOne(user: AuthUser, id: string): Promise<ListingDto> {
     const row = await this.visible(user, id, fullSelect);
     const isOwner = row.sellerId === user.id;
-    if (!isOwner) this.recordView(id);
+    if (!isOwner) this.recordView(id, user.id);
     return toListingDto(row, isOwner);
   }
 
@@ -491,11 +491,18 @@ export class ListingsService {
     }
   }
 
-  // Guide 3.1 rule 6: one row per listing per Lagos day; not awaited, never fails the request
-  private recordView(listingId: string) {
+  // Guide 3.1 rule 6 with decision A2: a view counts once per viewer per listing per Lagos day,
+  // into one row per listing per day. Not awaited, never fails the request.
+  private recordView(listingId: string, viewerId: string) {
     this.prisma.$executeRaw`
+      WITH seen AS (
+        INSERT INTO "ListingView" ("listingId", "viewerId", "date")
+        VALUES (${listingId}, ${viewerId}, (now() AT TIME ZONE 'Africa/Lagos')::date)
+        ON CONFLICT DO NOTHING
+        RETURNING "listingId", "date"
+      )
       INSERT INTO "ListingDailyStat" ("listingId", "date", "views")
-      VALUES (${listingId}, (now() AT TIME ZONE 'Africa/Lagos')::date, 1)
+      SELECT "listingId", "date", 1 FROM seen
       ON CONFLICT ("listingId", "date")
       DO UPDATE SET "views" = "ListingDailyStat"."views" + 1`.catch(
       (error: unknown) =>

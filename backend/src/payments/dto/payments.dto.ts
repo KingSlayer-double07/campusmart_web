@@ -148,6 +148,9 @@ export class SettingsDto {
 
   @ApiProperty({ description: SETTINGS.pickupDeadlineDays.label, example: 3 })
   pickupDeadlineDays!: number;
+
+  @ApiProperty({ description: SETTINGS.lowStockThreshold.label, example: 5 })
+  lowStockThreshold!: number;
 }
 
 export class UpdateSettingsDto {
@@ -174,4 +177,15 @@ export class UpdateSettingsDto {
   @Min(SETTINGS.pickupDeadlineDays.min)
   @Max(SETTINGS.pickupDeadlineDays.max)
   pickupDeadlineDays?: number;
+
+  @ApiPropertyOptional({
+    minimum: SETTINGS.lowStockThreshold.min,
+    maximum: SETTINGS.lowStockThreshold.max,
+    description: SETTINGS.lowStockThreshold.label,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(SETTINGS.lowStockThreshold.min)
+  @Max(SETTINGS.lowStockThreshold.max)
+  lowStockThreshold?: number;
 }

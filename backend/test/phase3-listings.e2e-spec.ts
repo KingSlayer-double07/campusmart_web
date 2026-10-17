@@ -493,7 +493,11 @@ describe('Phase 3 listings (e2e)', () => {
         kettle: await make('Electric kettle', 1_200_000),
         dress: await make('Ankara dress', 1_800_000, 'FASHION'),
       };
-      return { buyer: await signIn(ctx.app, buyerA.email), ids };
+      return {
+        buyer: await signIn(ctx.app, buyerA.email),
+        seller: agent,
+        ids,
+      };
     }
 
     const titles = (res: request.Response) =>
@@ -588,15 +592,17 @@ describe('Phase 3 listings (e2e)', () => {
       expect(page2.body.data.nextCursor).toBeNull();
     });
 
-    it("records a buyer's view but not the seller's, and lists related items", async () => {
-      const { buyer, ids } = await catalogue();
+    it("records a buyer's view once a day but not the seller's, and lists related items", async () => {
+      const { buyer, seller, ids } = await catalogue();
+      // Decision A2: the same viewer twice in a day is one view; the seller's own don't count
       await buyer.get(`/api/listings/${ids.lamp}`).expect(200);
       await buyer.get(`/api/listings/${ids.lamp}`).expect(200);
+      await seller.get(`/api/listings/${ids.lamp}`).expect(200);
       await new Promise((resolve) => setTimeout(resolve, 200));
       const stats = await ctx.prisma.listingDailyStat.findMany({
         where: { listingId: ids.lamp },
       });
-      expect(stats.map((s) => s.views)).toEqual([2]);
+      expect(stats.map((s) => s.views)).toEqual([1]);
 
       const related = await buyer
         .get(`/api/listings/${ids.lamp}/related`)
