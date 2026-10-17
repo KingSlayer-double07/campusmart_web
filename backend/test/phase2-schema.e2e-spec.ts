@@ -1,4 +1,9 @@
-import { seed, SEED_INSTITUTION, SEED_STATIONS } from '../prisma/seed';
+import {
+  seed,
+  SEED_CAMPUS_PLACES,
+  SEED_INSTITUTION,
+  SEED_STATIONS,
+} from '../prisma/seed';
 import {
   FulfillmentStatus,
   ListingCategory,
@@ -67,6 +72,13 @@ describe('Phase 2 commerce schema (e2e)', () => {
         );
       }
 
+      // Placeholder delivery places, and no fee until an admin sets one (decisions DF3, C10)
+      const places = await ctx.prisma.campusPlace.findMany({
+        orderBy: { name: 'asc' },
+      });
+      expect(places.map((p) => p.name)).toEqual([...SEED_CAMPUS_PLACES].sort());
+      expect(institutions[0].deliveryFeeKobo).toBeNull();
+
       const agent = client(ctx.app);
       const login = await agent
         .post('/api/auth/login')
@@ -93,6 +105,9 @@ describe('Phase 2 commerce schema (e2e)', () => {
 
       await expect(ctx.prisma.institution.count()).resolves.toBe(1);
       await expect(ctx.prisma.pickupStation.count()).resolves.toBe(2);
+      await expect(ctx.prisma.campusPlace.count()).resolves.toBe(
+        SEED_CAMPUS_PLACES.length,
+      );
       await expect(ctx.prisma.user.count()).resolves.toBe(1);
       await client(ctx.app)
         .post('/api/auth/login')

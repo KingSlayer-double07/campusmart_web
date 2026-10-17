@@ -1,13 +1,23 @@
-import { ApiProperty, IntersectionType, PartialType } from '@nestjs/swagger';
+import {
+  ApiProperty,
+  ApiPropertyOptional,
+  IntersectionType,
+  PartialType,
+} from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayMinSize,
   ArrayUnique,
   IsArray,
+  IsInt,
+  IsOptional,
   IsString,
   Length,
   Matches,
+  Max,
+  Min,
+  ValidateIf,
 } from 'class-validator';
 import { Trim } from '../../common/transforms';
 import { ActiveToggleDto } from './active-toggle.dto';
@@ -51,10 +61,31 @@ export class CreateInstitutionDto {
   domains!: string[];
 }
 
+// ₦100,000: far above any campus delivery, so a typo with extra zeros is caught
+export const MAX_DELIVERY_FEE_KOBO = 10_000_000;
+
 export class UpdateInstitutionDto extends IntersectionType(
   PartialType(CreateInstitutionDto),
   ActiveToggleDto,
-) {}
+) {
+  @ApiPropertyOptional({
+    type: Number,
+    nullable: true,
+    minimum: 0,
+    maximum: MAX_DELIVERY_FEE_KOBO,
+    example: 50_000,
+    description:
+      'The flat fee for dispatch to a campus place, in kobo, charged once per order. null stops on-campus dispatch at this school.',
+  })
+  @IsOptional()
+  @ValidateIf((dto: UpdateInstitutionDto) => dto.deliveryFeeKobo !== null)
+  @IsInt({ message: 'The delivery fee must be a whole number of kobo' })
+  @Min(0)
+  @Max(MAX_DELIVERY_FEE_KOBO, {
+    message: 'The delivery fee can be up to ₦100,000',
+  })
+  deliveryFeeKobo?: number | null;
+}
 
 export class AdminInstitutionDto {
   @ApiProperty({ format: 'uuid' })
@@ -75,8 +106,19 @@ export class AdminInstitutionDto {
   @ApiProperty({ type: String, format: 'date-time' })
   createdAt!: Date;
 
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description:
+      'Flat on-campus delivery fee in kobo, once per order. null: on-campus dispatch is not offered yet.',
+  })
+  deliveryFeeKobo!: number | null;
+
   @ApiProperty({ description: 'Pickup stations, active or not' })
   stationCount!: number;
+
+  @ApiProperty({ description: 'Campus places, active or not' })
+  placeCount!: number;
 
   @ApiProperty({ description: 'Accounts that belong to this institution' })
   userCount!: number;

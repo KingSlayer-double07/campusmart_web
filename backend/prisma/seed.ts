@@ -1,4 +1,4 @@
-// Seed (guide 2.3): one institution, two pickup stations and the first admin.
+// Seed (guide 2.3): one institution, two pickup stations, two campus places and the first admin.
 // Run with `npx prisma db seed` (registered in prisma.config.ts under migrations.seed).
 // Safe to run again: existing rows are kept, and an existing admin's password is never changed.
 import 'dotenv/config';
@@ -45,6 +45,11 @@ export const SEED_STATIONS = [
   },
 ];
 
+// TODO: replace with the real halls, faculties and gates riders deliver to (decision DF3). The
+// delivery fee isn't seeded: an admin sets it in /admin/settings, and until then on-campus
+// dispatch isn't offered (decision C10).
+export const SEED_CAMPUS_PLACES = ['Main Gate', 'Student Union Building'];
+
 const BCRYPT_ROUNDS = 12; // same cost as AuthService
 
 export async function seed(
@@ -81,6 +86,21 @@ export async function seed(
     );
   }
 
+  const places: { id: string; name: string }[] = [];
+  for (const name of SEED_CAMPUS_PLACES) {
+    const existing = await prisma.campusPlace.findFirst({
+      where: { institutionId: institution.id, name },
+      select: { id: true, name: true },
+    });
+    places.push(
+      existing ??
+        (await prisma.campusPlace.create({
+          data: { name, institutionId: institution.id },
+          select: { id: true, name: true },
+        })),
+    );
+  }
+
   // The admin joins the seeded institution when their email is on one of its domains.
   const domain = emailDomain(adminEmail);
   const adminInstitution =
@@ -99,7 +119,7 @@ export async function seed(
     select: { id: true, email: true, role: true },
   });
 
-  return { institution, stations, admin };
+  return { institution, stations, places, admin };
 }
 
 async function main() {
@@ -107,10 +127,10 @@ async function main() {
     adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
   });
   try {
-    const { institution, stations, admin } = await seed(prisma);
+    const { institution, stations, places, admin } = await seed(prisma);
     console.log(
       `Seeded institution "${institution.name}" (${institution.domains.join(', ')}), ` +
-        `${stations.length} pickup stations and admin ${admin.email}.`,
+        `${stations.length} pickup stations, ${places.length} campus places and admin ${admin.email}.`,
     );
   } finally {
     await prisma.$disconnect();

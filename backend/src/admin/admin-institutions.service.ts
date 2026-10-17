@@ -22,8 +22,11 @@ const institutionSelect = {
   name: true,
   domains: true,
   isActive: true,
+  deliveryFeeKobo: true,
   createdAt: true,
-  _count: { select: { pickupStations: true, users: true } },
+  _count: {
+    select: { pickupStations: true, campusPlaces: true, users: true },
+  },
 } satisfies Prisma.InstitutionSelect;
 
 type InstitutionRow = Prisma.InstitutionGetPayload<{
@@ -33,6 +36,7 @@ type InstitutionRow = Prisma.InstitutionGetPayload<{
 const toDto = ({ _count, ...row }: InstitutionRow): AdminInstitutionDto => ({
   ...row,
   stationCount: _count.pickupStations,
+  placeCount: _count.campusPlaces,
   userCount: _count.users,
 });
 
@@ -105,11 +109,13 @@ export class AdminInstitutionsService {
       name: dto.name,
       domains: dto.domains && [...new Set(dto.domains)],
       isActive: dto.isActive,
+      deliveryFeeKobo: dto.deliveryFeeKobo,
     };
     const changes = changedFields(current, next, [
       'name',
       'domains',
       'isActive',
+      'deliveryFeeKobo',
     ]);
     if (Object.keys(changes).length === 0) return toDto(current);
 
@@ -139,6 +145,9 @@ export class AdminInstitutionsService {
           ...(changes.name && { name: next.name }),
           ...(changes.domains && { domains: next.domains }),
           ...(changes.isActive && { isActive: next.isActive }),
+          ...(changes.deliveryFeeKobo && {
+            deliveryFeeKobo: next.deliveryFeeKobo,
+          }),
         },
         select: institutionSelect,
       });

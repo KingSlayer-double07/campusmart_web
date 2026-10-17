@@ -27,8 +27,9 @@ describe('AdminInstitutionsService', () => {
     name: 'University of Lagos',
     domains: ['unilag.edu.ng'],
     isActive: true,
+    deliveryFeeKobo: null as number | null,
     createdAt: new Date('2026-10-01'),
-    _count: { pickupStations: 2, users: 40 },
+    _count: { pickupStations: 2, campusPlaces: 3, users: 40 },
   };
 
   beforeEach(async () => {
@@ -60,8 +61,10 @@ describe('AdminInstitutionsService', () => {
             name: row.name,
             domains: row.domains,
             isActive: true,
+            deliveryFeeKobo: null,
             createdAt: row.createdAt,
             stationCount: 2,
+            placeCount: 3,
             userCount: 40,
           },
         ],
@@ -204,6 +207,37 @@ describe('AdminInstitutionsService', () => {
         },
         prisma,
       );
+    });
+
+    it('sets or clears the on-campus delivery fee, and logs it (decisions DF1, C10)', async () => {
+      prisma.institution.findUnique.mockResolvedValue(row);
+      prisma.institution.update.mockResolvedValue({
+        ...row,
+        deliveryFeeKobo: 50_000,
+      });
+      const updated = await service.update(
+        'i1',
+        { deliveryFeeKobo: 50_000 },
+        'admin-1',
+      );
+      expect(updated.deliveryFeeKobo).toBe(50_000);
+      expect(prisma.institution.update.mock.calls[0][0].data).toEqual({
+        deliveryFeeKobo: 50_000,
+      });
+      expect(audit.record.mock.calls[0][0]).toMatchObject({
+        action: 'INSTITUTION_UPDATED',
+        meta: { changes: { deliveryFeeKobo: { from: null, to: 50_000 } } },
+      });
+      expect(prisma.sellerOrder.count).not.toHaveBeenCalled();
+
+      prisma.institution.findUnique.mockResolvedValue({
+        ...row,
+        deliveryFeeKobo: 50_000,
+      });
+      await service.update('i1', { deliveryFeeKobo: null }, 'admin-1');
+      expect(prisma.institution.update.mock.calls[1][0].data).toEqual({
+        deliveryFeeKobo: null,
+      });
     });
 
     it('checks new domains against other institutions only', async () => {

@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { UploadsModule } from '../uploads/uploads.module';
+import { AdminCampusPlacesController } from './admin-campus-places.controller';
+import { AdminCampusPlacesService } from './admin-campus-places.service';
 import { AdminInstitutionsController } from './admin-institutions.controller';
 import { AdminInstitutionsService } from './admin-institutions.service';
 import { AdminPickupStationsController } from './admin-pickup-stations.controller';
@@ -11,11 +13,13 @@ import { AdminVerificationService } from './admin-verification.service';
 @Module({
   imports: [UploadsModule],
   controllers: [
+    AdminCampusPlacesController,
     AdminInstitutionsController,
     AdminPickupStationsController,
     AdminVerificationController,
   ],
   providers: [
+    AdminCampusPlacesService,
     AdminInstitutionsService,
     AdminPickupStationsService,
     AdminVerificationService,
