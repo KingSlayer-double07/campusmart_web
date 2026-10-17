@@ -3414,7 +3414,11 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /**
+             * @description Not a seller
+             *
+             *     EMAIL_NOT_VERIFIED
+             */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3469,7 +3473,11 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /**
+             * @description Not a seller
+             *
+             *     EMAIL_NOT_VERIFIED
+             */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3525,7 +3533,11 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /**
+             * @description Not a seller
+             *
+             *     EMAIL_NOT_VERIFIED
+             */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3576,7 +3588,11 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /**
+             * @description Not a seller
+             *
+             *     EMAIL_NOT_VERIFIED
+             */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3640,7 +3656,11 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /**
+             * @description Not a seller
+             *
+             *     EMAIL_NOT_VERIFIED
+             */
             403: {
                 headers: {
                     [name: string]: unknown;

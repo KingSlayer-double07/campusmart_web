@@ -55,9 +55,10 @@ export async function truncateAll(prisma: PrismaService) {
 }
 
 // Rate limits follow the account (AccountThrottlerGuard), and tests reuse emails, so each test
-// starts with an empty in-memory throttler store.
+// starts with an empty in-memory throttler store. Since throttler 6.7 the hits are kept outside
+// `storage`; the store's shutdown hook clears both (its sweep timer restarts on the next request).
 export function resetRateLimits(app: INestApplication<App>) {
-  app.get<ThrottlerStorageService>(getStorageToken()).storage.clear();
+  app.get<ThrottlerStorageService>(getStorageToken()).onApplicationShutdown();
 }
 
 // Each test gets its own client IP (the app trusts one proxy hop), so per-IP rate limits
