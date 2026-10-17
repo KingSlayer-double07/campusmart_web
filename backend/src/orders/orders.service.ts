@@ -65,7 +65,7 @@ const orderSelect = {
   campusPlace: { select: { id: true, name: true } },
   pickupStation: { select: stationSelect },
   sellerOrders: {
-    orderBy: { createdAt: 'asc' },
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     select: {
       id: true,
       code: true,

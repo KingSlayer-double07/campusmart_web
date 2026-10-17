@@ -123,10 +123,15 @@ export class CheckoutResultDto {
   totalKobo!: number;
 
   @ApiProperty({
+    description: 'false until online payment is switched on',
+  })
+  paymentsEnabled!: boolean;
+
+  @ApiProperty({
     type: String,
     nullable: true,
     description:
-      "Paystack's payment page. null until payments are switched on (Phase 5).",
+      "Paystack's payment page. null while payments are off, or when Paystack couldn't be reached: the buyer can try again from the order (POST /orders/:id/pay).",
   })
   authorizationUrl!: string | null;
 

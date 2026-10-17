@@ -312,23 +312,25 @@ model OrderItem {
 }
 
 model Payment {
-  id            String        @id @default(uuid())
-  orderId       String
-  attempt       Int           @default(1) // reference is CM_<orderId>_<attempt>
-  provider      String        @default("PAYSTACK")
-  reference     String        @unique
-  amountKobo    Int
-  status        PaymentStatus @default(PENDING)
-  channel       String?
+  id               String        @id @default(uuid())
+  orderId          String
+  attempt          Int           @default(1) // reference is CM_<orderId>_<attempt>
+  provider         String        @default("PAYSTACK")
+  reference        String        @unique
+  amountKobo       Int
+  status           PaymentStatus @default(PENDING)
+  channel          String?
   // Paystack's processing fee, from charge.success: a buyer-fault refund gives back the rest (P6)
-  feesKobo      Int?
-  failureReason String?
-  paidAt        DateTime?
-  rawEvent      Json?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  order         Order         @relation(fields: [orderId], references: [id])
-  refunds       Refund[]
+  feesKobo         Int?
+  failureReason    String?
+  // Paystack's payment page for this attempt, returned again when checkout is resent
+  authorizationUrl String?
+  paidAt           DateTime?
+  rawEvent         Json?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  order            Order         @relation(fields: [orderId], references: [id])
+  refunds          Refund[]
 
   @@index([orderId])
 }

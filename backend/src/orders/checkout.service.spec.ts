@@ -10,7 +10,9 @@ import {
   PaymentMethod,
   UserRole,
 } from '../generated/prisma/enums';
+import { PaymentsService } from '../payments/payments.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { SettingsService } from '../settings/settings.service';
 import { CheckoutService } from './checkout.service';
 import * as stock from './order-stock';
 
@@ -19,6 +21,7 @@ const codeOf = (error: unknown) =>
 
 const buyer = {
   id: 'buyer',
+  email: 'tobi@unilag.edu.ng',
   role: UserRole.BUYER,
   institutionId: 'school-a',
 } as AuthUser;
@@ -79,14 +82,20 @@ describe('CheckoutService', () => {
     $transaction: jest.fn(),
   };
   const reserve = jest.spyOn(stock, 'reserveStock');
+  const payments = {
+    enabled: false,
+    assertMethodAvailable: jest.fn(),
+    pageFor: jest.fn(),
+  };
   const settings: Record<string, unknown> = {
-    PLATFORM_FEE_BPS: 0,
+    platformFeeBps: 0,
     ORDER_PAYMENT_TTL_MINUTES: 30,
   };
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    settings.PLATFORM_FEE_BPS = 0;
+    settings.platformFeeBps = 0;
+    payments.pageFor.mockResolvedValue(null);
     reserve.mockResolvedValue(undefined);
     prisma.institution.findUnique.mockResolvedValue({ isActive: true });
     prisma.order.findUnique.mockResolvedValue(null);
@@ -104,6 +113,11 @@ describe('CheckoutService', () => {
           provide: ConfigService,
           useValue: { get: (key: string) => settings[key] },
         },
+        {
+          provide: SettingsService,
+          useValue: { get: (key: string) => Promise.resolve(settings[key]) },
+        },
+        { provide: PaymentsService, useValue: payments },
       ],
     }).compile();
     service = moduleRef.get(CheckoutService);
@@ -118,6 +132,7 @@ describe('CheckoutService', () => {
     await expect(service.checkout(buyer, dto)).resolves.toEqual({
       orderId: 'order-0',
       totalKobo: 450_000,
+      paymentsEnabled: false,
       authorizationUrl: null,
       reference: null,
     });
@@ -265,7 +280,7 @@ describe('CheckoutService', () => {
   });
 
   it('creates one seller order per seller with database prices, the fee split and snapshots, then empties the cart', async () => {
-    settings.PLATFORM_FEE_BPS = 1000; // 10%
+    settings.platformFeeBps = 1000; // 10%
     tx.cartItem.findMany.mockResolvedValue([
       { ...line('a', 's1'), quantity: 2 },
       line('b', 's2', { priceKobo: 250_000 }),
@@ -342,6 +357,41 @@ describe('CheckoutService', () => {
     expect(tx.cartItem.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'buyer' },
     });
+  });
+
+  it('returns the payment page for the new order, and refuses a method Paystack has not confirmed (P5)', async () => {
+    tx.cartItem.findMany.mockResolvedValue([line('a', 's1')]);
+    tx.order.create.mockResolvedValue({
+      id: 'order-1',
+      totalKobo: 150_000,
+      status: OrderStatus.PENDING_PAYMENT,
+    });
+    payments.enabled = true;
+    payments.pageFor.mockResolvedValue({
+      authorizationUrl: 'https://checkout.paystack.com/abc',
+      reference: 'CM_order-1_1',
+    });
+    await expect(service.checkout(buyer, dto)).resolves.toMatchObject({
+      paymentsEnabled: true,
+      authorizationUrl: 'https://checkout.paystack.com/abc',
+      reference: 'CM_order-1_1',
+    });
+    expect(payments.pageFor).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'order-1' }),
+      buyer.email,
+    );
+    payments.enabled = false;
+
+    payments.assertMethodAvailable.mockImplementationOnce(() => {
+      throw new HttpException({ code: 'PAYMENT_METHOD_UNAVAILABLE' }, 400);
+    });
+    expect(
+      codeOf(
+        await service
+          .checkout(buyer, { ...dto, paymentMethod: PaymentMethod.OPAY })
+          .catch((e: unknown) => e),
+      ),
+    ).toBe('PAYMENT_METHOD_UNAVAILABLE');
   });
 
   it('retries with fresh codes when a seller-order code already exists', async () => {

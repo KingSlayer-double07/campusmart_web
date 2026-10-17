@@ -20,6 +20,10 @@ import { ListingsModule } from './listings/listings.module';
 import { SellersModule } from './sellers/sellers.module';
 import { CartModule } from './cart/cart.module';
 import { OrdersModule } from './orders/orders.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { PaymentsModule } from './payments/payments.module';
+import { PaystackModule } from './paystack/paystack.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -42,6 +46,10 @@ import { OrdersModule } from './orders/orders.module';
     SellersModule,
     CartModule,
     OrdersModule,
+    PaystackModule,
+    NotificationsModule,
+    SettingsModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [

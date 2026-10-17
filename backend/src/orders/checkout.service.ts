@@ -13,14 +13,16 @@ import { Prisma } from '../generated/prisma/client';
 import { DeliveryMethod, OrderStatus } from '../generated/prisma/enums';
 import { requireActiveInstitution } from '../institutions/institution-access';
 import { sellerDisplayName } from '../listings/listing-rules';
+import { PaymentsService } from '../payments/payments.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { SettingsService } from '../settings/settings.service';
 import { offersPickup } from '../sellers/seller-delivery';
 import { assertOneDestination, chooseMethods } from './delivery-choice';
 import { CheckoutDto, CheckoutResultDto } from './dto/order.dto';
 import { collectionCode, sellerOrderCode, splitFee } from './order-codes';
 import { reserveStock } from './order-stock';
 
-type Buyer = { id: string; institutionId: string };
+type Buyer = { id: string; institutionId: string; email: string };
 
 const checkoutLineSelect = {
   id: true,
@@ -47,11 +49,18 @@ export class CheckoutService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService<Env, true>,
+    private readonly settings: SettingsService,
+    private readonly payments: PaymentsService,
   ) {}
 
   // Guide 4.2: the cart becomes one Order with one SellerOrder per seller, in one transaction
   async checkout(user: AuthUser, dto: CheckoutDto): Promise<CheckoutResultDto> {
-    const buyer = await requireActiveInstitution(this.prisma, user);
+    const buyer = {
+      ...(await requireActiveInstitution(this.prisma, user)),
+      email: user.email,
+    };
+    // OPay and PalmPay wait for Paystack to confirm them (decision P5)
+    this.payments.assertMethodAvailable(dto.paymentMethod);
 
     // Step 1: the same key returns the same order, unchanged
     const replay = await this.existing(buyer, dto.idempotencyKey);
@@ -62,7 +71,7 @@ export class CheckoutService {
         const order = await this.prisma.$transaction((tx) =>
           this.placeOrder(tx, buyer, dto),
         );
-        return this.result(order);
+        return this.result(order, buyer.email);
       } catch (error) {
         // A request racing this one with the same key may have won; return its order
         const raced = await this.existing(buyer, dto.idempotencyKey);
@@ -107,7 +116,8 @@ export class CheckoutService {
     );
 
     // Step 5: one seller order per seller, with codes, fee and snapshotted items
-    const feeBps = this.config.get('PLATFORM_FEE_BPS', { infer: true });
+    // Decision P1: admins can change the platform fee (R1a); new orders use the current value
+    const feeBps = await this.settings.get('platformFeeBps');
     const bySeller = new Map<string, typeof priced>();
     for (const entry of priced) {
       const sellerId = entry.line.listing.sellerId;
@@ -161,7 +171,7 @@ export class CheckoutService {
         expiresAt: new Date(Date.now() + ttl * 60_000),
         sellerOrders: { create: sellerOrders },
       },
-      select: { id: true, totalKobo: true },
+      select: { id: true, totalKobo: true, status: true },
     });
 
     // Step 7: the cart is spent, and the rider's number is kept for next time (decision PH2)
@@ -291,7 +301,7 @@ export class CheckoutService {
   private async existing(buyer: Buyer, idempotencyKey: string) {
     const order = await this.prisma.order.findUnique({
       where: { idempotencyKey },
-      select: { id: true, buyerId: true, totalKobo: true },
+      select: { id: true, buyerId: true, totalKobo: true, status: true },
     });
     if (!order) return null;
     if (order.buyerId !== buyer.id) {
@@ -300,17 +310,22 @@ export class CheckoutService {
         message: 'Start checkout again',
       });
     }
-    return this.result(order);
+    return this.result(order, buyer.email);
   }
 
-  // Step 8: Phase 5 starts a Paystack payment here. Until then (PAYMENTS_ENABLED=false) there is
-  // no payment page, and the unpaid order simply expires.
-  private result(order: { id: string; totalKobo: number }): CheckoutResultDto {
+  // Step 8: Paystack's payment page (guide 5.1). While PAYMENTS_ENABLED is false there is none, and
+  // the unpaid order simply expires.
+  private async result(
+    order: { id: string; totalKobo: number; status: OrderStatus },
+    email: string,
+  ): Promise<CheckoutResultDto> {
+    const page = await this.payments.pageFor(order, email);
     return {
       orderId: order.id,
       totalKobo: order.totalKobo,
-      authorizationUrl: null,
-      reference: null,
+      paymentsEnabled: this.payments.enabled,
+      authorizationUrl: page?.authorizationUrl ?? null,
+      reference: page?.reference ?? null,
     };
   }
 }

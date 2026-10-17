@@ -7,6 +7,8 @@ import { buildOpenApiDocument } from './openapi';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
+    // The Paystack webhook signs the exact bytes it sent (guide 5.2 step 1)
+    rawBody: true,
     logger:
       process.env.NODE_ENV === 'production'
         ? ['error', 'warn']

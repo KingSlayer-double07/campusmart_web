@@ -316,6 +316,7 @@ describe('Phase 4 checkout and orders (e2e)', () => {
       expect(placed.body.data).toEqual({
         orderId: expect.any(String),
         totalKobo: 900_000 + 1_500_000 + 1_450_000,
+        paymentsEnabled: false, // Paystack is off in this suite
         authorizationUrl: null,
         reference: null,
       });

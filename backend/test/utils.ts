@@ -21,6 +21,7 @@ export async function createTestApp(): Promise<TestContext> {
   }).compile();
   const app = moduleRef.createNestApplication<INestApplication<App>>({
     logger: ['error'],
+    rawBody: true,
   });
   configureApp(app);
   await app.init();
