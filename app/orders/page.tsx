@@ -7,6 +7,7 @@ import PageHeader from "../components/PageHeader";
 import { useBuyerOrders } from "@/lib/api/hooks/useBuyerOrders";
 import { FULFILLMENT_STATUS_LABELS, formatNaira } from "@/lib/labels";
 import OrderStatusBadge from "./OrderStatusBadge";
+import { deliveryLine } from "./delivery";
 
 const placedOn = new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short" });
 
@@ -62,7 +63,7 @@ export default function OrdersPage() {
                       <div className="min-w-0">
                         <p className="text-sm font-semibold">{formatNaira(order.totalKobo)}</p>
                         <p className="text-xs text-foreground-muted">
-                          {placedOn.format(new Date(order.createdAt))} · {order.pickupStation.name}
+                          {placedOn.format(new Date(order.createdAt))} · {deliveryLine(order)}
                         </p>
                       </div>
                       <div className="flex items-center gap-1">

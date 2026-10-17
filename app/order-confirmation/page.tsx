@@ -12,6 +12,7 @@ import { useFavouritesStore } from "../store/useFavouritesStore";
 import type { Order } from "@/lib/api/checkout";
 import { useOrder } from "@/lib/api/hooks/useBuyerOrders";
 import { formatNaira } from "@/lib/labels";
+import { deliveryLine } from "../orders/delivery";
 
 const POLL_FOR_MS = 60_000;
 const time = new Intl.DateTimeFormat("en-NG", { timeStyle: "short" });
@@ -26,7 +27,7 @@ function Paid({ order }: { order: Order }) {
       </div>
       <div className="flex flex-col items-center gap-1 text-center">
         <h1 className="font-bold text-xl tracking-tight">Payment received</h1>
-        <p className="text-sm text-foreground-muted">You&apos;ll be told when it&apos;s ready for pickup.</p>
+        <p className="text-sm text-foreground-muted">We&apos;ll keep you posted as each store gets it to you.</p>
       </div>
       <div className="w-full flex flex-col gap-2 rounded-2xl border border-border-default p-4">
         {order.sellerOrders.map((so) => (
@@ -37,16 +38,13 @@ function Paid({ order }: { order: Order }) {
         ))}
         <div className="mt-1 flex items-start gap-2 border-t border-border-default pt-3 text-sm">
           <MapPin size={16} className="text-main shrink-0 mt-0.5" />
-          <div>
-            <p className="font-medium">{order.pickupStation.name}</p>
-            <p className="text-xs text-foreground-muted">{order.pickupStation.address}</p>
-          </div>
+          <p className="font-medium">{deliveryLine(order)}</p>
         </div>
       </div>
       <div className="w-full flex gap-2 items-center rounded-full border border-orange-200 bg-orange-50 px-4 py-2.5">
         <Info size={15} color="#ff681f" className="shrink-0" />
         <p className="text-xs text-foreground/70 leading-relaxed">
-          You have <span className="text-main font-semibold">48 hours</span> after collecting to report a problem
+          You have <span className="text-main font-semibold">48 hours</span> after it reaches you to report a problem
         </p>
       </div>
     </>

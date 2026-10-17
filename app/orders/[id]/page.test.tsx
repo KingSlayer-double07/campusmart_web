@@ -75,6 +75,44 @@ describe("OrderDetailPage", () => {
     expect(screen.getByText("Ready for pickup").closest("li")?.getAttribute("aria-current")).toBe("step");
   });
 
+  it("delivery orders show where the rider goes, and a pickup seller's address only once paid", async () => {
+    const delivered = {
+      pickupStation: null,
+      destination: { campusPlace: { id: "p1", name: "Faculty of Science" }, address: null },
+      deliveryFeeKobo: 50_000,
+      buyerPhone: "+234 801 234 5678",
+    };
+    const pickup = (paid: boolean) =>
+      sellerOrder({
+        id: "so2",
+        code: "CM-ABC234",
+        seller: { id: "s2", storeName: "Ada Wears" },
+        deliveryMethod: "SELLER_PICKUP",
+        fulfillmentStatus: "PENDING",
+        pickupFrom: { area: "Moremi Hall", address: paid ? "Room 12, Block B" : null, phone: paid ? "+234 809 000 0000" : null },
+      });
+    buyerOrdersApi.get.mockResolvedValue(
+      order(
+        { ...delivered, status: "PENDING_PAYMENT", paidAt: null, sellerOrders: [sellerOrder({ deliveryMethod: "DISPATCH", fulfillmentStatus: "PENDING" }), pickup(false)] },
+      ),
+    );
+    renderPage();
+    expect(await screen.findByText("Delivery to Faculty of Science")).toBeTruthy();
+    expect(screen.getByText(/Delivery fee ₦500, once for the whole order/)).toBeTruthy();
+    expect(screen.getByText("The rider will call +234 801 234 5678")).toBeTruthy();
+    expect(screen.getByText("Delivered by a rider")).toBeTruthy();
+    expect(screen.getByText("You pick up from the seller · Moremi Hall")).toBeTruthy();
+    expect(screen.getByText(/show once you've paid/)).toBeTruthy();
+    expect(screen.queryByText("Room 12, Block B")).toBeNull();
+    expect(screen.queryByRole("region", { name: "Pickup station" })).toBeNull();
+    cleanup();
+
+    buyerOrdersApi.get.mockResolvedValue(order({ ...delivered, sellerOrders: [pickup(true)] }));
+    renderPage();
+    expect(await screen.findByText("Room 12, Block B")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /\+234 809 000 0000/ }).getAttribute("href")).toBe("tel:+2348090000000");
+  });
+
   it("cancels an unpaid order after asking", async () => {
     const cancelled = order({ status: "CANCELLED", paidAt: null }, { fulfillmentStatus: "CANCELLED", cancelReason: "BUYER_CANCELLED" });
     buyerOrdersApi.get

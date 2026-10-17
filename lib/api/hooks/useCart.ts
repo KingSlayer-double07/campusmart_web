@@ -30,6 +30,8 @@ export interface CartLine {
 export interface CartLineGroup {
   sellerId: string | null;
   storeName: string | null;
+  /** Set when the buyer may collect from this seller (decision DL1): the area only */
+  pickupArea: string | null;
   lines: CartLine[];
   subtotalKobo: number;
 }
@@ -41,6 +43,8 @@ export interface CartView {
   itemCount: number;
   lineCount: number;
   issues: CartIssue[];
+  /** The school's flat fee for dispatch to a campus place, once per order; null when not offered */
+  campusDeliveryFeeKobo: number | null;
   isLoading: boolean;
   isError: boolean;
   error: unknown;
@@ -54,6 +58,7 @@ export function fromServerCart(cart: Cart): Omit<CartView, 'mode' | 'isLoading' 
   const groups = cart.groups.map((g) => ({
     sellerId: g.seller.id,
     storeName: g.seller.storeName,
+    pickupArea: g.seller.pickupArea,
     subtotalKobo: g.subtotalKobo,
     lines: g.items.map((item) => ({
       key: item.id,
@@ -77,6 +82,7 @@ export function fromServerCart(cart: Cart): Omit<CartView, 'mode' | 'isLoading' 
     itemCount: cart.itemCount,
     lineCount: groups.reduce((n, g) => n + g.lines.length, 0),
     issues: cart.issues,
+    campusDeliveryFeeKobo: cart.campusDeliveryFeeKobo,
   };
 }
 
@@ -87,6 +93,8 @@ export function fromGuestCart(items: GuestItem[]): Omit<CartView, 'mode' | 'isLo
     const group = groups.get(sellerKey) ?? {
       sellerId: item.sellerId ?? null,
       storeName: item.storeName ?? null,
+      // Delivery is chosen at checkout, after sign-in
+      pickupArea: null,
       lines: [],
       subtotalKobo: 0,
     };
@@ -115,6 +123,7 @@ export function fromGuestCart(items: GuestItem[]): Omit<CartView, 'mode' | 'isLo
     itemCount: items.reduce((sum, i) => sum + i.quantity, 0),
     lineCount: items.length,
     issues: [],
+    campusDeliveryFeeKobo: null,
   };
 }
 
@@ -137,7 +146,7 @@ export function useCart(): CartView {
     if (!signedIn) {
       return { mode: 'guest', ...fromGuestCart(guestItems), isLoading: false, isError: false, error: null, refetch: () => undefined };
     }
-    const empty = { groups: [], subtotalKobo: 0, itemCount: 0, lineCount: 0, issues: [] };
+    const empty = { groups: [], subtotalKobo: 0, itemCount: 0, lineCount: 0, issues: [], campusDeliveryFeeKobo: null };
     return {
       mode: 'server',
       ...(data ? fromServerCart(data) : empty),

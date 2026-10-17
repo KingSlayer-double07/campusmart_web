@@ -19,7 +19,10 @@ const order = (status: string) => ({
   createdAt: "2026-10-09T10:00:00Z",
   expiresAt: "2026-10-09T10:30:00Z",
   paidAt: null,
-  pickupStation: { id: "st1", name: "Library Pickup Point", address: "Main library", contactName: "", contactPhone: "", openingHours: [] },
+  pickupStation: null,
+  destination: { campusPlace: { id: "p1", name: "Faculty of Science" }, address: null },
+  deliveryFeeKobo: 50_000,
+  buyerPhone: "+234 801 234 5678",
   sellerOrders: [
     { id: "so1", code: "CM-7F3K2Q", seller: { id: "s1", storeName: "Tunde Tech" }, fulfillmentStatus: "AWAITING_DROPOFF", items: [] },
     { id: "so2", code: "CM-ABC234", seller: { id: "s2", storeName: "Ada Wears" }, fulfillmentStatus: "AWAITING_DROPOFF", items: [] },
@@ -42,14 +45,14 @@ describe("OrderConfirmationPage", () => {
   });
   afterEach(cleanup);
 
-  it("shows each seller order's code and the station once paid", async () => {
+  it("shows each seller order's code and where it's delivered once paid", async () => {
     buyerOrdersApi.get.mockResolvedValue(order("PAID"));
     renderPage("orderId=o1");
     expect(await screen.findByText("Payment received")).toBeTruthy();
     expect(screen.getByText("CM-7F3K2Q")).toBeTruthy();
     expect(screen.getByText("CM-ABC234")).toBeTruthy();
-    expect(screen.getByText("Library Pickup Point")).toBeTruthy();
-    expect(screen.getByText(/You'll be told when it's ready/)).toBeTruthy();
+    expect(screen.getByText("Delivery to Faculty of Science")).toBeTruthy();
+    expect(screen.getByText(/We'll keep you posted/)).toBeTruthy();
   });
 
   it("waits for the payment while polling", async () => {

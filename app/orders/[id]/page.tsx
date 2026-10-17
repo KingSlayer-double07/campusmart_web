@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Check, Clock, ImageOff, MapPin, Phone } from "lucide-react";
+import { Bike, Check, Clock, ImageOff, MapPin, Phone, Store } from "lucide-react";
 import Modal from "@/app/components/Modal";
 import PageHeader from "@/app/components/PageHeader";
 import { ToastContainer, useToast } from "@/app/components/Toast";
@@ -14,6 +14,7 @@ import { useCancelOrder, useOrder } from "@/lib/api/hooks/useBuyerOrders";
 import { formatNaira, type FulfillmentStatus } from "@/lib/labels";
 import { summarizeOpeningHours } from "@/lib/openingHours";
 import OrderStatusBadge from "../OrderStatusBadge";
+import { deliveryLine } from "../delivery";
 
 const when = new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short" });
 const time = new Intl.DateTimeFormat("en-NG", { timeStyle: "short" });
@@ -33,7 +34,10 @@ const STEP_INDEX: Partial<Record<FulfillmentStatus, number>> = {
   COLLECTED: 4,
 };
 
-// Guide 4.3.6: a per-seller timeline
+const telHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "")}`;
+
+// Guide 4.3.6: a per-seller timeline (orders placed through a pickup station; the delivery
+// timeline arrives with Phase 6)
 function Timeline({ status }: { status: FulfillmentStatus }) {
   const reached = STEP_INDEX[status] ?? -1;
   return (
@@ -76,7 +80,35 @@ function SellerOrderCard({ order, sellerOrder }: { order: Order; sellerOrder: Se
         <p className="text-sm font-semibold">{formatNaira(so.subtotalKobo)}</p>
       </div>
 
-      {so.fulfillmentStatus === "DROPPED_OFF" && (
+      {so.deliveryMethod === "DISPATCH" && (
+        <p className="flex items-center gap-2 text-sm text-foreground">
+          <Bike size={16} className="shrink-0 text-main" />
+          Delivered by a rider
+        </p>
+      )}
+      {so.deliveryMethod === "SELLER_PICKUP" && so.pickupFrom && (
+        <div className="flex items-start gap-2 text-sm">
+          <Store size={16} className="mt-0.5 shrink-0 text-main" />
+          <div className="min-w-0">
+            <p className="text-foreground">You pick up from the seller · {so.pickupFrom.area}</p>
+            {so.pickupFrom.address ? (
+              <>
+                <p className="text-xs text-foreground-muted">{so.pickupFrom.address}</p>
+                {so.pickupFrom.phone && (
+                  <a href={telHref(so.pickupFrom.phone)} className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold text-main">
+                    <Phone size={12} />
+                    {so.pickupFrom.phone}
+                  </a>
+                )}
+              </>
+            ) : (
+              <p className="text-xs text-foreground-muted">Their address and phone number show once you&apos;ve paid.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {so.fulfillmentStatus === "DROPPED_OFF" && order.pickupStation && (
         <div className="rounded-2xl bg-main-subtle px-4 py-4 text-center">
           <p className="text-xs font-semibold uppercase tracking-wide text-main">Your collection code</p>
           <p className="mt-1 font-mono text-4xl font-bold tracking-[0.3em] text-foreground" aria-label={`Collection code ${so.collectionCode.split("").join(" ")}`}>
@@ -86,7 +118,7 @@ function SellerOrderCard({ order, sellerOrder }: { order: Order; sellerOrder: Se
         </div>
       )}
 
-      {order.status === "PAID" && so.fulfillmentStatus !== "CANCELLED" && so.fulfillmentStatus !== "DISPUTED" && (
+      {order.status === "PAID" && !so.deliveryMethod && so.fulfillmentStatus !== "CANCELLED" && so.fulfillmentStatus !== "DISPUTED" && (
         <Timeline status={so.fulfillmentStatus} />
       )}
       {so.fulfillmentStatus === "CANCELLED" && (
@@ -216,26 +248,45 @@ export default function OrderDetailPage() {
             </p>
           )}
 
-          <section aria-label="Pickup station" className="flex flex-col gap-2 rounded-2xl border border-border-default bg-card p-4">
-            <div className="flex items-start gap-2">
-              <MapPin size={16} className="text-main shrink-0 mt-0.5" />
-              <div className="min-w-0">
-                <p className="font-semibold">{station.name}</p>
-                <p className="text-xs text-foreground-muted">{station.address}</p>
+          {order.destination && (
+            <section aria-label="Delivery" className="flex flex-col gap-1.5 rounded-2xl border border-border-default bg-card p-4">
+              <div className="flex items-start gap-2">
+                <MapPin size={16} className="text-main shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="font-semibold">{deliveryLine(order)}</p>
+                  <p className="text-xs text-foreground-muted">
+                    {order.destination.campusPlace
+                      ? `Delivery fee ${formatNaira(order.deliveryFeeKobo)}, once for the whole order`
+                      : "Off campus: the delivery fee is agreed with the rider"}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="pl-6 text-xs text-foreground-muted">
-              {summarizeOpeningHours(station.openingHours).map((line) => (
-                <p key={line.days}>
-                  {line.days}: {line.hours}
-                </p>
-              ))}
-            </div>
-            <a href={`tel:${station.contactPhone.replace(/[^\d+]/g, "")}`} className="flex items-center gap-2 pl-6 text-xs font-semibold text-main">
-              <Phone size={12} />
-              {station.contactName} · {station.contactPhone}
-            </a>
-          </section>
+              {order.buyerPhone && <p className="pl-6 text-xs text-foreground-muted">The rider will call {order.buyerPhone}</p>}
+            </section>
+          )}
+
+          {station && (
+            <section aria-label="Pickup station" className="flex flex-col gap-2 rounded-2xl border border-border-default bg-card p-4">
+              <div className="flex items-start gap-2">
+                <MapPin size={16} className="text-main shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="font-semibold">{station.name}</p>
+                  <p className="text-xs text-foreground-muted">{station.address}</p>
+                </div>
+              </div>
+              <div className="pl-6 text-xs text-foreground-muted">
+                {summarizeOpeningHours(station.openingHours).map((line) => (
+                  <p key={line.days}>
+                    {line.days}: {line.hours}
+                  </p>
+                ))}
+              </div>
+              <a href={telHref(station.contactPhone)} className="flex items-center gap-2 pl-6 text-xs font-semibold text-main">
+                <Phone size={12} />
+                {station.contactName} · {station.contactPhone}
+              </a>
+            </section>
+          )}
 
           {order.sellerOrders.map((so) => (
             <SellerOrderCard key={so.id} order={order} sellerOrder={so} />
