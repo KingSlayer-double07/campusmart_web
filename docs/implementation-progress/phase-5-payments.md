@@ -171,7 +171,11 @@ the same Paystack page.
 - **Frontend:** lint clean; tsc clean; vitest 225/225; `API_ORIGIN=http://localhost:4000 pnpm run build` OK (new
   routes `/admin/payouts` and `/sellers/earnings`).
 - **gen:api:** regenerated with the backend change; CI re-checks it with no diff.
-- **GitHub CI:** see the gate commit's run, linked in the README.
+- **GitHub CI:** [run 55](https://github.com/KingSlayer-double07/campusmart_web/actions/runs/39056505713) on `94a4eb5`
+  (the last code change) and [run 56](https://github.com/KingSlayer-double07/campusmart_web/actions/runs/39056705157)
+  on `70dbd91` (this log), both jobs green. Run 53 was red on an intermediate push whose label fix was in the next
+  commit. Run 54 was red because a Phase 4b test read seller orders by position, which led to the ordering fix
+  above.
 - **Browser walk** ([`evidence/phase5-payments/`](evidence/phase5-payments/)): Chromium → `next start` → NestJS →
   `campusmart_dev`.
   - **Setup.** The API ran with `PAYMENTS_ENABLED=true`, a made-up key (`sk_test_walk_local_only`) and
