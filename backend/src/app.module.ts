@@ -22,6 +22,7 @@ import { CartModule } from './cart/cart.module';
 import { OrdersModule } from './orders/orders.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PaymentsModule } from './payments/payments.module';
+import { RidersModule } from './riders/riders.module';
 import { PaystackModule } from './paystack/paystack.module';
 import { SettingsModule } from './settings/settings.module';
 
@@ -50,6 +51,7 @@ import { SettingsModule } from './settings/settings.module';
     NotificationsModule,
     SettingsModule,
     PaymentsModule,
+    RidersModule,
   ],
   controllers: [AppController],
   providers: [

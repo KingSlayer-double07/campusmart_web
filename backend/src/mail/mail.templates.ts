@@ -3,6 +3,13 @@ export interface MailTemplates {
   'reset-password': { code: string; minutes: number };
   // Order, payment and admin alerts (decisions T7, P10): the in-app notification, by email
   notification: { title: string; body: string; link: string | null };
+  // Decision DX1: an admin invites a rider; the link sets their password
+  'rider-invite': {
+    firstName: string | null;
+    institution: string;
+    link: string;
+    days: number;
+  };
 }
 
 export type MailTemplate = keyof MailTemplates;
@@ -53,6 +60,18 @@ export const renderers: {
       `It expires in ${minutes} minutes. If you didn't ask to reset your password, you can ignore this email.`,
     ),
   }),
+  'rider-invite': ({ firstName, institution, link, days }) => {
+    const hello = firstName ? `Hi ${firstName},` : 'Hi,';
+    const intro = `You've been invited to deliver CampusMart orders at ${institution}.`;
+    const outro = `The link works for ${days} days. If you weren't expecting this, you can ignore this email.`;
+    return {
+      subject: 'Your CampusMart rider invitation',
+      text: `${hello}\n\n${intro} Set your password here:\n${link}\n\n${outro}`,
+      html:
+        `<p>${escapeHtml(hello)}</p><p>${escapeHtml(intro)}</p>` +
+        `<p><a href="${escapeHtml(link)}">Set your password</a></p><p>${escapeHtml(outro)}</p>`,
+    };
+  },
   notification: ({ title, body, link }) => ({
     subject: title,
     text: link ? `${body}\n\n${link}` : body,

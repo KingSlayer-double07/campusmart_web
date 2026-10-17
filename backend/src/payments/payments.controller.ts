@@ -24,7 +24,7 @@ import { SkipThrottle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import type { AuthUser } from '../auth/auth-user';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { RequireVerifiedEmail } from '../auth/decorators/require-verified-email.decorator';
+import { BuyerAccess } from '../auth/decorators/buyer-access.decorator';
 import { ApiOkEnvelope } from '../common/swagger/api-envelope.decorator';
 import { ErrorResponseDto } from '../common/swagger/error-response.dto';
 import type { Env } from '../config/env';
@@ -101,7 +101,7 @@ export class PaymentsPublicController {
 }
 
 @ApiTags('Payments')
-@RequireVerifiedEmail()
+@BuyerAccess()
 @Controller()
 export class PaymentsController {
   constructor(private readonly payments: PaymentsService) {}

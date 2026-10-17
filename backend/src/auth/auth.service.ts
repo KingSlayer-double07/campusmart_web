@@ -1,7 +1,9 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
+  NotFoundException,
   UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
@@ -15,6 +17,7 @@ import {
 import { InstitutionsService } from '../institutions/institutions.service';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { inviteTokenHash } from '../riders/invite-token';
 import { SessionsService } from '../sessions/sessions.service';
 import { safeUserSelect } from '../users/user.select';
 import type {
@@ -23,6 +26,7 @@ import type {
   ClientMeta,
   SafeUser,
 } from './auth-user';
+import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -230,6 +234,80 @@ export class AuthService {
     });
   }
 
+  // ── Rider invites (DX1) ───────────────────────────────────────────────────
+
+  async inviteInfo(token: string) {
+    const invite = await this.findInvite(token);
+    if (!invite) throw new NotFoundException(invalidInvite);
+    return {
+      email: invite.user.email,
+      firstName: invite.user.firstName,
+      institutionName: invite.user.institution?.name ?? '',
+    };
+  }
+
+  // Sets the password, confirms the email (the link reached it) and signs the rider in
+  async acceptInvite(dto: AcceptInviteDto, meta: ClientMeta) {
+    const invite = await this.findInvite(dto.token);
+    if (!invite) throw new BadRequestException(invalidInvite);
+    if (blockedByInstitution(invite.user)) throw institutionInactive();
+    const password = await hash(dto.password, BCRYPT_ROUNDS);
+    const now = new Date();
+    const user = await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.invite.updateMany({
+        where: { id: invite.id, usedAt: null },
+        data: { usedAt: now },
+      });
+      if (claimed.count !== 1) throw new BadRequestException(invalidInvite);
+      return tx.user.update({
+        where: { id: invite.userId },
+        data: { password, emailVerifiedAt: now },
+        select: safeUserSelect,
+      });
+    });
+    const session = await this.sessions.create(user.id, meta);
+    return {
+      user,
+      tokens: this.tokens(user, session.sessionId, session.refreshToken),
+    };
+  }
+
+  // A usable invite: unused, unexpired, for an active rider who hasn't set a password yet
+  private async findInvite(token: string) {
+    const invite = await this.prisma.invite.findUnique({
+      where: { tokenHash: inviteTokenHash(token) },
+      select: {
+        id: true,
+        userId: true,
+        usedAt: true,
+        expiresAt: true,
+        user: {
+          select: {
+            email: true,
+            firstName: true,
+            role: true,
+            password: true,
+            isActive: true,
+            isSuspended: true,
+            institution: { select: { name: true, isActive: true } },
+          },
+        },
+      },
+    });
+    if (
+      !invite ||
+      invite.usedAt ||
+      invite.expiresAt <= new Date() ||
+      invite.user.role !== UserRole.DISPATCH ||
+      invite.user.password ||
+      !invite.user.isActive ||
+      invite.user.isSuspended
+    ) {
+      return null;
+    }
+    return invite;
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   private assertCanSignIn(user: { isSuspended: boolean; isActive: boolean }) {
@@ -276,3 +354,9 @@ export class AuthService {
     }
   }
 }
+
+const invalidInvite = {
+  code: 'INVALID_INVITE',
+  message:
+    'This invite link has expired or was already used. Ask an admin to send a new one.',
+};

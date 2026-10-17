@@ -12,7 +12,7 @@ import {
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { AuthUser } from '../auth/auth-user';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { RequireVerifiedEmail } from '../auth/decorators/require-verified-email.decorator';
+import { BuyerAccess } from '../auth/decorators/buyer-access.decorator';
 import { CursorQueryDto } from '../common/pagination';
 import { ApiOkEnvelope } from '../common/swagger/api-envelope.decorator';
 import { ErrorResponseDto } from '../common/swagger/error-response.dto';
@@ -29,7 +29,7 @@ import { OrdersService } from './orders.service';
 
 // Guide 4.2. Every route is the signed-in buyer's own: someone else's order is 404.
 @ApiTags('Orders')
-@RequireVerifiedEmail()
+@BuyerAccess()
 @Controller()
 export class OrdersController {
   constructor(

@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Req,
   Res,
@@ -13,6 +14,7 @@ import {
   ApiCookieAuth,
   ApiNoContentResponse,
   ApiOperation,
+  ApiParam,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -20,6 +22,7 @@ import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { ApiOkEnvelope } from '../common/swagger/api-envelope.decorator';
 import { ErrorResponseDto } from '../common/swagger/error-response.dto';
+import { InviteInfoDto } from '../riders/dto/rider.dto';
 import { toUserDto, UserDto } from '../users/dto/user.dto';
 import {
   clearAuthCookies,
@@ -29,6 +32,7 @@ import {
 import type { AuthUser, ClientMeta } from './auth-user';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
+import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -203,6 +207,48 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   me(@CurrentUser() user: AuthUser): UserDto {
+    return toUserDto(user);
+  }
+
+  @ApiOperation({
+    summary: "A rider's invitation",
+    description:
+      'Decision DX1: who the invite link is for, so the page can greet them. 404 INVALID_INVITE once used or expired.',
+  })
+  @ApiParam({ name: 'token' })
+  @ApiOkEnvelope(InviteInfoDto)
+  @ApiResponse({ status: 404, type: ErrorResponseDto })
+  @Get('invites/:token')
+  inviteInfo(@Param('token') token: string): Promise<InviteInfoDto> {
+    return this.auth.inviteInfo(token);
+  }
+
+  @ApiOperation({
+    summary: 'Accept a rider invitation',
+    description:
+      'Sets the password from the invite link, confirms the email and signs the rider in (sets the auth cookies).',
+  })
+  @ApiOkEnvelope(UserDto)
+  @ApiResponse({
+    status: 400,
+    type: ErrorResponseDto,
+    description: 'INVALID_INVITE or VALIDATION_FAILED',
+  })
+  @ApiResponse({
+    status: 403,
+    type: ErrorResponseDto,
+    description: INACTIVE_DOC,
+  })
+  @Throttle(STRICT)
+  @Post('accept-invite')
+  @HttpCode(HttpStatus.OK)
+  async acceptInvite(
+    @Body() dto: AcceptInviteDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<UserDto> {
+    const { user, tokens } = await this.auth.acceptInvite(dto, clientMeta(req));
+    setAuthCookies(res, tokens);
     return toUserDto(user);
   }
 

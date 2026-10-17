@@ -19,7 +19,7 @@ import {
 } from '@nestjs/swagger';
 import type { AuthUser } from '../auth/auth-user';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { RequireVerifiedEmail } from '../auth/decorators/require-verified-email.decorator';
+import { BuyerAccess } from '../auth/decorators/buyer-access.decorator';
 import { ApiOkEnvelope } from '../common/swagger/api-envelope.decorator';
 import { ErrorResponseDto } from '../common/swagger/error-response.dto';
 import { CartService } from './cart.service';
@@ -28,7 +28,7 @@ import { CartDto, MergeCartDto, SetCartItemDto } from './dto/cart.dto';
 // Guide 4.1, D14: the signed-in buyer's cart lives on the server. Every route is scoped to the
 // buyer's school, which must be switched on (403 NO_INSTITUTION / INSTITUTION_INACTIVE).
 @ApiTags('Cart')
-@RequireVerifiedEmail()
+@BuyerAccess()
 @Controller('cart')
 export class CartController {
   constructor(private readonly cart: CartService) {}
