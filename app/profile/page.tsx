@@ -19,7 +19,6 @@ export default function ProfilePage() {
   const router = useRouter();
 
   useEffect(() => {
-    // eslint-disable-next-line
     setMounted(true);
   }, []);
 

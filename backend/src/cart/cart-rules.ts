@@ -75,10 +75,7 @@ export const maxQuantity = (state: LineState) =>
   Math.min(state.stock, MAX_LINE_QUANTITY);
 
 export type CartIssueType =
-  | 'UNAVAILABLE'
-  | 'OUT_OF_STOCK'
-  | 'LOW_STOCK'
-  | 'PRICE_CHANGED';
+  'UNAVAILABLE' | 'OUT_OF_STOCK' | 'LOW_STOCK' | 'PRICE_CHANGED';
 
 export interface CartIssue {
   itemId: string;

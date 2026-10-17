@@ -93,7 +93,7 @@ describe('CartService', () => {
   describe('access', () => {
     it('needs a school, and one that is switched on', async () => {
       const none = await service
-        .get({ ...buyer, institutionId: null } as AuthUser)
+        .get({ ...buyer, institutionId: null })
         .catch((e: unknown) => e);
       expect(codeOf(none)).toBe('NO_INSTITUTION');
 

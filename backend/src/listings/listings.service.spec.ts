@@ -175,7 +175,7 @@ describe('ListingsService', () => {
         {
           ...seller,
           verificationStatus: VerificationStatus.PENDING,
-        } as AuthUser,
+        },
         { ...createDto, stock: 1, status: 'DRAFT' },
       );
       expect(prisma.listing.create.mock.calls[0][0].data.status).toBe(
@@ -244,12 +244,15 @@ describe('ListingsService', () => {
 
     it('browses only active, undeleted listings at your institution', async () => {
       prisma.listing.findMany.mockResolvedValue([]);
-      await service.browse({ ...seller, id: 'buyer' } as AuthUser, {
-        limit: 20,
-        sort: 'newest',
-        q: 'pants',
-        category: 'FASHION',
-      });
+      await service.browse(
+        { ...seller, id: 'buyer' },
+        {
+          limit: 20,
+          sort: 'newest',
+          q: 'pants',
+          category: 'FASHION',
+        },
+      );
       expect(prisma.listing.findMany.mock.calls[0][0].where).toMatchObject({
         institutionId: 'school-a',
         isDeleted: false,
@@ -264,10 +267,7 @@ describe('ListingsService', () => {
 
     it('records a view for buyers, not for the seller, and hides inactive options from buyers', async () => {
       prisma.listing.findFirst.mockResolvedValue(fullRow);
-      const asBuyer = await service.findOne(
-        { ...seller, id: 'buyer' } as AuthUser,
-        'l1',
-      );
+      const asBuyer = await service.findOne({ ...seller, id: 'buyer' }, 'l1');
       expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
       expect(asBuyer.variants.map((v) => v.label)).toEqual(['S', 'L']);
       expect(asBuyer.isOwner).toBe(false);
@@ -287,7 +287,7 @@ describe('ListingsService', () => {
     it('404s (not 403) for a listing you do not own', async () => {
       prisma.listing.findFirst.mockResolvedValue(null);
       await expect(
-        service.update({ ...seller, id: 'seller-2' } as AuthUser, 'l1', {
+        service.update({ ...seller, id: 'seller-2' }, 'l1', {
           title: 'Mine now',
         }),
       ).rejects.toBeInstanceOf(NotFoundException);

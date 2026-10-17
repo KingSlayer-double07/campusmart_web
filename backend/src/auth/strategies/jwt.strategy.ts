@@ -12,8 +12,7 @@ import type { AccessTokenPayload, AuthUser } from '../auth-user';
 // The JWT lives in the httpOnly access_token cookie, never in an Authorization header
 const cookieExtractor = (req: Request): string | null => {
   const cookies = req?.cookies as
-    | Record<string, string | undefined>
-    | undefined;
+    Record<string, string | undefined> | undefined;
   return cookies?.[ACCESS_COOKIE] ?? null;
 };
 

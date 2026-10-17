@@ -89,6 +89,11 @@ function ToastCard({ toast, onDismiss, duration = 3500 }: ToastProps) {
   const [visible, setVisible] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const dismiss = () => {
+    setVisible(false);
+    setTimeout(() => onDismiss(toast.id), 300);
+  };
+
   useEffect(() => {
     requestAnimationFrame(() =>
       requestAnimationFrame(() => setVisible(true))
@@ -101,11 +106,6 @@ function ToastCard({ toast, onDismiss, duration = 3500 }: ToastProps) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const dismiss = () => {
-    setVisible(false);
-    setTimeout(() => onDismiss(toast.id), 300);
-  };
 
   const { cardBg, bar, iconBg, Icon, iconColor, titleColor, msgColor, dismissColor } =
     typeConfig[toast.type];
