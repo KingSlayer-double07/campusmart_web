@@ -1,7 +1,9 @@
 import request from 'supertest';
 import { DeliveryMethod, UserRole } from '../src/generated/prisma/enums';
 import { MailService } from '../src/mail/mail.service';
+import { DeadlinesService } from '../src/dispatch/deadlines.service';
 import { PaymentsService } from '../src/payments/payments.service';
+import { PayoutsService } from '../src/payments/payouts.service';
 import * as fx from './commerce-fixtures';
 import {
   client,
@@ -649,6 +651,351 @@ describe('Phase 6 dispatch and handover (e2e)', () => {
         await tunde.get('/api/sellers/me/orders/counts').expect(200)
       ).body.data;
       expect(counts).toMatchObject({ TO_PREPARE: 0, CANCELLED: 1 });
+    });
+    // Hands a store's order over at a given time, as the rider or seller would have
+    const handedOverAt = (
+      sellerOrderId: string,
+      at: Date,
+      method: 'DELIVERED' | 'COLLECTED' = 'DELIVERED',
+    ) =>
+      ctx.prisma.sellerOrder.update({
+        where: { id: sellerOrderId },
+        data: {
+          fulfillmentStatus: method,
+          collectedAt: at,
+          releaseAt: new Date(at.getTime() + 48 * hour),
+        },
+      });
+
+    const report = (
+      agent: Agent,
+      orderId: string,
+      sellerOrderId: string,
+      body: object,
+    ) =>
+      agent
+        .post(`/api/orders/${orderId}/seller-orders/${sellerOrderId}/problems`)
+        .send(body);
+
+    it('a dispute 47 hours after handover blocks the payout; at 49 hours it is refused', async () => {
+      const w = await world();
+      const a = await paidOrder(w, { tunde: DeliveryMethod.DISPATCH });
+      const b = await paidOrder(w, { tunde: DeliveryMethod.DISPATCH });
+      const now = Date.now();
+      await handedOverAt(a.of(w.tunde.id).id, new Date(now - 47 * hour));
+      await handedOverAt(b.of(w.tunde.id).id, new Date(now - 49 * hour));
+      const buyer = await signIn(ctx.app, w.buyer.email);
+
+      const opened = await report(buyer, a.order.id, a.of(w.tunde.id).id, {
+        reason: 'DAMAGED',
+        details: 'The lamp arrived cracked',
+      }).expect(201);
+      expect(opened.body.data.kind).toBe('DISPUTE');
+      await expect(
+        ctx.prisma.sellerOrder.findUniqueOrThrow({
+          where: { id: a.of(w.tunde.id).id },
+        }),
+      ).resolves.toMatchObject({
+        fulfillmentStatus: 'DISPUTED',
+        escrowStatus: 'HELD',
+      });
+      // Two hours on, the release job still holds it
+      const payouts = ctx.app.get(PayoutsService);
+      await expect(payouts.releaseDue(new Date(now + 2 * hour))).resolves.toBe(
+        1,
+      );
+      await expect(
+        ctx.prisma.sellerOrder.findUniqueOrThrow({
+          where: { id: a.of(w.tunde.id).id },
+        }),
+      ).resolves.toMatchObject({ escrowStatus: 'HELD' });
+      await report(buyer, a.order.id, a.of(w.tunde.id).id, { reason: 'OTHER' })
+        .expect(409)
+        .expect(({ body }) => expect(body.code).toBe('ALREADY_REPORTED'));
+
+      await report(buyer, b.order.id, b.of(w.tunde.id).id, {
+        reason: 'DAMAGED',
+      })
+        .expect(409)
+        .expect(({ body }) => expect(body.code).toBe('DISPUTE_WINDOW_CLOSED'));
+      // Someone else's order is not found
+      const stranger = await createUser(ctx.prisma, {
+        institutionId: w.school.id,
+      });
+      const strangerAgent = await signIn(ctx.app, stranger.email);
+      await report(strangerAgent, a.order.id, a.of(w.tunde.id).id, {
+        reason: 'OTHER',
+      }).expect(404);
+      await expect(
+        ctx.prisma.notification.count({
+          where: { userId: w.admin.id, type: 'DISPUTE_OPENED' },
+        }),
+      ).resolves.toBe(1);
+    });
+
+    it('before handover a problem alerts the admins, who close it; the reasons follow the stage', async () => {
+      const w = await world();
+      const { order, of } = await paidOrder(w, {
+        tunde: DeliveryMethod.DISPATCH,
+      });
+      const buyer = await signIn(ctx.app, w.buyer.email);
+      await report(buyer, order.id, of(w.tunde.id).id, {
+        reason: 'DAMAGED',
+      }).expect(400);
+      await report(buyer, order.id, of(w.tunde.id).id, {
+        reason: 'LATE',
+        extra: 1,
+      }).expect(400);
+      const res = await report(buyer, order.id, of(w.tunde.id).id, {
+        reason: 'LATE',
+        details: 'No rider yet',
+      }).expect(201);
+      expect(res.body.data.kind).toBe('PROBLEM');
+
+      const admin = await signIn(ctx.app, w.admin.email);
+      const open = (await admin.get('/api/admin/problems').expect(200)).body
+        .data.items;
+      expect(open).toEqual([
+        expect.objectContaining({
+          id: res.body.data.id,
+          reason: 'LATE',
+          reporterRole: 'BUYER',
+          code: of(w.tunde.id).code,
+          storeStates: [`${of(w.tunde.id).code}: AWAITING_RIDER`],
+        }),
+      ]);
+      await admin
+        .post(`/api/admin/problems/${res.body.data.id}/close`)
+        .send({})
+        .expect(400);
+      await admin
+        .post(`/api/admin/problems/${res.body.data.id}/close`)
+        .send({ note: 'Assigned Bola' })
+        .expect(200);
+      await admin
+        .post(`/api/admin/problems/${res.body.data.id}/close`)
+        .send({ note: 'Again' })
+        .expect(409);
+      expect(
+        (await admin.get('/api/admin/problems').expect(200)).body.data.items,
+      ).toEqual([]);
+
+      // The rider reports a buyer who didn't show (DL8); a rider not on the job can't
+      const musa = await signIn(ctx.app, w.musa.email);
+      const job = await ctx.prisma.deliveryJob.findUniqueOrThrow({
+        where: { orderId: order.id },
+      });
+      await accept(musa, job.id, [of(w.tunde.id).id]).expect(200);
+      await musa
+        .post(`/api/dispatch/jobs/${job.id}/problems`)
+        .send({ reason: 'BUYER_NO_SHOW', details: 'Called twice' })
+        .expect(201);
+      const bola = await signIn(ctx.app, w.bola.email);
+      await bola
+        .post(`/api/dispatch/jobs/${job.id}/problems`)
+        .send({ reason: 'BUYER_NO_SHOW' })
+        .expect(404);
+      const riderReport = (await admin.get('/api/admin/problems').expect(200))
+        .body.data.items;
+      expect(riderReport[0]).toMatchObject({
+        reporterRole: 'DISPATCH',
+        reason: 'BUYER_NO_SHOW',
+      });
+    });
+
+    it('an admin decides a dispute: a release pays the seller now; a refund says whose fault it was', async () => {
+      const w = await world();
+      const a = await paidOrder(w, { tunde: DeliveryMethod.DISPATCH });
+      const b = await paidOrder(w, { ada: DeliveryMethod.SELLER_PICKUP });
+      await handedOverAt(a.of(w.tunde.id).id, new Date());
+      await handedOverAt(b.of(w.ada.id).id, new Date(), 'COLLECTED');
+      const buyer = await signIn(ctx.app, w.buyer.email);
+      const d1 = (
+        await report(buyer, a.order.id, a.of(w.tunde.id).id, {
+          reason: 'WRONG_ITEM',
+        }).expect(201)
+      ).body.data.id;
+      const d2 = (
+        await report(buyer, b.order.id, b.of(w.ada.id).id, {
+          reason: 'MISSING_ITEMS',
+        }).expect(201)
+      ).body.data.id;
+
+      const admin = await signIn(ctx.app, w.admin.email);
+      const list = (await admin.get('/api/admin/disputes').expect(200)).body
+        .data.items;
+      expect(list.map((d: { id: string }) => d.id).sort()).toEqual(
+        [d1, d2].sort(),
+      );
+
+      const released = await admin
+        .post(`/api/admin/disputes/${d1}/resolve`)
+        .send({ outcome: 'RELEASE', note: 'Photos show the right item' })
+        .expect(200);
+      expect(released.body.data).toMatchObject({ status: 'RESOLVED_RELEASE' });
+      await expect(
+        ctx.prisma.sellerOrder.findUniqueOrThrow({
+          where: { id: a.of(w.tunde.id).id },
+          include: { payout: true },
+        }),
+      ).resolves.toMatchObject({
+        fulfillmentStatus: 'DELIVERED',
+        escrowStatus: 'RELEASED',
+        payout: { status: 'AWAITING_ACCOUNT' },
+      });
+
+      await admin
+        .post(`/api/admin/disputes/${d2}/resolve`)
+        .send({ outcome: 'REFUND', note: 'Item missing' })
+        .expect(400);
+      await admin
+        .post(`/api/admin/disputes/${d2}/resolve`)
+        .send({
+          outcome: 'REFUND',
+          fault: 'SELLER',
+          note: 'One item was missing',
+        })
+        .expect(200);
+      await expect(
+        ctx.prisma.sellerOrder.findUniqueOrThrow({
+          where: { id: b.of(w.ada.id).id },
+        }),
+      ).resolves.toMatchObject({
+        fulfillmentStatus: 'CANCELLED',
+        escrowStatus: 'REFUNDED',
+        fault: 'SELLER',
+      });
+      await admin
+        .post(`/api/admin/disputes/${d2}/resolve`)
+        .send({ outcome: 'RELEASE', note: 'Changed my mind' })
+        .expect(409);
+      await expect(
+        ctx.prisma.auditLog.count({ where: { action: 'DISPUTE_RESOLVED' } }),
+      ).resolves.toBe(2);
+      // Sellers and buyers can't reach the admin routes
+      const seller = await signIn(ctx.app, w.tunde.email);
+      await seller.get('/api/admin/disputes').expect(403);
+    });
+
+    it('an admin refunds a parcel lost with the rider (DX6), choosing whose fault it was', async () => {
+      const w = await world();
+      const { job, of } = await paidOrder(w, {
+        tunde: DeliveryMethod.DISPATCH,
+      });
+      const so = of(w.tunde.id);
+      const musa = await signIn(ctx.app, w.musa.email);
+      await accept(musa, job!.id, [so.id]).expect(200);
+      await musa
+        .post(`/api/dispatch/jobs/${job!.id}/pickups`)
+        .send({ code: so.code })
+        .expect(200);
+
+      const admin = await signIn(ctx.app, w.admin.email);
+      await admin
+        .post(`/api/admin/seller-orders/${so.id}/refund`)
+        .send({ reason: 'Lost' })
+        .expect(400);
+      await admin
+        .post(`/api/admin/seller-orders/${so.id}/refund`)
+        .send({ fault: 'NONE', reason: 'Lost on the way' })
+        .expect(200);
+      await expect(
+        ctx.prisma.sellerOrder.findUniqueOrThrow({ where: { id: so.id } }),
+      ).resolves.toMatchObject({
+        fulfillmentStatus: 'CANCELLED',
+        escrowStatus: 'REFUNDED',
+        fault: 'NONE',
+      });
+      // A trip happened, so the delivery fee stays (DF9)
+      const refund = await ctx.prisma.refund.findFirstOrThrow({
+        where: { sellerOrderId: so.id },
+      });
+      expect(refund.deliveryFeeKobo).toBe(0);
+      await expect(
+        ctx.prisma.deliveryJob.findUniqueOrThrow({ where: { id: job!.id } }),
+      ).resolves.toMatchObject({ status: 'CANCELLED' });
+    });
+
+    it('deadlines: no pickup in 3 days refunds; not collected in 5 days is the buyer’s fault; admins hear of slow jobs', async () => {
+      const w = await world();
+      const deadlines = ctx.app.get(DeadlinesService);
+      const reported = await paidOrder(w, { tunde: DeliveryMethod.DISPATCH });
+      const quiet = await paidOrder(w, { tunde: DeliveryMethod.DISPATCH });
+      const pickup = await paidOrder(w, { ada: DeliveryMethod.SELLER_PICKUP });
+      const carried = await paidOrder(w, { tunde: DeliveryMethod.DISPATCH });
+
+      const musa = await signIn(ctx.app, w.musa.email);
+      const r = reported.of(w.tunde.id);
+      await accept(musa, reported.job!.id, [r.id]).expect(200);
+      await musa
+        .post(`/api/dispatch/jobs/${reported.job!.id}/stops/${r.id}/not-ready`)
+        .send({})
+        .expect(200);
+      const c = carried.of(w.tunde.id);
+      await accept(musa, carried.job!.id, [c.id]).expect(200);
+      await musa
+        .post(`/api/dispatch/jobs/${carried.job!.id}/pickups`)
+        .send({ code: c.code })
+        .expect(200);
+
+      // 5 hours on: the job nobody took is flagged once (DX2)
+      const now = Date.now();
+      await expect(
+        deadlines.unacceptedJobs(new Date(now + 4 * hour)),
+      ).resolves.toBe(0);
+      await expect(
+        deadlines.unacceptedJobs(new Date(now + 5 * hour + 60_000)),
+      ).resolves.toBe(1);
+      await expect(
+        deadlines.unacceptedJobs(new Date(now + 6 * hour)),
+      ).resolves.toBe(0);
+
+      // 3 days on: both dispatch stores still at the seller are refunded (DL7b, C11)
+      const run = await deadlines.runAll(
+        new Date(now + 3 * 24 * hour + 60_000),
+      );
+      expect(run).toMatchObject({ missedPickup: 2, notCollected: 0 });
+      await expect(
+        ctx.prisma.sellerOrder.findUniqueOrThrow({ where: { id: r.id } }),
+      ).resolves.toMatchObject({
+        fulfillmentStatus: 'CANCELLED',
+        fault: 'SELLER',
+        cancelReason: 'MISSED_PICKUP_DEADLINE',
+      });
+      await expect(
+        ctx.prisma.sellerOrder.findUniqueOrThrow({
+          where: { id: quiet.of(w.tunde.id).id },
+        }),
+      ).resolves.toMatchObject({
+        fulfillmentStatus: 'CANCELLED',
+        fault: 'NONE',
+      });
+      await expect(
+        ctx.prisma.notification.count({
+          where: { userId: w.musa.id, type: 'STOP_CANCELLED' },
+        }),
+      ).resolves.toBe(1);
+
+      // 5 days on: the uncollected pickup is the buyer's fault (DL7c); the parcel with the rider is flagged (DL6b)
+      const later = await deadlines.runAll(
+        new Date(now + 5 * 24 * hour + 60_000),
+      );
+      expect(later).toMatchObject({ notCollected: 1, withRiderAlerts: 1 });
+      await expect(
+        ctx.prisma.sellerOrder.findUniqueOrThrow({
+          where: { id: pickup.of(w.ada.id).id },
+        }),
+      ).resolves.toMatchObject({
+        fulfillmentStatus: 'CANCELLED',
+        fault: 'BUYER',
+        cancelReason: 'NOT_COLLECTED',
+      });
+      await expect(
+        ctx.prisma.sellerOrder.findUniqueOrThrow({ where: { id: c.id } }),
+      ).resolves.toMatchObject({ fulfillmentStatus: 'WITH_RIDER' });
+      expect(
+        (await deadlines.runAll(new Date(now + 6 * 24 * hour))).withRiderAlerts,
+      ).toBe(0);
     });
   });
 });

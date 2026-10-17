@@ -1,10 +1,16 @@
-export const UPLOAD_PURPOSES = ['LISTING', 'AVATAR', 'VERIFICATION'] as const;
+export const UPLOAD_PURPOSES = [
+  'LISTING',
+  'AVATAR',
+  'VERIFICATION',
+  'DISPUTE', // up to 3 photos with a dispute (F7)
+] as const;
 export type UploadPurpose = (typeof UPLOAD_PURPOSES)[number];
 
 const FOLDER_BY_PURPOSE: Record<UploadPurpose, string> = {
   LISTING: 'listings',
   AVATAR: 'avatars',
   VERIFICATION: 'verification',
+  DISPUTE: 'disputes',
 };
 
 // Every user uploads into their own folder, e.g. campusmart/listings/<userId>

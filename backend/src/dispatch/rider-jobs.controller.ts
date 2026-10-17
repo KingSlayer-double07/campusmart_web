@@ -26,6 +26,8 @@ import {
   NotReadyDto,
   PickupCodeDto,
 } from './dto/delivery-job.dto';
+import { ReportResultDto, RiderProblemDto } from './dto/problem.dto';
+import { ProblemsService } from './problems.service';
 import { RiderOnly } from './rider-only.decorator';
 
 const uuid = new ParseUUIDPipe();
@@ -37,7 +39,10 @@ const uuid = new ParseUUIDPipe();
 @ApiResponse({ status: 404, type: ErrorResponseDto })
 @Controller('dispatch/jobs')
 export class RiderJobsController {
-  constructor(private readonly jobs: DeliveryJobsService) {}
+  constructor(
+    private readonly jobs: DeliveryJobsService,
+    private readonly problems: ProblemsService,
+  ) {}
 
   @ApiOperation({
     summary: 'Jobs',
@@ -211,5 +216,21 @@ export class RiderJobsController {
     @Param('id', uuid) id: string,
   ): Promise<DeliveryJobDto> {
     return this.jobs.drop(rider, id);
+  }
+
+  @ApiOperation({
+    summary: 'Report a problem with a job',
+    description:
+      'A buyer who didn’t show (DL8), or anything else. CampusMart’s admins are alerted and decide.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkEnvelope(ReportResultDto, { status: 201 })
+  @Post(':id/problems')
+  report(
+    @CurrentUser() rider: AuthUser,
+    @Param('id', uuid) id: string,
+    @Body() dto: RiderProblemDto,
+  ): Promise<ReportResultDto> {
+    return this.problems.riderReport(rider, id, dto);
   }
 }

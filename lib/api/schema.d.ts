@@ -1318,6 +1318,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dispatch/jobs/{id}/problems": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report a problem with a job
+         * @description A buyer who didn’t show (DL8), or anything else. CampusMart’s admins are alerted and decide.
+         */
+        post: operations["RiderJobsController_report"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sellers/me/orders": {
         parameters: {
             query?: never;
@@ -1486,6 +1506,143 @@ export interface paths {
          * @description After checking with the buyer. Needs a reason, kept in the audit log.
          */
         post: operations["AdminDeliveriesController_unlock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/{orderId}/seller-orders/{id}/problems": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report a problem with one store’s order
+         * @description Before handover it alerts CampusMart (LATE, LOST, OTHER). After handover, until releaseAt, it opens a dispute that holds the seller’s payout (F6, F7).
+         */
+        post: operations["ProblemsController_report"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/disputes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Disputes
+         * @description Open ones oldest first
+         */
+        get: operations["AdminDisputesController_disputes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/disputes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One dispute */
+        get: operations["AdminDisputesController_dispute"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/disputes/{id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide a dispute
+         * @description REFUND (with whose fault it was) or RELEASE, with a note both sides see. Returning an item is arranged outside the app (F9).
+         */
+        post: operations["AdminDisputesController_resolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/problems": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Problems reported before handover
+         * @description From buyers (late, lost) and riders (a buyer who didn’t show)
+         */
+        get: operations["AdminDisputesController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/problems/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close a reported problem
+         * @description With a note of what was done
+         */
+        post: operations["AdminDisputesController_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/seller-orders/{id}/refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refund one store’s order
+         * @description For a case you decide yourself: a parcel lost with the rider (DX6) or a buyer who didn’t show (DL8). Say whose fault it was (P6).
+         */
+        post: operations["AdminDisputesController_refund"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1881,7 +2038,7 @@ export interface components {
             type?: "authenticated";
         };
         /** @enum {string} */
-        UploadPurpose: "LISTING" | "AVATAR" | "VERIFICATION";
+        UploadPurpose: "LISTING" | "AVATAR" | "VERIFICATION" | "DISPUTE";
         UploadSignatureRequestDto: {
             purpose: components["schemas"]["UploadPurpose"];
         };
@@ -2689,6 +2846,21 @@ export interface components {
             /** @example 048 */
             code: string;
         };
+        ReportResultDto: {
+            /**
+             * @description PROBLEM: before handover, the admins were alerted. DISPUTE: after handover, the payout is held until an admin decides.
+             * @enum {string}
+             */
+            kind: "PROBLEM" | "DISPUTE";
+            /** Format: uuid */
+            id: string;
+        };
+        /** @enum {string} */
+        RiderProblemReason: "BUYER_NO_SHOW" | "OTHER";
+        RiderProblemDto: {
+            reason: components["schemas"]["RiderProblemReason"];
+            details?: string;
+        };
         SellerOrderItemDto: {
             title: string;
             variantLabel: string | null;
@@ -2866,6 +3038,115 @@ export interface components {
             unlocked: boolean;
         };
         AdminReasonDto: {
+            reason: string;
+        };
+        /**
+         * @description Before handover: LATE, LOST or OTHER. After handover: NOT_AS_DESCRIBED, DAMAGED, WRONG_ITEM, MISSING_ITEMS or OTHER.
+         * @enum {string}
+         */
+        BuyerProblemReason: "LATE" | "LOST" | "OTHER" | "NOT_AS_DESCRIBED" | "DAMAGED" | "WRONG_ITEM" | "MISSING_ITEMS";
+        ReportProblemDto: {
+            /** @description Before handover: LATE, LOST or OTHER. After handover: NOT_AS_DESCRIBED, DAMAGED, WRONG_ITEM, MISSING_ITEMS or OTHER. */
+            reason: components["schemas"]["BuyerProblemReason"];
+            details?: string;
+            /** @description Up to 3 photos uploaded with purpose DISPUTE (F7) */
+            evidenceUrls?: string[];
+        };
+        /** @enum {string} */
+        DisputeReason: "NOT_AS_DESCRIBED" | "DAMAGED" | "WRONG_ITEM" | "MISSING_ITEMS" | "OTHER";
+        /** @enum {string} */
+        DisputeStatus: "OPEN" | "RESOLVED_REFUND" | "RESOLVED_RELEASE";
+        /** @enum {string} */
+        Fault: "BUYER" | "SELLER" | "NONE";
+        AdminDisputeDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            sellerOrderId: string;
+            /** Format: uuid */
+            orderId: string;
+            /** @example CM-7F3K2Q */
+            code: string;
+            storeName: string;
+            buyerName: string;
+            reason: components["schemas"]["DisputeReason"];
+            details: string | null;
+            evidenceUrls: string[];
+            status: components["schemas"]["DisputeStatus"];
+            fault: components["schemas"]["Fault"] | null;
+            resolutionNote: string | null;
+            deliveryMethod: components["schemas"]["DeliveryMethod"] | null;
+            /** @description The items, in kobo */
+            subtotalKobo: number;
+            /** Format: date-time */
+            handedOverAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            resolvedAt: string | null;
+        };
+        AdminDisputePageDto: {
+            items: components["schemas"]["AdminDisputeDto"][];
+            /** Format: uuid */
+            nextCursor: string | null;
+        };
+        ResolveDisputeDto: {
+            /** @enum {string} */
+            outcome: "REFUND" | "RELEASE";
+            /** @description Needed for a refund */
+            fault?: components["schemas"]["Fault"];
+            /** @description Both sides see it */
+            note: string;
+        };
+        /** @enum {string} */
+        ProblemStatus: "OPEN" | "CLOSED";
+        AdminProblemDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            orderId: string;
+            /** Format: uuid */
+            sellerOrderId: string | null;
+            /** @example CM-7F3K2Q */
+            code: string | null;
+            storeName: string | null;
+            reporterRole: components["schemas"]["UserRole"];
+            reporterName: string;
+            /** @example LATE */
+            reason: string;
+            details: string | null;
+            status: components["schemas"]["ProblemStatus"];
+            resolutionNote: string | null;
+            /**
+             * @description Where each store of the order stands now
+             * @example [
+             *       "CM-7F3K2Q: WITH_RIDER"
+             *     ]
+             */
+            storeStates: string[];
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AdminProblemPageDto: {
+            items: components["schemas"]["AdminProblemDto"][];
+            /** Format: uuid */
+            nextCursor: string | null;
+        };
+        ClosedProblemDto: {
+            /** Format: uuid */
+            id: string;
+            closed: boolean;
+        };
+        CloseProblemDto: {
+            note: string;
+        };
+        AdminRefundResultDto: {
+            /** Format: uuid */
+            sellerOrderId: string;
+            refunded: boolean;
+        };
+        AdminRefundDto: {
+            fault: components["schemas"]["Fault"];
             reason: string;
         };
     };
@@ -7572,6 +7853,75 @@ export interface operations {
             };
         };
     };
+    RiderJobsController_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RiderProblemDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["ReportResultDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     Not a rider
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
     SellerOrdersController_list: {
         parameters: {
             query?: {
@@ -8179,6 +8529,491 @@ export interface operations {
                 };
             };
             /** @description NOT_LOCKED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ProblemsController_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+                /** @description The seller order */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportProblemDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["ReportResultDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description VALIDATION_FAILED or INVALID_IMAGE */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     EMAIL_NOT_VERIFIED, or RIDERS_CANNOT_BUY
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description CANNOT_REPORT, ALREADY_REPORTED or DISPUTE_WINDOW_CLOSED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDisputesController_disputes: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+                status?: "OPEN" | "RESOLVED";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminDisputePageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDisputesController_dispute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminDisputeDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDisputesController_resolve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveDisputeDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminDisputeDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description DISPUTE_RESOLVED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDisputesController_list: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+                status?: components["schemas"]["ProblemStatus"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminProblemPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDisputesController_close: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseProblemDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["ClosedProblemDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description PROBLEM_CLOSED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDisputesController_refund: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The seller order */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminRefundDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminRefundResultDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description NOT_REFUNDABLE or DISPUTE_OPEN */
             409: {
                 headers: {
                     [name: string]: unknown;
