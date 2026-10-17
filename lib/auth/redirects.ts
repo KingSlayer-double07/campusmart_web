@@ -7,6 +7,8 @@ export function homeForRole(role: UserRole | undefined): string {
       return '/admin';
     case 'PICKUP_AGENT':
       return '/agent';
+    case 'DISPATCH':
+      return '/dispatch';
     case 'SELLER':
       return '/sellers';
     default:

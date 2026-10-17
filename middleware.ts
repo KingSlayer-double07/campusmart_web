@@ -4,10 +4,15 @@ import type { NextRequest } from 'next/server';
 // UX redirect only (guide 1.6.7); the API enforces every rule. Either auth cookie counts.
 // Note: the refresh cookie is scoped to /api/auth (D6), so page requests normally carry only the
 // access cookie. When it has expired, sign-in tries a silent refresh before asking for a password.
-export const PROTECTED_PREFIXES = ['/sellers', '/profile', '/admin', '/agent', '/checkout', '/cart', '/orders'];
+// /dispatch/invite stays open: a rider sets their password there before they can sign in
+export const PROTECTED_PREFIXES = ['/sellers', '/profile', '/admin', '/agent', '/dispatch', '/checkout', '/cart', '/orders'];
+
+// Pages under a protected prefix that a signed-out visitor still needs
+const OPEN_PATHS = ['/dispatch/invite'];
 
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  if (OPEN_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return NextResponse.next();
   const signedIn = request.cookies.has('access_token') || request.cookies.has('refresh_token');
   if (signedIn) return NextResponse.next();
 
@@ -23,6 +28,7 @@ export const config = {
     '/profile/:path*',
     '/admin/:path*',
     '/agent/:path*',
+    '/dispatch/:path*',
     '/checkout/:path*',
     '/cart/:path*',
     '/orders/:path*',

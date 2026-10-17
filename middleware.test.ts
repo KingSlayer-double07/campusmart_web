@@ -29,6 +29,11 @@ describe("middleware", () => {
     expect(run("/profile", { auth_token: "dev-mock-token" }).status).toBe(307);
   });
 
+  it("lets a signed-out rider open their invite link", () => {
+    expect(run("/dispatch/invite?token=abc").headers.get("location")).toBeNull();
+    expect(run("/dispatch/jobs/1").status).toBe(307);
+  });
+
   it("matches every protected prefix", () => {
     expect(config.matcher).toEqual(PROTECTED_PREFIXES.map((p) => `${p}/:path*`));
   });

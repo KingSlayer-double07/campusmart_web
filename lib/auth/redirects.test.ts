@@ -5,6 +5,7 @@ describe("homeForRole", () => {
   it.each([
     ["ADMIN", "/admin"],
     ["PICKUP_AGENT", "/agent"],
+    ["DISPATCH", "/dispatch"],
     ["SELLER", "/sellers"],
     ["BUYER", "/"],
   ] as const)("%s -> %s", (role, path) => expect(homeForRole(role)).toBe(path));
