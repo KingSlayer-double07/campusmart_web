@@ -109,7 +109,7 @@ function SellerOrderCard({ order, sellerOrder }: { order: Order; sellerOrder: Se
         </div>
       )}
 
-      {so.fulfillmentStatus === "DROPPED_OFF" && order.pickupStation && (
+      {so.fulfillmentStatus === "DROPPED_OFF" && order.pickupStation && so.collectionCode && (
         <div className="rounded-2xl bg-main-subtle px-4 py-4 text-center">
           <p className="text-xs font-semibold uppercase tracking-wide text-main">Your collection code</p>
           <p className="mt-1 font-mono text-4xl font-bold tracking-[0.3em] text-foreground" aria-label={`Collection code ${so.collectionCode.split("").join(" ")}`}>

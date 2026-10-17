@@ -257,6 +257,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/invites/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A rider's invitation
+         * @description Decision DX1: who the invite link is for, so the page can greet them. 404 INVALID_INVITE once used or expired.
+         */
+        get: operations["AuthController_inviteInfo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/accept-invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept a rider invitation
+         * @description Sets the password from the invite link, confirms the email and signs the rider in (sets the auth cookies).
+         */
+        post: operations["AuthController_acceptInvite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/forgot-password": {
         parameters: {
             query?: never;
@@ -1057,6 +1097,401 @@ export interface paths {
         patch: operations["AdminSettingsController_update"];
         trace?: never;
     };
+    "/api/admin/riders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List riders
+         * @description Newest first. `q` matches the email or name.
+         */
+        get: operations["AdminRidersController_list"];
+        put?: never;
+        /**
+         * Invite a rider
+         * @description Creates a rider account at that campus and emails a link to set the password (7 days). Logged with your id.
+         */
+        post: operations["AdminRidersController_invite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/riders/{id}/resend-invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send the invite again
+         * @description A new link; the old one stops working
+         */
+        post: operations["AdminRidersController_resend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/riders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Switch a rider off or on
+         * @description Switching off ends their sessions. Refused while they hold a job: reassign it first.
+         */
+        patch: operations["AdminRidersController_setActive"];
+        trace?: never;
+    };
+    "/api/dispatch/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Jobs
+         * @description OPEN: waiting for a rider at your campus, oldest first. MINE: yours in progress. DONE: yours finished.
+         */
+        get: operations["RiderJobsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dispatch/jobs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One job
+         * @description Before you accept, only the pickup and drop-off areas show (C6)
+         */
+        get: operations["RiderJobsController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dispatch/jobs/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept a job
+         * @description With an arrival window for each store (DF8b). The first rider to accept takes it (DX2).
+         */
+        post: operations["RiderJobsController_accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dispatch/jobs/{id}/stops/{sellerOrderId}/window": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change your arrival window at a store */
+        patch: operations["RiderJobsController_updateWindow"];
+        trace?: never;
+    };
+    "/api/dispatch/jobs/{id}/pickups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Collect from a store
+         * @description Enter or scan the store's CM- code; its parcel is now with you (DX5)
+         */
+        post: operations["RiderJobsController_pickup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dispatch/jobs/{id}/stops/{sellerOrderId}/not-ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report a store not ready
+         * @description Or the seller not there (DF11). Deliver the rest and come back before its deadline.
+         */
+        post: operations["RiderJobsController_notReady"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dispatch/jobs/{id}/handovers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hand over to the buyer
+         * @description The buyer's 3-digit code for one store (DL5). 5 wrong codes lock it (F5).
+         */
+        post: operations["RiderJobsController_handOver"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dispatch/jobs/{id}/drop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Give a job back
+         * @description Only while you carry nothing from it. It opens to riders again and admins are told (C5).
+         */
+        post: operations["RiderJobsController_drop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sellers/me/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Your orders
+         * @description By tab. Shows the buyer’s name only, never their email, phone or address.
+         */
+        get: operations["SellerOrdersController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sellers/me/orders/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How many orders are in each tab */
+        get: operations["SellerOrdersController_counts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sellers/me/orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One of your orders */
+        get: operations["SellerOrdersController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sellers/me/orders/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel an order
+         * @description Before it leaves you. The buyer is refunded in full and it counts against your store (F10, P6).
+         */
+        post: operations["SellerOrdersController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sellers/me/orders/{id}/handover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hand over to a buyer collecting from you
+         * @description Enter the buyer's 3-digit code (DL5). 5 wrong codes lock it (F5).
+         */
+        post: operations["SellerOrdersController_handOver"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Delivery jobs
+         * @description By view
+         */
+        get: operations["AdminDeliveriesController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/deliveries/{id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assign or reassign a rider
+         * @description An active rider at the job’s campus. Logged with your id and the old and new rider (C5).
+         */
+        post: operations["AdminDeliveriesController_assign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/locked-handovers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Locked handovers
+         * @description Orders locked after 5 wrong buyer codes (F5), oldest first
+         */
+        get: operations["AdminDeliveriesController_locked"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/seller-orders/{id}/unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Unlock a handover
+         * @description After checking with the buyer. Needs a reason, kept in the audit log.
+         */
+        post: operations["AdminDeliveriesController_unlock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1091,7 +1526,7 @@ export interface components {
             current: boolean;
         };
         /** @enum {string} */
-        UserRole: "BUYER" | "SELLER" | "ADMIN" | "PICKUP_AGENT";
+        UserRole: "BUYER" | "SELLER" | "ADMIN" | "PICKUP_AGENT" | "DISPATCH";
         /** @enum {string} */
         VerificationStatus: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
         UserDto: {
@@ -1176,6 +1611,22 @@ export interface components {
              */
             email: string;
             /** @example Campus2026 */
+            password: string;
+        };
+        InviteInfoDto: {
+            /** Format: email */
+            email: string;
+            firstName: string | null;
+            /** @example University of Lagos */
+            institutionName: string;
+        };
+        AcceptInviteDto: {
+            /** @description The token from the invite link */
+            token: string;
+            /**
+             * @description 8+ characters with an uppercase letter, a lowercase letter and a number
+             * @example Campus2026
+             */
             password: string;
         };
         ForgotPasswordDto: {
@@ -1827,7 +2278,7 @@ export interface components {
             storeName: string;
         };
         /** @enum {string} */
-        FulfillmentStatus: "PENDING" | "AWAITING_RIDER" | "AWAITING_PICKUP" | "AWAITING_DROPOFF" | "DROPPED_OFF" | "COLLECTED" | "CANCELLED" | "DISPUTED";
+        FulfillmentStatus: "PENDING" | "AWAITING_RIDER" | "RIDER_ASSIGNED" | "WITH_RIDER" | "DELIVERED" | "AWAITING_PICKUP" | "AWAITING_DROPOFF" | "DROPPED_OFF" | "COLLECTED" | "CANCELLED" | "DISPUTED";
         SellerOrderSummaryDto: {
             /** Format: uuid */
             id: string;
@@ -1869,6 +2320,10 @@ export interface components {
             /** Format: uuid */
             nextCursor: string | null;
         };
+        OrderRiderDto: {
+            /** @description The name only (DX8) */
+            name: string;
+        };
         SellerPickupDto: {
             /** @example Moremi Hall */
             area: string;
@@ -1906,8 +2361,24 @@ export interface components {
             itemCount: number;
             /** @description First item photo */
             imageUrl: string | null;
-            /** @description The code the buyer gives at handover. Only the buyer's own order includes it. */
-            collectionCode: string;
+            /** @description The code you give at handover: by rider, once the rider has the parcel; picking up from the seller, once paid (C7). Null until then. */
+            collectionCode: string | null;
+            /** @description The rider delivering it, once one has the job */
+            rider: components["schemas"]["OrderRiderDto"] | null;
+            /** Format: date-time */
+            pickupDeadline: string | null;
+            /**
+             * Format: date-time
+             * @description The rider collected it from the store
+             */
+            pickedUpAt: string | null;
+            /**
+             * Format: date-time
+             * @description You can report a problem until then (C8)
+             */
+            releaseAt: string | null;
+            /** @description 5 wrong codes were entered; CampusMart will unlock it (F5) */
+            handoverLocked: boolean;
             /** @description Set when you collect from the seller (SELLER_PICKUP) */
             pickupFrom: components["schemas"]["SellerPickupDto"] | null;
             items: components["schemas"]["OrderItemDto"][];
@@ -2057,6 +2528,345 @@ export interface components {
             platformFeeBps?: number;
             /** @description Days after payment for the rider to collect from the seller */
             pickupDeadlineDays?: number;
+        };
+        AdminRiderDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: email */
+            email: string;
+            firstName: string | null;
+            lastName: string | null;
+            phone: string | null;
+            /** @description Switched off riders can’t sign in or see jobs */
+            isActive: boolean;
+            /** @description True until they set their password from the invite link */
+            invitePending: boolean;
+            institution: components["schemas"]["StationInstitutionDto"];
+            /** @description Jobs they hold now */
+            activeJobs: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AdminRiderPageDto: {
+            items: components["schemas"]["AdminRiderDto"][];
+            /** Format: uuid */
+            nextCursor: string | null;
+        };
+        InviteRiderDto: {
+            /**
+             * Format: email
+             * @example musa.rider@gmail.com
+             */
+            email: string;
+            /**
+             * Format: uuid
+             * @description The campus they deliver at
+             */
+            institutionId: string;
+            /** @example Musa */
+            firstName: string;
+            /** @example Bello */
+            lastName?: string;
+            /**
+             * @description Shown to admins only
+             * @example +234 803 555 0101
+             */
+            phone?: string;
+        };
+        SetRiderActiveDto: {
+            /** @description false switches the rider off */
+            isActive: boolean;
+            reason: string;
+        };
+        /** @enum {string} */
+        DeliveryJobStatus: "OPEN" | "ASSIGNED" | "DONE" | "CANCELLED";
+        JobDestinationDto: {
+            /** @description Off campus: the fee is settled with the buyer */
+            offCampus: boolean;
+            /** @example Faculty of Science */
+            campusPlace: string | null;
+            /** @description Off campus, after you accept */
+            address: string | null;
+        };
+        JobBuyerDto: {
+            /** @description Their username or first name */
+            name: string;
+            phone: string | null;
+        };
+        JobItemDto: {
+            title: string;
+            variantLabel: string | null;
+            quantity: number;
+        };
+        JobStopDto: {
+            /** Format: uuid */
+            sellerOrderId: string;
+            /** @description After you accept */
+            storeName: string | null;
+            /** @example Moremi Hall */
+            area: string | null;
+            /** @description After you accept */
+            address: string | null;
+            /** @description After you accept */
+            phone: string | null;
+            itemCount: number;
+            /** @description After you accept */
+            items: components["schemas"]["JobItemDto"][];
+            status: components["schemas"]["FulfillmentStatus"];
+            /** Format: date-time */
+            arrivalFrom: string | null;
+            /** Format: date-time */
+            arrivalTo: string | null;
+            /**
+             * Format: date-time
+             * @description Collect from the store by then (DL7b)
+             */
+            pickupDeadline: string | null;
+            /** Format: date-time */
+            pickedUpAt: string | null;
+            /**
+             * Format: date-time
+             * @description You reported the store not ready (DF11)
+             */
+            notReadyAt: string | null;
+            notReadyNote: string | null;
+            /** Format: date-time */
+            deliveredAt: string | null;
+            /** @description 5 wrong buyer codes (F5) */
+            handoverLocked: boolean;
+        };
+        DeliveryJobDto: {
+            /** Format: uuid */
+            id: string;
+            status: components["schemas"]["DeliveryJobStatus"];
+            /** @description You hold this job */
+            mine: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            acceptedAt: string | null;
+            /** @description The order’s on-campus delivery fee, in kobo */
+            deliveryFeeKobo: number;
+            destination: components["schemas"]["JobDestinationDto"];
+            /** @description After you accept (C6) */
+            buyer: components["schemas"]["JobBuyerDto"] | null;
+            stops: components["schemas"]["JobStopDto"][];
+        };
+        DeliveryJobPageDto: {
+            items: components["schemas"]["DeliveryJobDto"][];
+            /** Format: uuid */
+            nextCursor: string | null;
+        };
+        /** @enum {string} */
+        JobScope: "OPEN" | "MINE" | "DONE";
+        ArrivalWindowDto: {
+            /** Format: date-time */
+            from: string;
+            /** Format: date-time */
+            to: string;
+            /** Format: uuid */
+            sellerOrderId: string;
+        };
+        AcceptJobDto: {
+            windows: components["schemas"]["ArrivalWindowDto"][];
+        };
+        ArrivalTimesDto: {
+            /** Format: date-time */
+            from: string;
+            /** Format: date-time */
+            to: string;
+        };
+        PickupCodeDto: {
+            /** @example CM-7F3K2Q */
+            code: string;
+        };
+        NotReadyDto: {
+            note?: string;
+        };
+        HandoverCodeDto: {
+            /** Format: uuid */
+            sellerOrderId: string;
+            /** @example 048 */
+            code: string;
+        };
+        SellerOrderItemDto: {
+            title: string;
+            variantLabel: string | null;
+            imageUrl: string | null;
+            quantity: number;
+            unitPriceKobo: number;
+        };
+        /** @enum {string} */
+        EscrowStatus: "PENDING" | "HELD" | "RELEASED" | "REFUNDED";
+        SellerOrderRiderDto: {
+            /** @description The name only (DX8) */
+            name: string;
+        };
+        SellerSideOrderDto: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * @description Give it to the rider when they collect (DX5)
+             * @example CM-7F3K2Q
+             */
+            code: string;
+            /** Format: date-time */
+            placedAt: string;
+            /**
+             * @description Username or first name
+             * @example tobi
+             */
+            buyerName: string;
+            deliveryMethod: components["schemas"]["DeliveryMethod"] | null;
+            items: components["schemas"]["SellerOrderItemDto"][];
+            subtotalKobo: number;
+            /** @description What you are paid: the items less the platform fee */
+            sellerPayoutKobo: number;
+            fulfillmentStatus: components["schemas"]["FulfillmentStatus"];
+            escrowStatus: components["schemas"]["EscrowStatus"];
+            /**
+             * Format: date-time
+             * @description Dispatch: the rider must collect by then (DL7b). Pickup: the buyer must collect by then (DL7c).
+             */
+            pickupDeadline: string | null;
+            rider: components["schemas"]["SellerOrderRiderDto"] | null;
+            /** Format: date-time */
+            arrivalFrom: string | null;
+            /** Format: date-time */
+            arrivalTo: string | null;
+            /** Format: date-time */
+            pickedUpAt: string | null;
+            /**
+             * Format: date-time
+             * @description The rider found it not ready (DF11)
+             */
+            notReadyAt: string | null;
+            notReadyNote: string | null;
+            /**
+             * Format: date-time
+             * @description Handed over to the buyer
+             */
+            handedOverAt: string | null;
+            /**
+             * Format: date-time
+             * @description Your payout is released then, unless the buyer reports a problem
+             */
+            releaseAt: string | null;
+            /** Format: date-time */
+            cancelledAt: string | null;
+            cancelReason: string | null;
+            /** @description You may cancel it (before it leaves you) */
+            canCancel: boolean;
+            /** @description 5 wrong buyer codes (F5); CampusMart unlocks it */
+            handoverLocked: boolean;
+        };
+        SellerSideOrderPageDto: {
+            items: components["schemas"]["SellerSideOrderDto"][];
+            /** Format: uuid */
+            nextCursor: string | null;
+        };
+        /** @enum {string} */
+        SellerOrderTab: "TO_PREPARE" | "ON_THE_WAY" | "DONE" | "PROBLEMS" | "CANCELLED";
+        SellerOrderCountsDto: {
+            TO_PREPARE: number;
+            ON_THE_WAY: number;
+            DONE: number;
+            PROBLEMS: number;
+            CANCELLED: number;
+        };
+        CancelSellerOrderDto: {
+            /** @example Out of stock */
+            reason: string;
+        };
+        SellerHandoverDto: {
+            /** @example 048 */
+            code: string;
+        };
+        AdminPersonDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        AdminJobStopDto: {
+            /** Format: uuid */
+            sellerOrderId: string;
+            /** @example CM-7F3K2Q */
+            code: string;
+            storeName: string;
+            area: string | null;
+            status: components["schemas"]["FulfillmentStatus"];
+            /** Format: date-time */
+            pickupDeadline: string | null;
+            /** Format: date-time */
+            pickedUpAt: string | null;
+            /** Format: date-time */
+            notReadyAt: string | null;
+            /** Format: date-time */
+            deliveredAt: string | null;
+            handoverLocked: boolean;
+        };
+        AdminDeliveryJobDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            orderId: string;
+            status: components["schemas"]["DeliveryJobStatus"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            acceptedAt: string | null;
+            /**
+             * Format: date-time
+             * @description When admins were told nobody accepted within 5 hours (DX2)
+             */
+            unacceptedAlertAt: string | null;
+            institutionName: string;
+            rider: components["schemas"]["AdminPersonDto"] | null;
+            buyerName: string;
+            /**
+             * @description Or the off-campus address
+             * @example Faculty of Science
+             */
+            destination: string;
+            stops: components["schemas"]["AdminJobStopDto"][];
+        };
+        AdminDeliveryJobPageDto: {
+            items: components["schemas"]["AdminDeliveryJobDto"][];
+            /** Format: uuid */
+            nextCursor: string | null;
+        };
+        /** @enum {string} */
+        DeliveryView: "OPEN" | "ACTIVE" | "DONE" | "ALL";
+        AssignRiderDto: {
+            /** Format: uuid */
+            riderId: string;
+            reason?: string;
+        };
+        LockedHandoverDto: {
+            /** Format: uuid */
+            sellerOrderId: string;
+            /** Format: uuid */
+            orderId: string;
+            /** @example CM-7F3K2Q */
+            code: string;
+            storeName: string;
+            buyerName: string;
+            deliveryMethod: components["schemas"]["DeliveryMethod"] | null;
+            /** Format: date-time */
+            lockedAt: string;
+        };
+        LockedHandoverPageDto: {
+            items: components["schemas"]["LockedHandoverDto"][];
+            /** Format: uuid */
+            nextCursor: string | null;
+        };
+        UnlockResultDto: {
+            /** Format: uuid */
+            sellerOrderId: string;
+            unlocked: boolean;
+        };
+        AdminReasonDto: {
+            reason: string;
         };
     };
     responses: never;
@@ -2657,6 +3467,106 @@ export interface operations {
                 };
             };
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AuthController_inviteInfo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["InviteInfoDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AuthController_acceptInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptInviteDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["UserDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description INVALID_INVITE or VALIDATION_FAILED */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description INSTITUTION_INACTIVE: the user's institution is switched off. Only admins can sign in there. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4423,7 +5333,11 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     EMAIL_NOT_VERIFIED, or RIDERS_CANNOT_BUY
+             */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4487,7 +5401,11 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     EMAIL_NOT_VERIFIED, or RIDERS_CANNOT_BUY
+             */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4551,7 +5469,11 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     EMAIL_NOT_VERIFIED, or RIDERS_CANNOT_BUY
+             */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4614,7 +5536,11 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     EMAIL_NOT_VERIFIED, or RIDERS_CANNOT_BUY
+             */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4665,7 +5591,11 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     EMAIL_NOT_VERIFIED, or RIDERS_CANNOT_BUY
+             */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4716,7 +5646,11 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     EMAIL_NOT_VERIFIED, or RIDERS_CANNOT_BUY
+             */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4780,7 +5714,11 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     EMAIL_NOT_VERIFIED, or RIDERS_CANNOT_BUY
+             */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4853,7 +5791,11 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     EMAIL_NOT_VERIFIED, or RIDERS_CANNOT_BUY
+             */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4906,7 +5848,11 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     EMAIL_NOT_VERIFIED, or RIDERS_CANNOT_BUY
+             */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4967,7 +5913,11 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     EMAIL_NOT_VERIFIED, or RIDERS_CANNOT_BUY
+             */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5071,7 +6021,11 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     EMAIL_NOT_VERIFIED, or RIDERS_CANNOT_BUY
+             */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5151,7 +6105,11 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     EMAIL_NOT_VERIFIED, or RIDERS_CANNOT_BUY
+             */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5693,6 +6651,1535 @@ export interface operations {
             };
             /** @description Not an admin */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminRidersController_list: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+                /** @description Search text */
+                q?: string;
+                status?: components["schemas"]["ActiveFilter"];
+                institutionId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminRiderPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminRidersController_invite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteRiderDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminRiderDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description VALIDATION_FAILED, or INVALID_REFERENCE for the institution */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_TAKEN */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminRidersController_resend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminRiderDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description INVITE_ALREADY_ACCEPTED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminRidersController_setActive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetRiderActiveDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminRiderDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description RIDER_HAS_JOBS */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    RiderJobsController_list: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+                /** @description OPEN: waiting for a rider at your campus; MINE: yours in progress; DONE: yours finished */
+                scope?: components["schemas"]["JobScope"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["DeliveryJobPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     Not a rider
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    RiderJobsController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["DeliveryJobDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     Not a rider
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    RiderJobsController_accept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptJobDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["DeliveryJobDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description WINDOW_REQUIRED or VALIDATION_FAILED */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     Not a rider
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description JOB_TAKEN */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    RiderJobsController_updateWindow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                sellerOrderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArrivalTimesDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["DeliveryJobDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     Not a rider
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description STOP_NOT_WAITING or JOB_NOT_YOURS */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    RiderJobsController_pickup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PickupCodeDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["DeliveryJobDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description WRONG_CODE */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     Not a rider
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description ALREADY_PICKED_UP, STOP_NOT_WAITING or JOB_NOT_YOURS */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    RiderJobsController_notReady: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                sellerOrderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotReadyDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["DeliveryJobDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     Not a rider
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    RiderJobsController_handOver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HandoverCodeDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["DeliveryJobDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description WRONG_CODE, with triesLeft */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     Not a rider
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description NOT_READY_FOR_HANDOVER or JOB_NOT_YOURS */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description HANDOVER_LOCKED */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    RiderJobsController_drop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["DeliveryJobDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     Not a rider
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description PARCELS_WITH_RIDER or JOB_NOT_YOURS */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SellerOrdersController_list: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+                /** @description TO_PREPARE: paid, not yet collected from you. ON_THE_WAY: with the rider. DONE: handed over. PROBLEMS: disputed. CANCELLED. */
+                tab?: components["schemas"]["SellerOrderTab"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["SellerSideOrderPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description Not a seller
+             *
+             *     EMAIL_NOT_VERIFIED
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SellerOrdersController_counts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["SellerOrderCountsDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description Not a seller
+             *
+             *     EMAIL_NOT_VERIFIED
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SellerOrdersController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["SellerSideOrderDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description Not a seller
+             *
+             *     EMAIL_NOT_VERIFIED
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SellerOrdersController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelSellerOrderDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["SellerSideOrderDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description Not a seller
+             *
+             *     EMAIL_NOT_VERIFIED
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description NOT_CANCELLABLE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SellerOrdersController_handOver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SellerHandoverDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["SellerSideOrderDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description WRONG_CODE, with triesLeft */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description Not a seller
+             *
+             *     EMAIL_NOT_VERIFIED
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description NOT_READY_FOR_HANDOVER */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description HANDOVER_LOCKED */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDeliveriesController_list: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+                /** @description OPEN: no rider yet, oldest first. ACTIVE: a rider has it. DONE: delivered or cancelled. */
+                view?: components["schemas"]["DeliveryView"];
+                institutionId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminDeliveryJobPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDeliveriesController_assign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignRiderDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminDeliveryJobDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description INVALID_RIDER */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description JOB_CLOSED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDeliveriesController_locked: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["LockedHandoverPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDeliveriesController_unlock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The seller order */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminReasonDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["UnlockResultDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description NOT_LOCKED */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

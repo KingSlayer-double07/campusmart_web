@@ -38,6 +38,9 @@ export const LISTING_STATUS_LABELS: Record<ListingStatus, string> = {
 export const FULFILLMENT_STATUS_LABELS: Record<FulfillmentStatus, string> = {
   PENDING: 'Awaiting payment',
   AWAITING_RIDER: 'Waiting for a rider',
+  RIDER_ASSIGNED: 'Rider on the way to the store',
+  WITH_RIDER: 'With the rider',
+  DELIVERED: 'Delivered',
   AWAITING_PICKUP: 'Ready for you to collect',
   AWAITING_DROPOFF: 'Awaiting drop-off',
   DROPPED_OFF: 'Ready for pickup',
