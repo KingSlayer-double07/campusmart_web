@@ -107,26 +107,29 @@ model CampusPlace {
 }
 
 model SellerProfile {
-  userId                String   @id
-  storeName             String?
-  bio                   String?
-  logoUrl               String?
-  isOnline              Boolean  @default(false)
-  ratingAvg             Float    @default(0)
-  ratingCount           Int      @default(0)
-  payoutBankName        String?
-  payoutAccountLast4    String?
-  payoutAccountName     String?
-  paystackRecipientCode String?
+  userId                 String    @id
+  storeName              String?
+  bio                    String?
+  logoUrl                String?
+  isOnline               Boolean   @default(false)
+  ratingAvg              Float     @default(0)
+  ratingCount            Int       @default(0)
+  payoutBankName         String?
+  payoutAccountLast4     String?
+  payoutAccountName      String?
+  paystackRecipientCode  String?
+  payoutBankCode         String?
+  // Payouts wait 24 hours after the account is set or changed, in case it was hijacked (P9)
+  payoutAccountChangedAt DateTime?
   // Where riders collect, and buyers pick up when allowsPickup (decisions SA1-SA4, DL1). Buyers see
   // the area before paying; the address and phone only after.
-  pickupArea            String?
-  pickupAddress         String?
-  contactPhone          String?
-  allowsPickup          Boolean  @default(false)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pickupArea             String?
+  pickupAddress          String?
+  contactPhone           String?
+  allowsPickup           Boolean   @default(false)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model PickupStation {
@@ -247,7 +250,8 @@ model Order {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
   sellerOrders    SellerOrder[]
-  payment         Payment?
+  // One per attempt: a buyer can try again on the same order until it expires (decision P7)
+  payments        Payment[]
   buyer           User           @relation("BuyerOrders", fields: [buyerId], references: [id])
   institution     Institution    @relation(fields: [institutionId], references: [id])
   pickupStation   PickupStation? @relation(fields: [pickupStationId], references: [id])
@@ -265,6 +269,10 @@ model SellerOrder {
   collectionAttempts Int               @default(0)
   deliveryMethod     DeliveryMethod? // chosen per store (DM1); empty on orders placed through a pickup station
   fulfillmentStatus  FulfillmentStatus @default(PENDING)
+  // Dispatch: the rider collects from the seller by then (DL7b). Pickup: the buyer collects by then (DL7c).
+  pickupDeadline     DateTime?
+  // Whose fault a cancellation or refund was (P6); seller faults lower the trust score (F10)
+  fault              Fault?
   escrowStatus       EscrowStatus      @default(PENDING)
   subtotalKobo       Int
   platformFeeKobo    Int               @default(0)
@@ -281,6 +289,7 @@ model SellerOrder {
   seller             User              @relation("SellerOrders", fields: [sellerId], references: [id])
   items              OrderItem[]
   payout             Payout?
+  refund             Refund?
   dispute            Dispute?
   reviews            Review[]
 
@@ -303,18 +312,57 @@ model OrderItem {
 }
 
 model Payment {
-  id         String        @id @default(uuid())
-  orderId    String        @unique
-  provider   String        @default("PAYSTACK")
-  reference  String        @unique
-  amountKobo Int
-  status     PaymentStatus @default(PENDING)
-  channel    String?
-  paidAt     DateTime?
-  rawEvent   Json?
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
-  order      Order         @relation(fields: [orderId], references: [id])
+  id            String        @id @default(uuid())
+  orderId       String
+  attempt       Int           @default(1) // reference is CM_<orderId>_<attempt>
+  provider      String        @default("PAYSTACK")
+  reference     String        @unique
+  amountKobo    Int
+  status        PaymentStatus @default(PENDING)
+  channel       String?
+  // Paystack's processing fee, from charge.success: a buyer-fault refund gives back the rest (P6)
+  feesKobo      Int?
+  failureReason String?
+  paidAt        DateTime?
+  rawEvent      Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  order         Order         @relation(fields: [orderId], references: [id])
+  refunds       Refund[]
+
+  @@index([orderId])
+}
+
+// Money going back to a buyer through Paystack (guide 5.6). One per refunded seller order; a whole
+// payment refunded on its own (paid twice, or paid after the stock was gone) has no seller order.
+model Refund {
+  id               String       @id @default(uuid())
+  paymentId        String
+  sellerOrderId    String?      @unique
+  amountKobo       Int // what the buyer gets back
+  itemsKobo        Int
+  deliveryFeeKobo  Int          @default(0) // the order's fee, when nothing was picked up (DF5, DF9)
+  paystackFeeKobo  Int          @default(0) // kept back when it's the buyer's fault (P6)
+  fault            Fault
+  reason           String
+  status           RefundStatus @default(PENDING)
+  paystackRefundId String?      @unique
+  failureReason    String?
+  actorId          String? // null = system
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  payment          Payment      @relation(fields: [paymentId], references: [id])
+  sellerOrder      SellerOrder? @relation(fields: [sellerOrderId], references: [id])
+
+  @@index([status, createdAt])
+}
+
+// Platform settings an admin can change (decision R1a); the env value applies until one is saved
+model PlatformSetting {
+  key         String   @id
+  value       Json
+  updatedById String?
+  updatedAt   DateTime @updatedAt
 }
 
 model Payout {
@@ -323,8 +371,11 @@ model Payout {
   sellerId      String
   amountKobo    Int
   status        PayoutStatus @default(PENDING)
+  attempt       Int          @default(1) // reference is PO_<sellerOrderId>_<attempt>; a retry gets a new one
   reference     String       @unique
+  transferCode  String?
   failureReason String?
+  paidAt        DateTime?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   sellerOrder   SellerOrder  @relation(fields: [sellerOrderId], references: [id])
@@ -467,6 +518,8 @@ enum DeliveryMethod {
 
 enum FulfillmentStatus {
   PENDING
+  AWAITING_RIDER // paid, by dispatch: waiting for a rider to collect from the seller
+  AWAITING_PICKUP // paid, pickup from the seller: waiting for the buyer
   AWAITING_DROPOFF
   DROPPED_OFF
   COLLECTED
@@ -515,6 +568,18 @@ enum VerificationStatus {
   PENDING
   VERIFIED
   REJECTED
+}
+
+enum Fault {
+  BUYER
+  SELLER
+  NONE
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSED
+  FAILED
 }
 
 enum PaymentStatus {

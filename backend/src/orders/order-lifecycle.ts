@@ -12,10 +12,7 @@ type Tx = Prisma.TransactionClient;
 // webhook beats the expiry job), so such an order is never closed here.
 export const unpaidOrderWhere = (): Prisma.OrderWhereInput => ({
   status: OrderStatus.PENDING_PAYMENT,
-  OR: [
-    { payment: { is: null } },
-    { payment: { status: { not: PaymentStatus.COMPLETED } } },
-  ],
+  payments: { none: { status: PaymentStatus.COMPLETED } },
 });
 
 // Closes an unpaid order as CANCELLED (the buyer) or EXPIRED (the job): the status flip is
