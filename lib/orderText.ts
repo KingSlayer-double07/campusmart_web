@@ -1,13 +1,13 @@
 // How order times and outcomes read on the order screens (Phase 6). West Africa Time throughout.
 const zone = 'Africa/Lagos';
 const day = new Intl.DateTimeFormat('en-NG', { weekday: 'short', day: 'numeric', month: 'short', timeZone: zone });
-const time = new Intl.DateTimeFormat('en-NG', { hour: 'numeric', minute: '2-digit', timeZone: zone });
+const time = new Intl.DateTimeFormat('en-NG', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: zone });
 
 export const dayText = (iso: string) => day.format(new Date(iso));
 export const timeText = (iso: string) => time.format(new Date(iso));
 export const whenText = (iso: string) => `${dayText(iso)}, ${timeText(iso)}`;
 
-// "Sat 18 Oct, 2:00 pm to 4:00 pm" (decision DF8b)
+// "Sat, 18 Oct, 14:00 to 16:00" (decision DF8b)
 export function windowText(from: string, to: string): string {
   return `${dayText(from)}, ${timeText(from)} to ${timeText(to)}`;
 }

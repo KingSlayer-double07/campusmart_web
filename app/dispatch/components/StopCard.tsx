@@ -149,11 +149,11 @@ function WindowEditor({ jobId, stop, onDone }: { jobId: string; stop: JobStop; o
   return (
     <div className="flex flex-col gap-2 rounded-xl bg-surface-muted p-3">
       <div className="flex gap-2">
-        <label className="flex-1 text-xs text-foreground-muted">
+        <label className="min-w-0 flex-1 text-xs text-foreground-muted">
           Arrive from
           <input type="datetime-local" className={field} value={start} onChange={(e) => setStart(e.target.value)} />
         </label>
-        <label className="w-28 text-xs text-foreground-muted">
+        <label className="w-28 shrink-0 text-xs text-foreground-muted">
           For
           <select className={field} value={hours} onChange={(e) => setHours(Number(e.target.value))}>
             {WINDOW_HOURS.map((h) => (

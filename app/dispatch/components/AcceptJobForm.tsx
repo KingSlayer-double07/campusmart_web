@@ -41,13 +41,13 @@ export default function AcceptJobForm({ job, onTaken }: { job: DeliveryJob; onTa
         <p className="text-xs text-foreground-muted">Each seller sees your window, so their item is ready.</p>
       </div>
       {stops.map((s, i) => (
-        <fieldset key={s.sellerOrderId} className="flex flex-col gap-2 border-t border-border-default pt-3 first-of-type:border-0 first-of-type:pt-0">
-          <legend className="text-sm font-semibold">
+        <fieldset key={s.sellerOrderId} className={`flex min-w-0 flex-col gap-2 ${i > 0 ? "border-t border-border-default pt-3" : ""}`}>
+          <legend className="float-left w-full text-sm font-semibold">
             Store {i + 1}: {s.area ?? "Area not given"}
           </legend>
           {s.pickupDeadline && <p className="text-xs text-foreground-muted">Collect by {whenText(s.pickupDeadline)}</p>}
           <div className="flex gap-2">
-            <label className="flex-1 text-xs text-foreground-muted">
+            <label className="min-w-0 flex-1 text-xs text-foreground-muted">
               Arrive from
               <input
                 type="datetime-local"
@@ -57,7 +57,7 @@ export default function AcceptJobForm({ job, onTaken }: { job: DeliveryJob; onTa
                 onChange={(e) => setTimes((t) => ({ ...t, [s.sellerOrderId]: { ...t[s.sellerOrderId], start: e.target.value } }))}
               />
             </label>
-            <label className="w-28 text-xs text-foreground-muted">
+            <label className="w-28 shrink-0 text-xs text-foreground-muted">
               For
               <select
                 className={field}

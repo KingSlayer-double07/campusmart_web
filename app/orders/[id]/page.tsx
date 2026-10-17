@@ -19,8 +19,9 @@ import { summarizeOpeningHours } from "@/lib/openingHours";
 import OrderStatusBadge from "../OrderStatusBadge";
 import { deliveryLine } from "../delivery";
 
-const when = new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short" });
-const time = new Intl.DateTimeFormat("en-NG", { timeStyle: "short" });
+// West Africa Time, like the delivery steps on this page (lib/orderText)
+const when = new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Lagos" });
+const time = new Intl.DateTimeFormat("en-NG", { timeStyle: "short", timeZone: "Africa/Lagos" });
 
 const STEPS = [
   { label: "Paid", hint: "Your payment is in" },
