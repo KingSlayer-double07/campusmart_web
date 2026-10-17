@@ -2,7 +2,7 @@
 
 Drafted 2026-10-17 from your answers in [decisions-needed.md](decisions-needed.md). The guide stays the base; this
 file lists what each phase builds, including where your answers change the guide. Anything still waiting on you is
-marked **(waits on ID)**, pointing at a round 5 question. Nothing is built on a guess.
+marked **(waits on ID)**, pointing at a round 6 question. Nothing is built on a guess.
 
 ## How every phase runs
 
@@ -31,9 +31,9 @@ The same rules as Phases 0–4:
 
 | Step | Phase | Branch | Waits on |
 |---|---|---|---|
-| 1 | 4b Checkout with delivery (DL10) | `feat/phase-4b-delivery-checkout` | DF6 |
-| 2 | 5 Payments, escrow, refunds | `feat/phase-5-payments` | DF9 |
-| 3 | 6 Dispatch and handover (replaces the guide's pickup-station Phase 6) | `feat/phase-6-dispatch` | DF7, DF8 |
+| 1 | 4b Checkout with delivery (DL10) | `feat/phase-4b-delivery-checkout` | nothing; starts on your "continue" |
+| 2 | 5 Payments, escrow, refunds | `feat/phase-5-payments` | DF9a, C11 |
+| 3 | 6 Dispatch and handover (replaces the guide's pickup-station Phase 6) | `feat/phase-6-dispatch` | DF8a, DF8b, DF10, DF11 |
 | 4 | 7 Seller analytics | `feat/phase-7-analytics` | nothing |
 | 5 | 8 Wishlist, stores, reviews, trust score | `feat/phase-8-stores-reviews` | nothing |
 | 6 | 9 Admin and moderation (the slices not built earlier) | `feat/phase-9-admin-moderation` | nothing |
@@ -74,7 +74,7 @@ disputes in 6, the rest in 9.
 - **dispatch off campus:** an address the buyer types (DF4a), with no fee in the app (DF4);
 - **pickup from the seller:** free (C2), only where the seller allows it (DL1).
 
-Whether one order has one destination, or each dispatch store its own: **waits on DF6**.
+One destination per order: every store delivered by dispatch goes to the same place or address (DF6).
 
 Payments stay off until Phase 5, as now.
 
@@ -87,7 +87,7 @@ Payments stay off until Phase 5, as now.
 | `SellerProfile`: `pickupArea` and `pickupAddress` (both typed by the seller), `contactPhone`, `allowsPickup` | SA1, SA2, SA4, DL1 |
 | `Order.pickupStationId` becomes optional | stations aren't used (DL9) |
 | `SellerOrder.deliveryMethod` (`DISPATCH_CAMPUS`, `DISPATCH_OFF_CAMPUS`, `SELLER_PICKUP`) | DM1 |
-| The destination, `campusPlaceId` or `deliveryAddress`, plus `buyerPhone` (a copy for the rider): on `Order` or on each `SellerOrder` **(waits on DF6)** | DF3, DF4, DF4a, PH2 |
+| `Order` destination: `campusPlaceId` or `deliveryAddress`, plus `buyerPhone` (a copy for the rider) | DF3, DF4, DF4a, DF6, PH2 |
 | `Order.deliveryFeeKobo`: one fee per order | DF2 |
 | `Order.totalKobo` = items + the delivery fee | DL4 |
 
@@ -164,7 +164,8 @@ The guide's 5.1–5.7, with these changes.
 - **Webhook and verify:**
   - Signature checked, replays ignored, amount and currency checked, as the guide says.
   - On success, each seller order's escrow becomes `HELD`, and it moves on by method:
-    - **dispatch:** "awaiting dispatch", with a deadline 3 days after payment (DL7b);
+    - **dispatch:** "awaiting rider", with a deadline 3 days after payment (DL7b). The order's delivery job opens to
+      riders at this point, without the seller calling anyone (DF8; the job itself is Phase 6);
     - **pickup:** "awaiting pickup", with the buyer's 5-day deadline (DL7c; the job is Phase 6).
   - Sellers are notified (in the app, and by email once S4 is set up).
   - The Paystack fee from the webhook is stored, for refunds.
@@ -175,14 +176,15 @@ The guide's 5.1–5.7, with these changes.
   - One transfer per seller order (P4) of items minus the platform fee (P1, 0).
   - The platform absorbs the transfer fee (P3). Delivery fees stay in the platform balance (DX3).
 - **Refunds (5.6):** `refundSellerOrder(sellerOrderId, reason, fault)`.
-  - **Amount:** the items, plus the delivery fee unless the rider had already picked the parcel up (DF5, DF5a).
-    With one fee per order, what's refunded when only some stores are refunded: **waits on DF9**.
+  - **Amount:** the items, plus the order's delivery fee only if nothing in the order had been picked up yet (DF5,
+    DF5a, DF9). Whether the fee comes back when one store is refunded and the rest is still delivered: **waits on
+    DF9a**.
   - **Buyer's fault:** that seller order's share of the Paystack fee, split by subtotal, is taken off (P6).
   - **Seller's fault:** the platform absorbs the fee, and the seller loses 10 trust points, counted like a
     cancellation (P6, F10).
   - **Nobody's fault** (e.g. paid after the order expired and the stock was gone): the platform absorbs it.
-  - **3 days with no pickup (DL7d):** if the seller never called the dispatch, it's the seller's fault. If they did
-    call, it's nobody's: the platform absorbs the fee and the seller keeps their points.
+  - **3 days with no pickup:** DL7d tied the seller's fault to never calling the dispatch, but sellers no longer call
+    (DF8). The rule that replaces it: **waits on C11**.
 - **Fees:** the platform absorbs Paystack's processing fee (P2).
 - **Admin:** a `/admin/payouts` screen for failed and awaiting-account payouts, with retry; the platform fee on
   `/admin/settings`.
@@ -216,35 +218,39 @@ Replaces the guide's Phase 6. The station flow stays in the code, unused.
 
 | Method | Path |
 |---|---|
-| Dispatch | awaiting dispatch → dispatch requested → rider assigned → with the rider → delivered (per store or per order: **waits on DF7**) |
+| Dispatch | awaiting rider → rider assigned → with the rider → delivered. One delivery job per order moves every dispatch store in it together (DF7) |
 | Pickup from the seller | awaiting pickup → collected |
 
 Both can also end cancelled or disputed. The labels live in `lib/labels.ts` (D4).
 
 **Jobs (DX2, DX5, DL5)**
 
-- The seller taps "Call dispatch". Every active rider at that campus sees the job; the first to accept takes it, and
-  any other gets 409.
-- With several dispatch stores in one order: one job for the order or one per store **(waits on DF7)**, and when the
-  job opens to riders **(waits on DF8)**.
+- **One job per order (DF7).** It covers every store in the order delivered by dispatch. One rider collects from each
+  store, then delivers once.
+- **The job opens automatically (DF8).** It opens when the order is paid; sellers don't call the dispatch. Whether that
+  also covers single-store orders: **waits on DF8a**.
+- Every active rider at that campus sees an open job; the first to accept takes it, and any other gets 409.
+- Each seller gets a timeframe for the rider's arrival, so the item is ready (DF8). Who sets it: **waits on DF8b**.
 - Admins are alerted if nobody accepts within 5 hours. They can assign or reassign a rider then, or when a rider
   drops a job (C5).
 - Before accepting, riders see only the pickup and drop-off areas. The full addresses and the buyer's phone come after
   they accept (C6).
 - The seller and the buyer see the rider's name only (DX8).
-- **At the seller:** the rider enters or scans the `CM-` code, and the parcel is recorded as with the rider.
-- **At the buyer:** the rider enters the buyer's 6-digit code, and the order is delivered; payout comes 48 hours later
-  (D11).
+- **At each seller:** the rider enters or scans that store's `CM-` code, and its parcel is recorded as with the rider
+  (DX5).
+- A store that isn't ready when the rider arrives: **waits on DF11**.
+- **At the buyer:** the rider enters the buyer's 6-digit code, and the delivery is done. One code for the delivery or
+  one per store: **waits on DF10**. Each store's payout comes 48 hours later (D11).
 - **Pickup from the seller:** the seller enters the buyer's code (DL5).
 - **Wrong codes:** 5 wrong codes lock the order, and an admin unlocks it with a reason (F5).
 - The buyer sees their code once the rider has the parcel (dispatch), or as soon as the order is paid (pickup from
-  the seller) (C7).
+  the seller) (C7). With several stores, this follows DF10.
 
 **Deadlines** (an hourly job)
 
 | Method | Rule |
 |---|---|
-| Dispatch | No pickup 3 days after payment: cancelled and refunded. The seller's fault only if they never called the dispatch (DL7b, DL7d). The seller gets a reminder 24 hours before. |
+| Dispatch | No pickup from a store 3 days after payment: that store's order is cancelled and refunded (DL7b). Whose fault: **waits on C11**. |
 | With the rider | 5 days without the buyer's code: admins are alerted (DL6b). |
 | Pickup from the seller | Not collected within 5 days of payment: cancelled automatically as the buyer's fault, with the P6 fee taken off (DL7c). |
 
@@ -268,13 +274,14 @@ Both can also end cancelled or disputed. The labels live in `lib/labels.ts` (D4)
 - **The rider app,** `/dispatch`, a mobile layout for the `DISPATCH` role:
   - available jobs, my jobs, and job detail;
   - code entry, with QR scanning where the browser supports it and typing everywhere.
-- **Sellers:** the orders page rebuilt per seller order, with tabs by state. The "Mark as" menu is deleted. A "Call
-  dispatch" button, and a code entry for pickups.
+- **Sellers:** the orders page rebuilt per seller order, with tabs by state. The "Mark as" menu is deleted. Each
+  dispatch order shows the rider's name and expected arrival; pickups have a code entry.
 - **Buyers:** the order detail shows the handover code, progress, and "Report a problem".
 - **Admin:** `/admin/riders`, `/admin/disputes` with a detail page, unlocking, and assigning riders.
 
 **Gate checklist**
 
+- [ ] Paying for an order with two dispatch stores opens one job; the rider collects from both and delivers once.
 - [ ] A rider at another campus gets 404 on a job.
 - [ ] Two riders accept at once: one wins.
 - [ ] A seller calling rider endpoints gets 403, and a rider calling seller endpoints gets 403.

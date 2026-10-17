@@ -10,7 +10,7 @@ its checklist, changes, verification evidence, deviations and open asks.
 | 2 Commerce schema | DONE | `feat/phase-2-commerce-schema` | 2026-10-09 |
 | 3 Listings, variants, uploads | DONE pending manual checks (real Cloudinary upload) | `feat/phase-3-listings`, `feat/phase-3-seller-verification` | 2026-10-09 |
 | 4 Cart and checkout | DONE | `feat/phase-4-cart-checkout` | 2026-10-09 |
-| 4b Checkout with delivery | NOT STARTED (waits on round 5: DF6) | `feat/phase-4b-delivery-checkout` | |
+| 4b Checkout with delivery | NOT STARTED (ready; starts on your "continue") | `feat/phase-4b-delivery-checkout` | |
 | 5 Payments and escrow | NOT STARTED | | |
 | 6 Dispatch and handover (replaces pickup stations) | NOT STARTED | | |
 | 7 Seller analytics | NOT STARTED | | |
@@ -52,8 +52,9 @@ Your decisions that change or extend the guide. Each phase file has the detail.
 - **Phases 5–10 decisions (2026-10-17):** answered in [decisions-needed.md](decisions-needed.md#answers-2026-10-17).
   The two that change the guide most:
   - **Delivery replaces pickup stations** (F2, DL1–DL10, round 3). An in-app dispatch delivers on and off campus,
-    or the buyer picks up from a seller who allows it. Riders are invited by admins and paid outside the app, and
-    delivery fees go to the platform. This replaces D12 and the agent half of D16. The station and agent code stays;
+    or the buyer picks up from a seller who allows it. One delivery job per order opens to riders automatically at
+    payment; one rider collects from every store and delivers once. Riders are invited by admins and paid outside the
+    app, and the order's one delivery fee goes to the platform. This replaces D12 and the agent half of D16. The station and agent code stays;
     the admin Stations screen stays visible. Checkout is reworked first, as Phase 4b.
   - **Buyers may sign up without a school email** (T1). They pick their school during onboarding, and Google sign-in
     is for buyers only. Sellers still need a school email. This changes D7 for buyers.
@@ -62,8 +63,8 @@ Your decisions that change or extend the guide. Each phase file has the detail.
 
 - [execution-plan.md](execution-plan.md): what Phases 4b–10 build, in order, with each phase's gate checklist and
   what it needs from you.
-- Round 5 in [decisions-needed.md](decisions-needed.md#open-questions-round-5): four questions raised by one delivery
-  fee per order. Phase 4b needs DF6.
+- Round 6 in [decisions-needed.md](decisions-needed.md#open-questions-round-6): six questions about the automatic
+  delivery job. Phases 5 and 6 wait on them; Phase 4b doesn't.
 
 ## What you need to set up
 
