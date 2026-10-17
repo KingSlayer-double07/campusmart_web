@@ -135,10 +135,10 @@ function PayoutsScreen() {
         onConfirm={async () => {
           const target = confirm.target!;
           const result = await retry.mutateAsync(target.id);
-          toast.success(
-            result.status === "FAILED" ? "Retried, but it failed again" : "Payout sent again",
-            result.status === "FAILED" ? (result.failureReason ?? "Paystack refused it") : `${formatNaira(result.amountKobo)} to ${result.storeName}`,
-          );
+          // A seller who changed their account in the last 24 hours gets it once the hold ends (P9)
+          if (result.status === "FAILED") toast.error("Retried, but it failed again", result.failureReason ?? "Paystack refused it");
+          else if (result.status === "PENDING") toast.success("Payout queued", `${formatNaira(result.amountKobo)} to ${result.storeName} goes out on the next run`);
+          else toast.success("Payout sent again", `${formatNaira(result.amountKobo)} to ${result.storeName}`);
         }}
       />
     </>

@@ -54,6 +54,20 @@ describe("AdminPayoutsPage", () => {
     expect(await screen.findByText("Payout sent again")).toBeTruthy();
   });
 
+  it("says when a retried payout is only queued, or failed again", async () => {
+    adminPaymentsApi.payouts.mockResolvedValue({ items: [payout()], nextCursor: null });
+    adminPaymentsApi.retryPayout.mockResolvedValueOnce(payout({ status: "PENDING", failureReason: null, attempt: 2 }));
+    renderPage();
+    fireEvent.click((await screen.findAllByRole("button", { name: "Retry" }))[0]);
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Retry payout" }));
+    expect(await screen.findByText("Payout queued")).toBeTruthy();
+
+    adminPaymentsApi.retryPayout.mockResolvedValueOnce(payout({ failureReason: "Recipient account is closed", attempt: 2 }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Retry" })[0]);
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Retry payout" }));
+    expect(await screen.findByText("Retried, but it failed again")).toBeTruthy();
+  });
+
   it("filters by status from the URL, and has empty and error states", async () => {
     adminPaymentsApi.payouts.mockResolvedValue({ items: [], nextCursor: null });
     renderPage("status=AWAITING_ACCOUNT");
