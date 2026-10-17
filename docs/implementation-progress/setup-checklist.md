@@ -1,7 +1,8 @@
 # What you need to set up: Phases 5–10, launch, and what's still open
 
-Last updated 2026-10-09, after Phase 4. Everything here needs you: an account, a key, a dashboard setting, a person or
-a decision. Code work isn't listed. Automated tests never touch real services (Paystack stays mocked with nock); the
+Last updated 2026-10-17, after Phase 4 and the pnpm switch. Everything here needs you: an account, a key, a dashboard
+setting or a person. The choices themselves (fees, deadlines, rules) are in [decisions-needed.md](decisions-needed.md),
+each with an ID and a default. Code work isn't listed. Automated tests never touch real services (Paystack stays mocked with nock); the
 real accounts are for checking each flow end to end on a real setup.
 
 ## 0. How to hand things over
@@ -40,14 +41,14 @@ real accounts are for checking each flow end to end on a real setup.
 - [ ] **API host** with a process that stays up (the expiry, escrow and deadline jobs need it): Render, Railway or
       Fly.io, in a region near Nigeria or your Neon region.
   - Connect the GitHub repo, root directory `backend`, deploy the `backend` branch.
-  - Build: `npm ci && npx prisma generate && npm run build`.
-  - Release: `npx prisma migrate deploy`. Start: `node dist/main`.
+  - Build: `pnpm install --frozen-lockfile && pnpm exec prisma generate && pnpm run build`.
+  - Release: `pnpm exec prisma migrate deploy`. Start: `node dist/main`.
 - [ ] **Frontend**: a Vercel project from the repo root, `backend` branch, `API_ORIGIN=https://<staging-api>`.
 - [ ] **API variables**:
   - `APP_URL` and `FRONTEND_URL`: the Vercel URL (Paystack sends buyers back there).
   - `JWT_SECRET`: a new random value, 32+ characters (`openssl rand -base64 48`).
   - `PAYMENTS_ENABLED=true`, `PAYSTACK_SECRET_KEY` (test), plus `CLOUDINARY_*` and `MAIL_*`.
-  - `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`; then run `npx prisma db seed` once.
+  - `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`; then run `pnpm exec prisma db seed` once.
 - [ ] `NODE_ENV=production` on staging needs `MAIL_*` and `CLOUDINARY_*` first (the API refuses to start without
       them). Otherwise run staging as `development` (Swagger on, cookies not marked secure).
 - [ ] Send me the two URLs and allow them in network access.
@@ -55,12 +56,8 @@ real accounts are for checking each flow end to end on a real setup.
 Without staging I still build and test Phase 5 fully against mocks. The real test payment then becomes a MANUAL item.
 
 ### 1.3 Decisions about money
-- [ ] **Platform fee** (`PLATFORM_FEE_BPS`, now 0; 100 = 1%). It comes out of the seller's payout.
-- [ ] **Paystack's processing fee**: the guide has the platform absorb it at launch. Keep that?
-- [ ] **Dispute window** of 48 hours after collection (`ESCROW_DISPUTE_WINDOW_HOURS`) and **drop-off deadline** of 3
-      days after payment (`DROP_OFF_DEADLINE_DAYS`). Keep both?
-- [ ] **Who gets admin alerts** (a payment for the wrong amount, failed payouts, a parcel locked after 5 wrong codes):
-      which email address or addresses.
+Moved to [decisions-needed.md](decisions-needed.md), group P (fees, payouts, refunds, admin alerts) and F1 (drop-off
+deadline). The 48-hour dispute window is locked (D11).
 
 ### 1.4 Email (`MAIL_*`, open since Phase 1)
 - [ ] An SMTP provider (Resend, Postmark, Zoho, Brevo…) and a sending domain with its SPF, DKIM and DMARC DNS records.
@@ -76,23 +73,16 @@ Without staging I still build and test Phase 5 fully against mocks. The real tes
 - [ ] **Real pickup stations** for your first campus: name, address, contact name and phone, opening hours. The seed
       has placeholders; you can enter real ones at `/admin/stations` now.
 - [ ] **Pickup agents**: who staffs each station. Each agent needs an account made with a school email at that
-      campus (D7); an admin then makes them a pickup agent for a station (Phase 9 Users screen). Decide whether staff
-      without a school email can be agents; today they can't sign up.
+      campus (D7); an admin then makes them a pickup agent for a station (Phase 9 Users screen). Staff without a
+      school email: decision F2.
 - [ ] **An Android phone with Chrome** to try the agent app's QR scanning (the browser's barcode reader). On an
       iPhone the agent types the code instead.
-- [ ] **Seller penalties**: what a seller cancellation or a missed drop-off costs in trust score (the guide's Phase 8
-      formula takes 10 points per cancellation in 90 days).
+- Rules for cancellations, uncollected parcels and disputes: decisions F3–F10.
 
 ## 3. Phases 7–9 (no new accounts, only decisions)
 
-- [ ] Phase 7: low-stock alert at 3 left or fewer (`LOW_STOCK_THRESHOLD`). Keep?
-- [ ] Phase 8: trust-score weights (50 for rating, 30 for completed orders, 20 for being verified, −10 per
-      seller-caused cancellation) and featured-store ranking (rating × reviews, then recent paid orders). Keep?
-- [ ] Phase 9:
-  - Who else is an admin, and their emails.
-  - The reasons a moderator can pick when rejecting a listing.
-  - How many buyer reports flag a listing (guide: 3, or 1 for a prohibited item).
-  - Your list of prohibited items.
+All in [decisions-needed.md](decisions-needed.md): A1–A2 (analytics), R1–R5 (trust score, stores, reviews), M1–M7
+(admins, moderation, prohibited items).
 
 ## 4. Before Phase 10
 
@@ -138,11 +128,14 @@ Without staging I still build and test Phase 5 fully against mocks. The real tes
 | 1 | Production SMTP (section 1.4) | you |
 | 2 | Real seed data and the move to Neon: your call, after all phases | you |
 | 3 | Cloudinary (section 1.5), then two MANUAL checks: a real listing upload, and a student-ID photo that only admins can open, through a link that stops working after 10 minutes | you |
-| 4 | Platform fee, OPay / PalmPay (section 1) | you |
+| 4 | Platform fee and OPay / PalmPay: decisions P1 and P5 | you |
 | 9 | MANUAL: look over the admin console on a phone and a laptop | you |
-| – | **Two lockfiles in each app**: `pnpm-lock.yaml` and `backend/pnpm-lock.yaml` (added on `backend`) sit next to `package-lock.json` and `backend/package-lock.json`. Hosts pick a package manager from the lockfile, so a deploy could install with pnpm while CI (`npm ci`) uses npm, and the two lockfiles drift whenever a dependency is added with only one of the tools. Pick one: if you're moving to pnpm, I switch CI to pnpm and delete the npm lockfiles; otherwise I delete the pnpm ones. | you decide, I do it |
 
-Resolved since the earlier notes: CI now runs on GitHub on every push (the latest run on `backend` is green).
+Resolved since the earlier notes:
+- CI runs on GitHub on every push.
+- **pnpm only (2026-10-17).** The npm lockfiles are gone and CI installs with `pnpm install --frozen-lockfile`. The
+  switch moved about 40 dependencies to newer minor versions; the lint, test-helper and generated-type fixes that
+  followed are on `backend`.
 
 ## Variables at a glance
 

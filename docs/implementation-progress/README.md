@@ -45,11 +45,18 @@ Your decisions that change or extend the guide. Each phase file has the detail.
   changed since it was added. Checkout always charges the current price. See Phase 4.
 - **Phase 9 timing (2026-10-09):** the institutions and pickup-station admin screens come right after Phase 2, then
   Phase 3.
+- **pnpm only (2026-10-17):** both apps install with pnpm (`packageManager` pins 10.32.1); the npm lockfiles are
+  deleted and CI runs `pnpm install --frozen-lockfile`.
+
+## Decisions still open
+
+[decisions-needed.md](decisions-needed.md): every choice for Phases 5–10 and launch, each with an ID, options, the
+default I build if it's unanswered, and when it's needed. Reply with `ID: choice` lines.
 
 ## What you need to set up
 
-[setup-checklist.md](setup-checklist.md): accounts, keys, dashboard settings and decisions for Phases 5–10 and
-launch, plus everything still open from Phases 0–4 and 9.
+[setup-checklist.md](setup-checklist.md): accounts, keys and dashboard settings for Phases 5–10 and launch, plus
+everything still open from Phases 0–4 and 9.
 
 ## Phase files
 
@@ -66,5 +73,5 @@ launch, plus everything still open from Phases 0–4 and 9.
 - Local Postgres 16 (`campusmart_dev` for migrations and manual runs, `campusmart_test` for e2e), never Neon.
 - If the container restarted and Postgres is down: `su postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D /var/lib/postgresql/cm-data -l /var/lib/postgresql/cm-pg.log -o '-p 5432 -k /tmp' start"`.
 - `backend/.env` is local and git-ignored. Placeholder values only; no real credentials are committed.
-- Gate commands: backend `npx tsc --noEmit`, `npm run lint -- --max-warnings 0`, `npm test`, `npm run test:e2e`;
-  frontend `npm run lint`, `npx tsc --noEmit`, `npx vitest run`, `npm run build`.
+- Gate commands: backend `pnpm exec tsc --noEmit`, `pnpm run lint --max-warnings 0`, `pnpm test`,
+  `pnpm run test:e2e`; frontend `pnpm run lint`, `pnpm exec tsc --noEmit`, `pnpm exec vitest run`, `pnpm run build`.
