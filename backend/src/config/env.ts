@@ -40,11 +40,22 @@ export const envSchema = z
     // Paystack (payments), Phase 5. Checkout returns no payment URL while PAYMENTS_ENABLED is false.
     PAYSTACK_SECRET_KEY: optional,
     PAYMENTS_ENABLED: z.stringbool().default(false),
+    // OPay and PalmPay stay hidden until Paystack confirms a channel for them (decision P5)
+    PAYSTACK_WALLET_CHANNELS: z.stringbool().default(false),
+    // Paystack's webhook source IPs, checked in production as a second layer (guide 5.2 step 3).
+    // Comma-separated; defaults to the addresses in Paystack's documentation.
+    PAYSTACK_WEBHOOK_IPS: z
+      .string()
+      .default('52.31.139.75,52.49.173.169,52.214.14.220'),
 
     // Marketplace rules
     PLATFORM_FEE_BPS: z.coerce.number().int().nonnegative().default(0), // 100 bps = 1%
     ORDER_PAYMENT_TTL_MINUTES: z.coerce.number().int().positive().default(30),
+    // Days after payment for the rider to collect from the seller (decision DL7b); admins can
+    // change it in settings
     DROP_OFF_DEADLINE_DAYS: z.coerce.number().int().positive().default(3),
+    // Days a buyer has to collect from the seller (decision DL7c)
+    BUYER_COLLECT_DAYS: z.coerce.number().int().positive().default(5),
     // 0 is allowed so the release cron can be tested without waiting (guide 5, checklist)
     ESCROW_DISPUTE_WINDOW_HOURS: z.coerce
       .number()
