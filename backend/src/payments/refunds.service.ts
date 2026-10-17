@@ -13,6 +13,7 @@ import {
   PaymentStatus,
   RefundStatus,
 } from '../generated/prisma/enums';
+import { settleJob } from '../dispatch/job-state';
 import { NotificationsService } from '../notifications/notifications.service';
 import { releaseStock } from '../orders/order-stock';
 import { PaystackService } from '../paystack/paystack.service';
@@ -24,6 +25,7 @@ export interface RefundInput {
   reason: string; // 'SELLER_CANCELLED', 'MISSED_PICKUP_DEADLINE', 'DISPUTE_REFUND', ...
   fault: Fault;
   actorId?: string | null; // null = a system job
+  note?: string; // a person's own words, kept in the audit log
 }
 
 // Guide 5.6: one way money goes back to a buyer. Used by seller cancellations and missed deadlines
@@ -158,10 +160,13 @@ export class RefundsService {
             ...amounts,
             fault: input.fault,
             reason: input.reason,
+            ...(input.note && { note: input.note }),
           },
         },
         tx,
       );
+      // Phase 6: the delivery job closes once nothing is left to deliver
+      await settleJob(tx, so.order.id);
       return created;
     });
 

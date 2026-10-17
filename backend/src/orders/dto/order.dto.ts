@@ -273,12 +273,50 @@ export class SellerOrderSummaryDto {
   imageUrl!: string | null;
 }
 
+export class OrderRiderDto {
+  @ApiProperty({ description: 'The name only (DX8)' })
+  name!: string;
+}
+
 export class SellerOrderDto extends SellerOrderSummaryDto {
   @ApiProperty({
+    type: String,
+    nullable: true,
     description:
-      "The code the buyer gives at handover. Only the buyer's own order includes it.",
+      'The code you give at handover: by rider, once the rider has the parcel; picking up from the seller, once paid (C7). Null until then.',
   })
-  collectionCode!: string;
+  collectionCode!: string | null;
+
+  @ApiProperty({
+    type: OrderRiderDto,
+    nullable: true,
+    description: 'The rider delivering it, once one has the job',
+  })
+  rider!: OrderRiderDto | null;
+
+  @ApiProperty({ type: String, format: 'date-time', nullable: true })
+  pickupDeadline!: Date | null;
+
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+    description: 'The rider collected it from the store',
+  })
+  pickedUpAt!: Date | null;
+
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+    description: 'You can report a problem until then (C8)',
+  })
+  releaseAt!: Date | null;
+
+  @ApiProperty({
+    description: '5 wrong codes were entered; CampusMart will unlock it (F5)',
+  })
+  handoverLocked!: boolean;
 
   @ApiProperty({
     type: SellerPickupDto,

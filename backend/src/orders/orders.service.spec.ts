@@ -2,6 +2,7 @@ import { HttpException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { AuthUser } from '../auth/auth-user';
 import {
+  DeliveryJobStatus,
   DeliveryMethod,
   FulfillmentStatus,
   OrderStatus,
@@ -115,18 +116,25 @@ describe('OrdersService', () => {
   });
 
   describe('toOrderDto', () => {
-    const sellerOrder = (deliveryMethod: DeliveryMethod) => ({
+    const sellerOrder = (
+      deliveryMethod: DeliveryMethod,
+      fulfillmentStatus: FulfillmentStatus = FulfillmentStatus.PENDING,
+    ) => ({
       id: `so-${deliveryMethod}`,
       code: 'CM-7F3K2Q',
-      collectionCode: '123456',
+      collectionCode: '048',
       deliveryMethod,
-      fulfillmentStatus: FulfillmentStatus.PENDING,
+      fulfillmentStatus,
       subtotalKobo: 100_000,
       dropOffDeadline: null,
       droppedOffAt: null,
       collectedAt: null,
       cancelledAt: null,
       cancelReason: null,
+      pickupDeadline: null,
+      pickedUpAt: null,
+      releaseAt: null,
+      handoverLockedAt: null,
       seller: {
         id: 'ada',
         username: null,
@@ -141,7 +149,14 @@ describe('OrdersService', () => {
       },
       items: [],
     });
-    const order = (paidAt: Date | null) => ({
+    const order = (
+      paidAt: Date | null,
+      sellerOrders = [
+        sellerOrder(DeliveryMethod.SELLER_PICKUP),
+        sellerOrder(DeliveryMethod.DISPATCH),
+      ],
+      rider: { firstName: string; lastName: string } | null = null,
+    ) => ({
       id: 'o1',
       status: paidAt ? OrderStatus.PAID : OrderStatus.PENDING_PAYMENT,
       paymentMethod: PaymentMethod.CARD,
@@ -155,10 +170,8 @@ describe('OrdersService', () => {
       buyerPhone: '+234 801 234 5678',
       campusPlace: { id: 'p1', name: 'Faculty of Science' },
       pickupStation: null,
-      sellerOrders: [
-        sellerOrder(DeliveryMethod.SELLER_PICKUP),
-        sellerOrder(DeliveryMethod.DISPATCH),
-      ],
+      deliveryJob: rider ? { status: DeliveryJobStatus.ASSIGNED, rider } : null,
+      sellerOrders,
     });
 
     it("shows the seller's area before payment, and their address and phone only after (SA2, SA3)", () => {
@@ -188,6 +201,49 @@ describe('OrdersService', () => {
         deliveryFeeKobo: 50_000,
         buyerPhone: '+234 801 234 5678',
       });
+    });
+
+    it("shows the buyer's code only when it's due (C7) and the rider's name only (DX8)", () => {
+      const rider = { firstName: 'Musa', lastName: 'Bello' };
+      const waiting = toOrderDto(
+        order(
+          new Date(),
+          [
+            sellerOrder(
+              DeliveryMethod.DISPATCH,
+              FulfillmentStatus.RIDER_ASSIGNED,
+            ),
+          ],
+          rider,
+        ),
+      );
+      expect(waiting.sellerOrders[0]).toMatchObject({
+        collectionCode: null,
+        rider: { name: 'Musa Bello' },
+      });
+      const onTheWay = toOrderDto(
+        order(
+          new Date(),
+          [sellerOrder(DeliveryMethod.DISPATCH, FulfillmentStatus.WITH_RIDER)],
+          rider,
+        ),
+      );
+      expect(onTheWay.sellerOrders[0].collectionCode).toBe('048');
+      const pickup = toOrderDto(
+        order(new Date(), [
+          sellerOrder(
+            DeliveryMethod.SELLER_PICKUP,
+            FulfillmentStatus.AWAITING_PICKUP,
+          ),
+        ]),
+      );
+      expect(pickup.sellerOrders[0]).toMatchObject({
+        collectionCode: '048',
+        rider: null,
+      });
+      expect(
+        toOrderDto(order(null)).sellerOrders.map((so) => so.collectionCode),
+      ).toEqual([null, null]);
     });
   });
 });

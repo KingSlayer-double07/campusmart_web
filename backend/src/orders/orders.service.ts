@@ -6,7 +6,13 @@ import {
 import type { AuthUser } from '../auth/auth-user';
 import { CursorQueryDto, cursorArgs, toPage } from '../common/pagination';
 import type { Prisma } from '../generated/prisma/client';
-import { DeliveryMethod, OrderStatus } from '../generated/prisma/enums';
+import {
+  DeliveryJobStatus,
+  DeliveryMethod,
+  FulfillmentStatus,
+  OrderStatus,
+} from '../generated/prisma/enums';
+import { handoverCodeVisible, riderName } from '../dispatch/dispatch-rules';
 import type { OpeningHoursDto } from '../admin/dto/opening-hours.dto';
 import { requireActiveInstitution } from '../institutions/institution-access';
 import { sellerDisplayName } from '../listings/listing-rules';
@@ -64,6 +70,12 @@ const orderSelect = {
   buyerPhone: true,
   campusPlace: { select: { id: true, name: true } },
   pickupStation: { select: stationSelect },
+  deliveryJob: {
+    select: {
+      status: true,
+      rider: { select: { firstName: true, lastName: true } },
+    },
+  },
   sellerOrders: {
     orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     select: {
@@ -78,6 +90,10 @@ const orderSelect = {
       collectedAt: true,
       cancelledAt: true,
       cancelReason: true,
+      pickupDeadline: true,
+      pickedUpAt: true,
+      releaseAt: true,
+      handoverLockedAt: true,
       seller: { select: sellerSelect },
       items: { select: itemSelect, orderBy: { id: 'asc' } },
     },
@@ -144,7 +160,23 @@ export function toOrderDto(row: OrderRow): OrderDto {
     buyerPhone: row.buyerPhone,
     sellerOrders: row.sellerOrders.map((so) => ({
       ...summary(so),
-      collectionCode: so.collectionCode,
+      collectionCode: handoverCodeVisible(
+        so.deliveryMethod,
+        so.fulfillmentStatus,
+      )
+        ? so.collectionCode
+        : null,
+      rider:
+        so.deliveryMethod === DeliveryMethod.DISPATCH &&
+        row.deliveryJob?.status === DeliveryJobStatus.ASSIGNED &&
+        row.deliveryJob.rider &&
+        so.fulfillmentStatus !== FulfillmentStatus.CANCELLED
+          ? { name: riderName(row.deliveryJob.rider) }
+          : null,
+      pickupDeadline: so.pickupDeadline,
+      pickedUpAt: so.pickedUpAt,
+      releaseAt: so.releaseAt,
+      handoverLocked: so.handoverLockedAt !== null,
       pickupFrom: pickupFrom(so, row.paidAt !== null),
       dropOffDeadline: so.dropOffDeadline,
       droppedOffAt: so.droppedOffAt,

@@ -23,6 +23,7 @@ import { OrdersModule } from './orders/orders.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PaymentsModule } from './payments/payments.module';
 import { RidersModule } from './riders/riders.module';
+import { DispatchModule } from './dispatch/dispatch.module';
 import { PaystackModule } from './paystack/paystack.module';
 import { SettingsModule } from './settings/settings.module';
 
@@ -52,6 +53,7 @@ import { SettingsModule } from './settings/settings.module';
     SettingsModule,
     PaymentsModule,
     RidersModule,
+    DispatchModule,
   ],
   controllers: [AppController],
   providers: [

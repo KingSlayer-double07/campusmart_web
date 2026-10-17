@@ -15,8 +15,10 @@ import {
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
+  UserRole,
 } from '../generated/prisma/enums';
 import { NotificationsService } from '../notifications/notifications.service';
+import { openDeliveryJob } from '../dispatch/job-state';
 import { reserveStock } from '../orders/order-stock';
 import {
   PaystackService,
@@ -318,6 +320,7 @@ export class PaymentsService {
       where: { id: orderId },
       select: {
         status: true,
+        institutionId: true,
         payments: {
           where: { status: PaymentStatus.COMPLETED, id: { not: paymentId } },
           select: { id: true },
@@ -369,6 +372,11 @@ export class PaymentsService {
         },
       });
     }
+    // Phase 6 (DF8): the delivery job opens to riders with the payment
+    await openDeliveryJob(tx, {
+      id: orderId,
+      institutionId: order.institutionId,
+    });
     await this.audit.record(
       {
         actorId: null,
@@ -390,6 +398,8 @@ export class PaymentsService {
         id: true,
         buyerId: true,
         totalKobo: true,
+        institutionId: true,
+        deliveryJob: { select: { id: true } },
         sellerOrders: {
           select: {
             sellerId: true,
@@ -408,7 +418,7 @@ export class PaymentsService {
         so.deliveryMethod === DeliveryMethod.SELLER_PICKUP
           ? `The buyer will collect it from you by ${when}. Ask for their code when they come.`
           : so.deliveryMethod === DeliveryMethod.DISPATCH
-            ? `A CampusMart rider will collect it from you by ${when}. Have it packed and ready.`
+            ? `A CampusMart rider will collect it from you by ${when}. You'll see when they're coming once one accepts.`
             : `Drop it at the pickup station by ${when}.`;
       await this.notifications.notify(so.sellerId, {
         type: 'NEW_ORDER',
@@ -416,6 +426,27 @@ export class PaymentsService {
         body,
         link: '/sellers/orders',
       });
+    }
+    // Decision DX2: every active rider at the campus sees the new job; the first to accept takes it
+    if (order.deliveryJob) {
+      const riders = await this.prisma.user.findMany({
+        where: {
+          role: UserRole.DISPATCH,
+          isActive: true,
+          institutionId: order.institutionId,
+          password: { not: null },
+        },
+        select: { id: true },
+      });
+      await this.notifications.notify(
+        riders.map((r) => r.id),
+        {
+          type: 'NEW_JOB',
+          title: 'New delivery job',
+          body: 'A new order is ready for a rider. Open it to see where it goes.',
+          link: `/dispatch/jobs/${order.deliveryJob.id}`,
+        },
+      );
     }
     await this.notifications.notify(order.buyerId, {
       type: 'ORDER_PAID',

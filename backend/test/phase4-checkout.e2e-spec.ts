@@ -342,7 +342,8 @@ describe('Phase 4 checkout and orders (e2e)', () => {
       expect(first.code).not.toBe(second.code);
       for (const so of order.sellerOrders) {
         expect(so.code).toMatch(/^CM-[2-9A-HJ-NP-Z]{6}$/);
-        expect(so.collectionCode).toMatch(/^\d{3}$/); // DF10a
+        // Hidden until it's due: once the rider has the parcel (C7)
+        expect(so.collectionCode).toBeNull();
         expect(so.fulfillmentStatus).toBe('PENDING');
         expect(so.deliveryMethod).toBe('DISPATCH');
       }
@@ -374,6 +375,7 @@ describe('Phase 4 checkout and orders (e2e)', () => {
         where: { orderId: order.id },
       });
       for (const so of rows) {
+        expect(so.collectionCode).toMatch(/^\d{3}$/); // DF10a
         expect(so.platformFeeKobo).toBe(0);
         expect(so.sellerPayoutKobo).toBe(so.subtotalKobo);
       }
