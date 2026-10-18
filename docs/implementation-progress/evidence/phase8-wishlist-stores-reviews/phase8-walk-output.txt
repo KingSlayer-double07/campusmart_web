@@ -1,0 +1,17 @@
+PASS  Favourites saved on the phone before sign-in move into the account, then leave the phone (R5)
+PASS  The home page shows the Featured Store row from /stores?featured=true (guide 8.2)
+PASS  Before saving, the lamp isn’t a favourite
+PASS  Tapping the heart saves it to the account (guide 8.1)
+PASS  Rating an item received updates the listing’s rating at once (guide 8.4)
+PASS  The nightly job scores sellers with the settings’ weights (guide 8.4, R1)  (Chidi 100, 0 changed)
+PASS  The product page lists its reviews from the API
+PASS  The store shows "Trusted seller" only at 80 or more (R2)  (score 100)
+PASS  The favourites page lists the account’s favourites, the merged one included
+PASS  /browse?sort=newest opens the listing grid sorted newest first (guide 8.3)
+PASS  No link on the buyer’s main screens leads to a missing page (guide 8.3)  (18 links)
+PASS  Hiding a review stops it counting, and is audited (R4)
+PASS  …and showing it again counts it again
+PASS  The trust-score weights are admin settings: 50, 30, 20, 10 (R1)
+
+14/14 passed
+exit 0
