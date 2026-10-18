@@ -72,8 +72,9 @@ describe('Phase 1 auth (e2e)', () => {
   });
 
   describe('sign-up', () => {
-    it('a non-school domain is rejected with 422 INSTITUTION_NOT_SUPPORTED (frontend -> /waitlist)', async () => {
-      const { res } = await register('ada@gmail.com');
+    // Decision T1 lets buyers use any email (test/phase10-accounts.e2e-spec.ts); sellers still can't
+    it('a seller with a non-school domain is rejected with 422 INSTITUTION_NOT_SUPPORTED (frontend -> /waitlist)', async () => {
+      const { res } = await register('ada@gmail.com', 'SELLER');
       expect(res.status).toBe(422);
       expect(res.body.code).toBe('INSTITUTION_NOT_SUPPORTED');
       expect(await ctx.prisma.user.count()).toBe(0);
