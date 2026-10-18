@@ -1,10 +1,14 @@
 import type { NextConfig } from "next";
+import { randomUUID } from "node:crypto";
 import withSerwistInit from "@serwist/next";
 
 const withSerwist = withSerwistInit({
   swSrc: "app/sw.ts",
   swDest: "public/sw.js",
   disable: process.env.NODE_ENV === "development",
+  // The offline fallback in app/sw.ts is served from the precache, so it has to be in it.
+  // A new revision each build refreshes it.
+  additionalPrecacheEntries: [{ url: "/~offline", revision: randomUUID() }],
 });
 
 const nextConfig: NextConfig = {
