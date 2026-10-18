@@ -19,6 +19,9 @@ interface FormInputProps {
   autoComplete?: string;
   required?: boolean;
   disabled?: boolean;
+  /** e.g. "numeric" for a code, so phones show the number pad */
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  autoFocus?: boolean;
 }
 
 export default function FormInput({
@@ -33,6 +36,8 @@ export default function FormInput({
   autoComplete,
   required,
   disabled,
+  inputMode,
+  autoFocus,
 }: FormInputProps) {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === "password";
@@ -81,6 +86,8 @@ export default function FormInput({
           autoComplete={autoComplete}
           required={required}
           disabled={disabled}
+          inputMode={inputMode}
+          autoFocus={autoFocus}
           className="bg-transparent border-none outline-none w-full text-[14px] font-medium text-foreground placeholder-neutral-400"
         />
       )}

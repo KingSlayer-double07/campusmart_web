@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Search, X } from "lucide-react";
-import Tabs from "./Tabs";
+import Tabs, { type TabOption } from "./Tabs";
 
 const STATUS_TABS = [
   { value: "", label: "All" },
@@ -17,6 +17,7 @@ export default function FilterBar({
   searchPlaceholder,
   status,
   onStatus,
+  statusTabs = STATUS_TABS,
   children,
 }: {
   search: string;
@@ -24,6 +25,8 @@ export default function FilterBar({
   searchPlaceholder: string;
   status: string;
   onStatus: (status: string) => void;
+  /** All / Active / Switched off unless a screen has its own */
+  statusTabs?: readonly TabOption[];
   /** Extra filters, such as an institution picker */
   children?: React.ReactNode;
 }) {
@@ -69,7 +72,7 @@ export default function FilterBar({
         </label>
         {children}
       </div>
-      <Tabs tabs={STATUS_TABS} value={status} onChange={onStatus} />
+      <Tabs tabs={statusTabs} value={status} onChange={onStatus} />
     </div>
   );
 }

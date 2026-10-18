@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Lock, Mail } from "lucide-react";
+import { KeyRound, Lock, Mail } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import AuthContainer from "@/app/components/AuthContainer";
 import FormInput from "@/app/components/FormInput";
@@ -39,6 +39,9 @@ export default function SignInForm({ roleType }: { roleType: "buyer" | "seller" 
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Decision M7: an admin's right password emails a 6-digit code; the sign-in finishes with it
+  const [codeStep, setCodeStep] = useState<string | null>(null);
+  const [code, setCode] = useState("");
 
   // The middleware sent us here because no access cookie reached the page. The refresh cookie
   // only travels to /api/auth, so try a silent refresh before asking for the password.
@@ -67,15 +70,26 @@ export default function SignInForm({ roleType }: { roleType: "buyer" | "seller" 
       return;
     }
 
+    if (codeStep && !/^\d{6}$/.test(code)) {
+      setError("Enter the 6-digit code from your email");
+      return;
+    }
+
     setError(null);
     setLoading(true);
     try {
-      const user = await authApi.login(parsed.data);
+      const user = await authApi.login(codeStep ? { ...parsed.data, code } : parsed.data);
       setUser(user);
       queryClient.setQueryData(meKey, user);
       router.replace(afterSignIn(user, next));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+      if (err instanceof ApiError && err.code === "ADMIN_CODE_REQUIRED") {
+        setCodeStep(err.message);
+        setCode("");
+      } else {
+        // A suspended account's message carries the admin's reason (M6)
+        setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -95,7 +109,10 @@ export default function SignInForm({ roleType }: { roleType: "buyer" | "seller" 
         type="email"
         placeholder="School email"
         value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        onChange={(e) => {
+          setEmail(e.target.value);
+          setCodeStep(null);
+        }}
         autoComplete="email"
         name="email"
         required
@@ -105,11 +122,33 @@ export default function SignInForm({ roleType }: { roleType: "buyer" | "seller" 
         type="password"
         placeholder="Password"
         value={password}
-        onChange={(e) => setPassword(e.target.value)}
+        onChange={(e) => {
+          setPassword(e.target.value);
+          setCodeStep(null);
+        }}
         autoComplete="current-password"
         name="password"
         required
       />
+      {codeStep && (
+        <>
+          <p role="status" className="text-[13px] text-foreground-muted">
+            {codeStep}
+          </p>
+          <FormInput
+            icon={KeyRound}
+            type="text"
+            inputMode="numeric"
+            placeholder="6-digit code"
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            autoComplete="one-time-code"
+            name="code"
+            autoFocus
+            required
+          />
+        </>
+      )}
     </AuthContainer>
   );
 }

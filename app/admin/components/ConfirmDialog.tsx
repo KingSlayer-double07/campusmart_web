@@ -17,6 +17,8 @@ interface ConfirmDialogProps {
   tone?: "danger" | "default";
   /** Destructive actions need a reason, which is sent to the API (guide 9.2.3) */
   requireReason?: boolean;
+  /** "Reason" unless the text is something else, such as what was done */
+  reasonLabel?: string;
   reasonPlaceholder?: string;
   onConfirm: (reason?: string) => Promise<unknown>;
 }
@@ -31,6 +33,7 @@ export default function ConfirmDialog({
   confirmLabel,
   tone = "danger",
   requireReason = tone === "danger",
+  reasonLabel = "Reason",
   reasonPlaceholder = "For example: the term has ended",
   onConfirm,
 }: ConfirmDialogProps) {
@@ -51,7 +54,11 @@ export default function ConfirmDialog({
   const confirm = async () => {
     const trimmed = reason.trim();
     if (requireReason && trimmed.length < MIN_REASON) {
-      setReasonError("Please give a reason. It's saved in the audit log.");
+      setReasonError(
+        reasonLabel === "Reason"
+          ? "Please give a reason. It's saved in the audit log."
+          : `Please fill in "${reasonLabel}". It's saved in the audit log.`,
+      );
       return;
     }
     setPending(true);
@@ -99,7 +106,7 @@ export default function ConfirmDialog({
       <div className="flex flex-col gap-4 text-sm text-foreground-muted">
         <div>{description}</div>
         {requireReason && (
-          <Field label="Reason" htmlFor="confirm-reason" error={reasonError}>
+          <Field label={reasonLabel} htmlFor="confirm-reason" error={reasonError}>
             <TextArea
               id="confirm-reason"
               rows={3}
