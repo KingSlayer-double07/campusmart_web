@@ -7,7 +7,15 @@ vi.mock("@/lib/api/hooks/useAdminPayments", () => ({ useUpdateSettings: () => up
 import { ApiError } from "@/lib/api/client";
 import PlatformSettingsForm, { percentToBps } from "./PlatformSettingsForm";
 
-const settings = { platformFeeBps: 0, pickupDeadlineDays: 3, lowStockThreshold: 5 };
+const settings = {
+  platformFeeBps: 0,
+  pickupDeadlineDays: 3,
+  lowStockThreshold: 5,
+  trustWeightRating: 50,
+  trustWeightCompleted: 30,
+  trustWeightVerified: 20,
+  trustPenaltySellerFault: 10,
+};
 
 describe("PlatformSettingsForm", () => {
   beforeEach(() => {
@@ -48,6 +56,18 @@ describe("PlatformSettingsForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
     await waitFor(() => expect(update.mutateAsync).toHaveBeenCalledWith({ platformFeeBps: 250 }));
     expect(onSaved).toHaveBeenCalledWith({ ...settings, platformFeeBps: 250 });
+  });
+
+  it("edits the trust-score weights (R1)", async () => {
+    update.mutateAsync.mockResolvedValue({ ...settings, trustPenaltySellerFault: 15 });
+    render(<PlatformSettingsForm settings={settings} onSaved={vi.fn()} />);
+    expect((screen.getByLabelText("Points for a 5-star rating") as HTMLInputElement).value).toBe("50");
+    fireEvent.change(screen.getByLabelText("Points off per seller-fault refund"), { target: { value: "150" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
+    expect(await screen.findByText("Enter a whole number from 0 to 100")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Points off per seller-fault refund"), { target: { value: "15" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
+    await waitFor(() => expect(update.mutateAsync).toHaveBeenCalledWith({ trustPenaltySellerFault: 15 }));
   });
 
   it("shows why the API refused", async () => {

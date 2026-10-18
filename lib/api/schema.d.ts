@@ -1729,6 +1729,249 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/wishlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Your favourites, newest first
+         * @description Listing cards with `available: false` for ones sold out, paused or removed.
+         */
+        get: operations["WishlistController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/wishlist/ids": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The ids of every favourite, for the hearts */
+        get: operations["WishlistController_ids"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/wishlist/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move this phone’s favourites into the account (R5)
+         * @description Listings the user can’t see are skipped. Returns every favourite id afterwards.
+         */
+        post: operations["WishlistController_merge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/wishlist/{listingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save a listing
+         * @description Idempotent. The listing must be at your school.
+         */
+        put: operations["WishlistController_add"];
+        post?: never;
+        /**
+         * Take a listing out
+         * @description Idempotent.
+         */
+        delete: operations["WishlistController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/seller-orders/{id}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rate an item you received
+         * @description The buyer only, once the store order is DELIVERED or COLLECTED; one review per item per store order. No edits (R4).
+         */
+        post: operations["ReviewsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/listings/{id}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A listing’s reviews, newest first */
+        get: operations["ReviewsController_forListing"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reviews, newest first: shown or hidden */
+        get: operations["AdminReviewsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reviews/{id}/hide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hide a review
+         * @description It stops showing and counting towards the ratings. Audited with the reason.
+         */
+        post: operations["AdminReviewsController_hide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reviews/{id}/show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Show a hidden review again */
+        post: operations["AdminReviewsController_show"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stores at your school
+         * @description Sellers with at least one live listing, by rating × ln(1 + reviews), then paid orders in the last 30 days (R3). `featured=true` gives the home page row (up to 10).
+         */
+        get: operations["StoresController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stores/{sellerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A store’s header */
+        get: operations["StoresController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stores/{sellerId}/listings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A store’s live listings, newest first */
+        get: operations["StoresController_listings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stores/{sellerId}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A store’s reviews, newest first */
+        get: operations["StoresController_reviews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2135,6 +2378,8 @@ export interface components {
             displayName: string;
             /** @description Seller ID check approved (Phase 9) */
             verified: boolean;
+            /** @description A "Trusted seller": trust score 80 or more, recalculated nightly (R2) */
+            trusted: boolean;
         };
         ListingCardDto: {
             /** Format: uuid */
@@ -2173,6 +2418,8 @@ export interface components {
             displayName: string;
             /** @description Seller ID check approved (Phase 9) */
             verified: boolean;
+            /** @description A "Trusted seller": trust score 80 or more, recalculated nightly (R2) */
+            trusted: boolean;
             storeName: string | null;
             logoUrl: string | null;
             ratingAvg: number;
@@ -2583,6 +2830,8 @@ export interface components {
             /** @description Price paid for one, in kobo */
             unitPriceKobo: number;
             quantity: number;
+            /** @description Your rating of this item (1 to 5), or null if you haven’t rated it */
+            myRating: number | null;
         };
         SellerOrderDto: {
             /** Format: uuid */
@@ -2618,6 +2867,8 @@ export interface components {
             handoverLocked: boolean;
             /** @description Set when you collect from the seller (SELLER_PICKUP) */
             pickupFrom: components["schemas"]["SellerPickupDto"] | null;
+            /** @description You can rate its items: it was delivered to you or you collected it (guide 8.4) */
+            canReview: boolean;
             items: components["schemas"]["OrderItemDto"][];
             /** Format: date-time */
             dropOffDeadline: string | null;
@@ -2764,6 +3015,26 @@ export interface components {
              * @example 5
              */
             lowStockThreshold: number;
+            /**
+             * @description Trust score: points for a 5-star average rating
+             * @example 50
+             */
+            trustWeightRating: number;
+            /**
+             * @description Trust score: points when all of the last 50 orders were handed over
+             * @example 30
+             */
+            trustWeightCompleted: number;
+            /**
+             * @description Trust score: points for a verified seller
+             * @example 20
+             */
+            trustWeightVerified: number;
+            /**
+             * @description Trust score: points taken off per cancellation or refund that was the seller’s fault in 90 days
+             * @example 10
+             */
+            trustPenaltySellerFault: number;
         };
         UpdateSettingsDto: {
             /** @description Platform fee (basis points; 100 = 1%), taken from the seller payout */
@@ -2772,6 +3043,14 @@ export interface components {
             pickupDeadlineDays?: number;
             /** @description Sellers are alerted when an item has this many left or fewer */
             lowStockThreshold?: number;
+            /** @description Trust score: points for a 5-star average rating */
+            trustWeightRating?: number;
+            /** @description Trust score: points when all of the last 50 orders were handed over */
+            trustWeightCompleted?: number;
+            /** @description Trust score: points for a verified seller */
+            trustWeightVerified?: number;
+            /** @description Trust score: points taken off per cancellation or refund that was the seller’s fault in 90 days */
+            trustPenaltySellerFault?: number;
         };
         AdminRiderDto: {
             /** Format: uuid */
@@ -3303,6 +3582,145 @@ export interface components {
             threshold: number;
             /** @description Live and sold-out listings, or their options, at or below the threshold. Out of stock first. */
             items: components["schemas"]["InventoryAlertDto"][];
+        };
+        WishlistItemDto: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            /** @description Listing price in kobo */
+            priceKobo: number;
+            /** @description Lowest price a buyer can pay, across active options */
+            minPriceKobo: number;
+            /** @description Highest price a buyer can pay, across active options */
+            maxPriceKobo: number;
+            /** @description First photo */
+            imageUrl: string | null;
+            category: components["schemas"]["ListingCategory"];
+            condition: components["schemas"]["ProductCondition"];
+            status: components["schemas"]["ListingStatus"];
+            /** @description Units left; the sum of active options when it has options */
+            stock: number;
+            ratingAvg: number;
+            ratingCount: number;
+            hasVariants: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            seller: components["schemas"]["ListingCardSellerDto"];
+            /** @description False when the listing is sold out, paused or removed; it stays in the list until taken out */
+            available: boolean;
+            /**
+             * Format: date-time
+             * @description When it was saved
+             */
+            savedAt: string;
+        };
+        WishlistPageDto: {
+            items: components["schemas"]["WishlistItemDto"][];
+            nextCursor: string | null;
+        };
+        WishlistIdsDto: {
+            /** @description Every saved listing, to show the hearts */
+            listingIds: string[];
+        };
+        MergeWishlistDto: {
+            /** @description Favourites saved on this phone before sign-in (decision R5). Ones the user can’t see are skipped. */
+            listingIds: string[];
+        };
+        ReviewDto: {
+            /** Format: uuid */
+            id: string;
+            rating: number;
+            comment: string | null;
+            /** @description The buyer’s username or first name; never their email */
+            reviewerDisplayName: string;
+            /** @description The item reviewed */
+            listingTitle: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        CreateReviewDto: {
+            /**
+             * Format: uuid
+             * @description An item in this store order
+             */
+            listingId: string;
+            rating: number;
+            comment?: string;
+        };
+        ReviewPageDto: {
+            items: components["schemas"]["ReviewDto"][];
+            nextCursor: string | null;
+        };
+        AdminReviewDto: {
+            /** Format: uuid */
+            id: string;
+            rating: number;
+            comment: string | null;
+            /** @description The buyer’s username or first name; never their email */
+            reviewerDisplayName: string;
+            /** @description The item reviewed */
+            listingTitle: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            listingId: string;
+            /** Format: uuid */
+            sellerId: string;
+            storeName: string;
+            /** Format: date-time */
+            hiddenAt: string | null;
+            hiddenReason: string | null;
+        };
+        AdminReviewPageDto: {
+            items: components["schemas"]["AdminReviewDto"][];
+            nextCursor: string | null;
+        };
+        HideReviewDto: {
+            /** @description Why it’s hidden; kept in the audit log */
+            reason: string;
+        };
+        StoreCardDto: {
+            /** Format: uuid */
+            sellerId: string;
+            /** @description The store name, else the seller’s name */
+            storeName: string;
+            logoUrl: string | null;
+            ratingAvg: number;
+            ratingCount: number;
+            /** @description CampusMart checked their student ID */
+            verified: boolean;
+            /** @description A trust score of 80 or more (R2); the score itself isn’t shown */
+            trusted: boolean;
+            /** @description Live listings */
+            listingCount: number;
+        };
+        StorePageDto: {
+            items: components["schemas"]["StoreCardDto"][];
+            nextCursor: string | null;
+        };
+        StoreDto: {
+            /** Format: uuid */
+            sellerId: string;
+            /** @description The store name, else the seller’s name */
+            storeName: string;
+            logoUrl: string | null;
+            ratingAvg: number;
+            ratingCount: number;
+            /** @description CampusMart checked their student ID */
+            verified: boolean;
+            /** @description A trust score of 80 or more (R2); the score itself isn’t shown */
+            trusted: boolean;
+            /** @description Live listings */
+            listingCount: number;
+            bio: string | null;
+            isOnline: boolean;
+            /** @description Where the store is, when buyers can pick up from it (SA2); the full address only after paying */
+            pickupArea: string | null;
+            /**
+             * Format: date-time
+             * @description On CampusMart since
+             */
+            joinedAt: string;
         };
     };
     responses: never;
@@ -9401,6 +9819,898 @@ export interface operations {
              *     EMAIL_NOT_VERIFIED
              */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    WishlistController_list: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["WishlistPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     EMAIL_NOT_VERIFIED, or RIDERS_CANNOT_BUY
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    WishlistController_ids: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["WishlistIdsDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     EMAIL_NOT_VERIFIED, or RIDERS_CANNOT_BUY
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    WishlistController_merge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MergeWishlistDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["WishlistIdsDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     EMAIL_NOT_VERIFIED, or RIDERS_CANNOT_BUY
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    WishlistController_add: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     EMAIL_NOT_VERIFIED, or RIDERS_CANNOT_BUY
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description WISHLIST_FULL */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    WishlistController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     EMAIL_NOT_VERIFIED, or RIDERS_CANNOT_BUY
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ReviewsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store order */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateReviewDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["ReviewDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description NOT_IN_ORDER */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /**
+             * @description EMAIL_NOT_VERIFIED
+             *
+             *     EMAIL_NOT_VERIFIED, or RIDERS_CANNOT_BUY
+             *
+             *     REVIEW_NOT_OPEN: not received yet
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description ALREADY_REVIEWED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ReviewsController_forListing: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["ReviewPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminReviewsController_list: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+                /** @description Reviews buyers see, or ones an admin hid */
+                view?: "SHOWN" | "HIDDEN";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminReviewPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminReviewsController_hide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HideReviewDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminReviewDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description ALREADY_HIDDEN */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminReviewsController_show: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminReviewDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description NOT_HIDDEN */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    StoresController_list: {
+        parameters: {
+            query?: {
+                /** @description The home page row: the first `limit` stores only, with no next page */
+                featured?: boolean;
+                limit?: number;
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["StorePageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    StoresController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sellerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["StoreDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    StoresController_listings: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                sellerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["ListingPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    StoresController_reviews: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                sellerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["ReviewPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
