@@ -10,7 +10,9 @@ import type { AuthUser } from '../auth/auth-user';
 import { openSellerOrdersWithListing } from '../common/open-seller-orders';
 import { Prisma } from '../generated/prisma/client';
 import { ListingStatus } from '../generated/prisma/enums';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { BannedWordsService } from '../settings/banned-words.service';
 import { deliveryDetailsSelect } from '../sellers/seller-delivery';
 import { assertCanPublish } from '../sellers/seller-verification';
 import { CloudinaryService } from '../uploads/cloudinary.service';
@@ -19,7 +21,7 @@ import type {
   CreateListingDto,
   ListingImageInputDto,
   ListingVariantInputDto,
-  OwnerStatus,
+  ListingStatusDto,
   UpdateListingDto,
 } from './dto/listing-input.dto';
 import type {
@@ -53,6 +55,8 @@ export class ListingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cloudinary: CloudinaryService,
+    private readonly bannedWords: BannedWordsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // ── Buyer reads (guide 3.1 rule 1: own institution, not deleted, ACTIVE) ──
@@ -154,7 +158,11 @@ export class ListingsService {
         message: 'Your account is not linked to a school, so it cannot sell',
       });
     }
-    if (dto.status === ListingStatus.ACTIVE) await this.publishGate(user);
+    const publishing = dto.status === ListingStatus.ACTIVE;
+    if (publishing) {
+      await this.publishGate(user);
+      assertConfirmed(dto.confirmNotProhibited);
+    }
     this.assertImages(user.id, dto.images);
     const variants = dto.variants ?? [];
     this.assertVariants(variants);
@@ -168,6 +176,13 @@ export class ListingsService {
     const stock = variants.length
       ? variants.reduce((sum, v) => sum + v.stock, 0)
       : dto.stock!;
+    const now = new Date();
+    const held = publishing
+      ? await this.bannedWords.findIn(dto.title, dto.description)
+      : [];
+    const status = held.length
+      ? ListingStatus.FLAGGED
+      : nextStatus(dto.status, stock);
     const listing = await this.prisma.listing.create({
       data: {
         title: dto.title,
@@ -176,7 +191,10 @@ export class ListingsService {
         stock,
         category: dto.category,
         condition: dto.condition,
-        status: nextStatus(dto.status, stock),
+        status,
+        ...(dto.confirmNotProhibited && { prohibitedConfirmedAt: now }),
+        ...(isLive(status) && { wentLiveAt: now }),
+        ...(held.length && { heldAt: now, heldWords: held }),
         sellerId: user.id,
         // Copied from the seller; the client never sends it (guide 3.1 rule 1)
         institutionId: user.institutionId,
@@ -185,6 +203,7 @@ export class ListingsService {
       },
       select: fullSelect,
     });
+    if (held.length) await this.alertHeld(listing.title, held);
     return toListingDto(listing, true);
   }
 
@@ -194,9 +213,20 @@ export class ListingsService {
     dto: UpdateListingDto,
   ): Promise<ListingDto> {
     const current = await this.owned(user, id, {
+      status: true,
+      title: true,
+      description: true,
       images: { select: { url: true, publicId: true } },
       variants: { select: { id: true, label: true } },
     });
+    // Decision M4c: a live listing edited to use a banned word goes back for review
+    const held =
+      isLive(current.status) && (dto.title || dto.description)
+        ? await this.bannedWords.findIn(
+            dto.title ?? current.title,
+            dto.description ?? current.description,
+          )
+        : [];
     if (dto.images) this.assertImages(user.id, dto.images);
     if (dto.variants) this.assertVariants(dto.variants);
 
@@ -258,19 +288,41 @@ export class ListingsService {
         await tx.listing.update({ where: { id }, data: { stock: dto.stock } });
       }
       await recalculateListingStock(tx, id);
+      if (held.length) {
+        await tx.listing.update({
+          where: { id },
+          data: {
+            status: ListingStatus.FLAGGED,
+            heldAt: new Date(),
+            heldWords: held,
+          },
+        });
+      }
     });
 
     if (removedImages.length) void this.deleteImages(removedImages);
+    if (held.length) await this.alertHeld(dto.title ?? current.title, held);
     return this.ownerView(id);
   }
 
   async setStatus(
     user: AuthUser,
     id: string,
-    status: OwnerStatus,
+    { status, confirmNotProhibited }: ListingStatusDto,
   ): Promise<ListingDto> {
-    const current = await this.owned(user, id, { status: true, stock: true });
-    if (status === ListingStatus.ACTIVE) await this.publishGate(user);
+    const current = await this.owned(user, id, {
+      status: true,
+      stock: true,
+      title: true,
+      description: true,
+      prohibitedConfirmedAt: true,
+      wentLiveAt: true,
+    });
+    const publishing = status === ListingStatus.ACTIVE;
+    if (publishing) {
+      await this.publishGate(user);
+      assertConfirmed(confirmNotProhibited || !!current.prohibitedConfirmedAt);
+    }
     if (current.status === ListingStatus.FLAGGED) {
       throw new ConflictException({
         code: 'LISTING_UNDER_REVIEW',
@@ -278,16 +330,37 @@ export class ListingsService {
           'This listing is under review by CampusMart, so its status cannot change yet',
       });
     }
+    const now = new Date();
+    const held = publishing
+      ? await this.bannedWords.findIn(current.title, current.description)
+      : [];
+    const next = held.length
+      ? ListingStatus.FLAGGED
+      : publishing
+        ? nextStatus(ListingStatus.ACTIVE, current.stock)
+        : status;
     await this.prisma.listing.update({
       where: { id },
       data: {
-        status:
-          status === 'ACTIVE'
-            ? nextStatus(ListingStatus.ACTIVE, current.stock)
-            : status,
+        status: next,
+        ...(confirmNotProhibited &&
+          !current.prohibitedConfirmedAt && { prohibitedConfirmedAt: now }),
+        ...(isLive(next) && !current.wentLiveAt && { wentLiveAt: now }),
+        ...(held.length && { heldAt: now, heldWords: held }),
       },
     });
+    if (held.length) await this.alertHeld(current.title, held);
     return this.ownerView(id);
+  }
+
+  // Decision M4c: a held listing waits in the admins' review queue
+  private alertHeld(title: string, words: string[]) {
+    return this.notifications.alertAdmins({
+      type: 'LISTING_HELD',
+      title: 'A listing is waiting for review',
+      body: `"${title}" uses: ${words.join(', ')}`,
+      link: '/admin/listings',
+    });
   }
 
   async remove(user: AuthUser, id: string): Promise<void> {
@@ -527,6 +600,21 @@ export class ListingsService {
     } catch (error) {
       this.logger.warn(`Could not clean up replaced photos: ${String(error)}`);
     }
+  }
+}
+
+// Buyers can see it: live, or sold out
+const isLive = (status: ListingStatus) =>
+  status === ListingStatus.ACTIVE || status === ListingStatus.SOLDOUT;
+
+// Decision M4a: the seller confirms the item isn't on the prohibited list before publishing
+function assertConfirmed(confirmed: boolean | undefined) {
+  if (!confirmed) {
+    throw new BadRequestException({
+      code: 'CONFIRM_NOT_PROHIBITED',
+      message:
+        'Confirm the item isn’t on the prohibited list before publishing it',
+    });
   }
 }
 

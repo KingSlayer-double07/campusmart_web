@@ -10,6 +10,7 @@ datasource db {
 enum EmailCodePurpose {
   VERIFY_EMAIL
   RESET_PASSWORD
+  ADMIN_SIGN_IN // decision M7: a code at every admin sign-in
 }
 
 model User {
@@ -26,6 +27,10 @@ model User {
   verificationStatus   VerificationStatus    @default(UNVERIFIED)
   isActive             Boolean               @default(true)
   isSuspended          Boolean               @default(false)
+  // Decision M6: the suspended user sees the admin's reason
+  suspendedAt          DateTime?
+  suspendedReason      String?
+  suspendedById        String?
   institutionId        String?
   pickupStationId      String? // set only for PICKUP_AGENT
   createdAt            DateTime              @default(now())
@@ -154,34 +159,41 @@ model PickupStation {
 }
 
 model Listing {
-  id             String             @id @default(uuid())
-  title          String
-  description    String
-  priceKobo      Int // was the naira `price` column
-  stock          Int // was quantity; sum of variants when present
-  category       ListingCategory
-  condition      ProductCondition
-  status         ListingStatus      @default(DRAFT)
-  sellerId       String
-  institutionId  String // now required
-  ratingAvg      Float              @default(0)
-  ratingCount    Int                @default(0)
-  isDeleted      Boolean            @default(false)
-  isPromoted     Boolean            @default(false)
-  isFlagged      Boolean            @default(false)
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-  variants       ListingVariant[]
-  dailyStats     ListingDailyStat[]
-  views          ListingView[]
-  seller         User               @relation("SellerListings", fields: [sellerId], references: [id])
-  institution    Institution        @relation(fields: [institutionId], references: [id])
-  images         ListingImage[]
-  reviews        Review[]
-  wishlistedBy   Wishlist[]
-  moderationLogs ModerationAction[]
-  orderItems     OrderItem[]
-  cartItems      CartItem[]
+  id                    String             @id @default(uuid())
+  title                 String
+  description           String
+  priceKobo             Int // was the naira `price` column
+  stock                 Int // was quantity; sum of variants when present
+  category              ListingCategory
+  condition             ProductCondition
+  status                ListingStatus      @default(DRAFT)
+  sellerId              String
+  institutionId         String // now required
+  ratingAvg             Float              @default(0)
+  ratingCount           Int                @default(0)
+  isDeleted             Boolean            @default(false)
+  isPromoted            Boolean            @default(false)
+  isFlagged             Boolean            @default(false) // waiting for an admin's decision; still shown unless FLAGGED
+  // Phase 9 moderation (M2-M4): a banned word holds a listing for review before it goes live;
+  // a rejected one stays FLAGGED with the reason the seller sees
+  heldAt                DateTime?
+  heldWords             String[]           @default([])
+  wentLiveAt            DateTime? // first time buyers could see it; a hold before this means no suspension (M4f)
+  prohibitedConfirmedAt DateTime? // the seller confirmed it isn't on the prohibited list (M4a)
+  moderationReason      String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  variants              ListingVariant[]
+  dailyStats            ListingDailyStat[]
+  views                 ListingView[]
+  seller                User               @relation("SellerListings", fields: [sellerId], references: [id])
+  institution           Institution        @relation(fields: [institutionId], references: [id])
+  images                ListingImage[]
+  reviews               Review[]
+  wishlistedBy          Wishlist[]
+  moderationLogs        ModerationAction[]
+  orderItems            OrderItem[]
+  cartItems             CartItem[]
 
   @@index([institutionId, status, isDeleted, createdAt])
   @@index([sellerId, status])
@@ -525,14 +537,23 @@ model Notification {
 }
 
 model SupportReport {
-  id            String   @id @default(uuid())
-  userId        String
-  type          String // 'BUG', 'ORDER', 'PAYMENT', 'LISTING', 'OTHER'
-  message       String
-  screenshotUrl String?
-  listingId     String?
-  status        String   @default("OPEN")
-  createdAt     DateTime @default(now())
+  id             String    @id @default(uuid())
+  userId         String
+  type           String // 'BUG', 'ORDER', 'PAYMENT', 'LISTING', 'OTHER'
+  reason         String? // for a listing report: PROHIBITED_ITEM, MISLEADING, COUNTERFEIT, SCAM, OFFENSIVE, OTHER
+  message        String
+  screenshotUrl  String?
+  listingId      String?
+  status         String    @default("OPEN") // OPEN, CLOSED
+  resolvedAt     DateTime?
+  resolvedById   String?
+  resolutionNote String?
+  createdAt      DateTime  @default(now())
+
+  // One report per user per listing
+  @@unique([userId, listingId])
+  @@index([status, createdAt])
+  @@index([listingId, status])
 }
 
 model AuditLog {

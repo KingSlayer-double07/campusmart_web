@@ -7,6 +7,7 @@ import {
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
+  IsBoolean,
   ArrayMinSize,
   IsArray,
   IsEnum,
@@ -134,6 +135,14 @@ export class CreateListingDto {
   @ApiProperty({ enum: ['DRAFT', 'ACTIVE'] })
   @IsIn(['DRAFT', 'ACTIVE'], { message: 'status must be DRAFT or ACTIVE' })
   status!: 'DRAFT' | 'ACTIVE';
+
+  @ApiPropertyOptional({
+    description:
+      'The seller confirms the item isn’t on the prohibited list (M4a). Needed to publish, once per listing.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  confirmNotProhibited?: boolean;
 }
 
 // Partial update. images and variants, when sent, replace the whole set (guide 3.1).
@@ -149,4 +158,12 @@ export class ListingStatusDto {
   @ApiProperty({ enum: OWNER_STATUSES })
   @IsIn(OWNER_STATUSES, { message: 'status must be DRAFT, ACTIVE or ARCHIVED' })
   status!: OwnerStatus;
+
+  @ApiPropertyOptional({
+    description:
+      'The seller confirms the item isn’t on the prohibited list (M4a). Needed to publish, once per listing.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  confirmNotProhibited?: boolean;
 }

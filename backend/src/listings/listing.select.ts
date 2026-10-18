@@ -50,6 +50,8 @@ export const fullSelect = {
   ...cardSelect,
   description: true,
   updatedAt: true,
+  heldAt: true,
+  moderationReason: true,
   images: {
     select: { id: true, url: true, publicId: true, position: true },
     orderBy: { position: 'asc' },
@@ -118,5 +120,8 @@ export function toListingDto(row: FullRow, isOwner: boolean): ListingDto {
     },
     isOwner,
     updatedAt: row.updatedAt,
+    // Only the seller learns why CampusMart is holding or hiding their listing
+    heldForReview: isOwner && row.heldAt !== null,
+    moderationReason: isOwner ? row.moderationReason : null,
   };
 }

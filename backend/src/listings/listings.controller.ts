@@ -151,7 +151,7 @@ export class ListingsController {
     @Body() dto: ListingStatusDto,
     @CurrentUser() user: AuthUser,
   ): Promise<ListingDto> {
-    return this.listings.setStatus(user, id, dto.status);
+    return this.listings.setStatus(user, id, dto);
   }
 
   @ApiOperation({ summary: 'Delete your listing (soft delete)' })

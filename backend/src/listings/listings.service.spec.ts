@@ -6,7 +6,9 @@ import {
   UserRole,
   VerificationStatus,
 } from '../generated/prisma/enums';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { BannedWordsService } from '../settings/banned-words.service';
 import { CloudinaryService } from '../uploads/cloudinary.service';
 import { ListingsService } from './listings.service';
 
@@ -93,6 +95,8 @@ describe('ListingsService', () => {
     $executeRaw: jest.fn(),
     $queryRaw: jest.fn(),
   };
+  const bannedWords = { findIn: jest.fn().mockResolvedValue([]) };
+  const notifications = { alertAdmins: jest.fn() };
   const cloudinary = {
     requireSettings: jest.fn(),
     destroy: jest.fn(),
@@ -100,6 +104,7 @@ describe('ListingsService', () => {
 
   beforeEach(async () => {
     jest.resetAllMocks();
+    bannedWords.findIn.mockResolvedValue([]);
     prisma.$transaction.mockImplementation((fn: (tx: unknown) => unknown) =>
       fn(prisma),
     );
@@ -115,6 +120,8 @@ describe('ListingsService', () => {
         ListingsService,
         { provide: PrismaService, useValue: prisma },
         { provide: CloudinaryService, useValue: cloudinary },
+        { provide: BannedWordsService, useValue: bannedWords },
+        { provide: NotificationsService, useValue: notifications },
       ],
     }).compile();
     service = moduleRef.get(ListingsService);
@@ -128,6 +135,7 @@ describe('ListingsService', () => {
     condition: 'NEW' as const,
     images: [image(1), image(2), image(3)],
     status: 'ACTIVE' as const,
+    confirmNotProhibited: true,
   };
 
   describe('create', () => {
@@ -314,7 +322,10 @@ describe('ListingsService', () => {
         stock: 3,
       });
       const error = await service
-        .setStatus(seller, 'l1', 'ACTIVE')
+        .setStatus(seller, 'l1', {
+          status: 'ACTIVE',
+          confirmNotProhibited: true,
+        })
         .catch((e: unknown) => e);
       expect(codeOf(error)).toBe('LISTING_UNDER_REVIEW');
     });
@@ -329,13 +340,16 @@ describe('ListingsService', () => {
         stock: 3,
       });
       const error = await service
-        .setStatus(unverified, 'l1', 'ACTIVE')
+        .setStatus(unverified, 'l1', {
+          status: 'ACTIVE',
+          confirmNotProhibited: true,
+        })
         .catch((e: unknown) => e);
       expect(codeOf(error)).toBe('SELLER_NOT_VERIFIED');
       expect(prisma.listing.update).not.toHaveBeenCalled();
 
       prisma.listing.findUniqueOrThrow.mockResolvedValue(fullRow);
-      await service.setStatus(unverified, 'l1', 'ARCHIVED');
+      await service.setStatus(unverified, 'l1', { status: 'ARCHIVED' });
       expect(prisma.listing.update.mock.calls[0][0].data).toEqual({
         status: ListingStatus.ARCHIVED,
       });
@@ -351,7 +365,10 @@ describe('ListingsService', () => {
         pickupAddress: null,
       });
       const error = await service
-        .setStatus(seller, 'l1', 'ACTIVE')
+        .setStatus(seller, 'l1', {
+          status: 'ACTIVE',
+          confirmNotProhibited: true,
+        })
         .catch((e: unknown) => e);
       expect(codeOf(error)).toBe('SELLER_PROFILE_INCOMPLETE');
       expect(prisma.listing.update).not.toHaveBeenCalled();
@@ -366,10 +383,73 @@ describe('ListingsService', () => {
         stock: 0,
       });
       prisma.listing.findUniqueOrThrow.mockResolvedValue(fullRow);
-      await service.setStatus(seller, 'l1', 'ACTIVE');
+      await service.setStatus(seller, 'l1', {
+        status: 'ACTIVE',
+        confirmNotProhibited: true,
+      });
       expect(prisma.listing.update.mock.calls[0][0].data).toEqual({
         status: ListingStatus.SOLDOUT,
+        prohibitedConfirmedAt: expect.any(Date),
+        wentLiveAt: expect.any(Date),
       });
+    });
+
+    it('publishing needs the "not prohibited" confirmation once (M4a)', async () => {
+      prisma.listing.findFirst.mockResolvedValue({
+        status: ListingStatus.DRAFT,
+        stock: 3,
+        prohibitedConfirmedAt: null,
+      });
+      const error = await service
+        .setStatus(seller, 'l1', { status: 'ACTIVE' })
+        .catch((e: unknown) => e);
+      expect(codeOf(error)).toBe('CONFIRM_NOT_PROHIBITED');
+      expect(prisma.listing.update).not.toHaveBeenCalled();
+
+      // Confirmed when it was first published: no need to confirm again
+      prisma.listing.findFirst.mockResolvedValue({
+        status: ListingStatus.ARCHIVED,
+        stock: 3,
+        prohibitedConfirmedAt: new Date(),
+        wentLiveAt: new Date(),
+      });
+      prisma.listing.findUniqueOrThrow.mockResolvedValue(fullRow);
+      await service.setStatus(seller, 'l1', { status: 'ACTIVE' });
+      expect(prisma.listing.update.mock.calls[0][0].data).toEqual({
+        status: ListingStatus.ACTIVE,
+      });
+    });
+
+    it('a listing using a banned word waits for review instead of going live (M4c)', async () => {
+      prisma.listing.findFirst.mockResolvedValue({
+        status: ListingStatus.DRAFT,
+        stock: 3,
+        title: 'Airsoft gun',
+        description: 'Barely used',
+        prohibitedConfirmedAt: null,
+        wentLiveAt: null,
+      });
+      prisma.listing.findUniqueOrThrow.mockResolvedValue(fullRow);
+      bannedWords.findIn.mockResolvedValue(['gun']);
+      await service.setStatus(seller, 'l1', {
+        status: 'ACTIVE',
+        confirmNotProhibited: true,
+      });
+      expect(bannedWords.findIn).toHaveBeenCalledWith(
+        'Airsoft gun',
+        'Barely used',
+      );
+      const data = prisma.listing.update.mock.calls[0][0].data;
+      expect(data).toMatchObject({
+        status: ListingStatus.FLAGGED,
+        heldWords: ['gun'],
+        heldAt: expect.any(Date),
+      });
+      // Never live, so a rejection later won't suspend the seller (M4f)
+      expect(data.wentLiveAt).toBeUndefined();
+      expect(notifications.alertAdmins).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'LISTING_HELD' }),
+      );
     });
 
     it('refuses to delete a listing in an unfinished order, with the count', async () => {

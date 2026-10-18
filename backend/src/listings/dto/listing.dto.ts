@@ -156,6 +156,20 @@ export class ListingDto extends ListingCardDto {
   @ApiProperty({ description: 'True when the signed-in user is the seller' })
   isOwner!: boolean;
 
+  @ApiProperty({
+    description:
+      'Owner only: it uses a banned word and waits for an admin before going live (M4c)',
+  })
+  heldForReview!: boolean;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      'Owner only: why CampusMart hid it (M3), or that it was reported as prohibited',
+  })
+  moderationReason!: string | null;
+
   @ApiProperty({ type: String, format: 'date-time' })
   updatedAt!: Date;
 }
