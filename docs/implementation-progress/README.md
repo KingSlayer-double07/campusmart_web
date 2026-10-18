@@ -15,7 +15,7 @@ its checklist, changes, verification evidence, deviations and open asks.
 | 6 Dispatch and handover (replaces pickup stations) | DONE pending manual checks (QR scanning on an Android phone) | `feat/phase-6-dispatch` | 2026-10-17 |
 | 7 Seller analytics | DONE | `feat/phase-7-analytics` | 2026-10-18 |
 | 8 Wishlist, stores, reviews | DONE | `feat/phase-8-wishlist-stores-reviews` | 2026-10-18 |
-| 9 Admin UI and moderation | IN PROGRESS (slices A, institutions and pickup stations, and B, seller verification: DONE pending manual checks) | `feat/phase-9-admin-institutions-stations`, `feat/phase-3-seller-verification` | 2026-10-09 |
+| 9 Admin UI and moderation | DONE pending manual checks (a look over the console on a phone and a laptop) | `feat/phase-9-admin-institutions-stations`, `feat/phase-3-seller-verification`, `feat/phase-9-admin-moderation` | 2026-10-18 |
 | 10 Remaining features | NOT STARTED | | |
 
 Status values: NOT STARTED / IN PROGRESS / BLOCKED / DONE / DONE pending manual checks.
@@ -83,7 +83,7 @@ everything still open from Phases 0–4 and 9.
 - [Phase 6](phase-6-dispatch.md) (browser evidence, rider to buyer, in [`evidence/phase6-dispatch/`](evidence/phase6-dispatch/))
 - [Phase 7](phase-7-analytics.md) (browser evidence in [`evidence/phase7-analytics/`](evidence/phase7-analytics/))
 - [Phase 8](phase-8-wishlist-stores-reviews.md) (browser evidence in [`evidence/phase8-wishlist-stores-reviews/`](evidence/phase8-wishlist-stores-reviews/))
-- [Phase 9](phase-9-admin.md) (built in slices; browser evidence in [`evidence/phase9-admin/`](evidence/phase9-admin/))
+- [Phase 9](phase-9-admin.md) (built in three slices; browser evidence in [`evidence/phase9-admin/`](evidence/phase9-admin/))
 
 ## Working setup used for verification
 

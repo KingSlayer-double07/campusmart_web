@@ -1,0 +1,34 @@
+PASS  Publishing without "not on the prohibited list" is refused (M4a)  (CONFIRM_NOT_PROHIBITED)
+PASS  A listing using a banned word waits for review instead of going live (M4c)  (status FLAGGED)
+PASS  Admins are told about the held listing
+PASS  The seller sees why it waits ("Waiting for review")
+PASS  Publishing a draft asks for the prohibited-items confirmation first
+PASS  Once ticked, the draft goes live with the confirmation saved
+PASS  The admin's right password asks for the emailed code (M7)
+PASS  The code printed to the API console (dev mail, until MAIL_* is set up)
+PASS  A wrong code is refused with its reason
+PASS  The overview shows the platform numbers and what's waiting  (1 to review)
+PASS  The review queue shows the held listing and the word it used
+PASS  The dialog says the seller won't be suspended for a listing held before it went live (M4f)
+PASS  Taken down with the reason the seller sees, and the seller isn't suspended
+PASS  The seller sees the reason and how to send it back for review
+PASS  A prohibited-item report hides the listing at once (M4b)
+PASS  Buyers can no longer open or report it
+PASS  The admin queue shows the report
+PASS  Approving puts it back live and closes the report
+PASS  A buyer reports a listing as misleading
+PASS  The report is in the open list with who sent it
+PASS  Closed with the note
+PASS  The throwaway buyer is signed in
+PASS  Their sessions end at once
+PASS  Signing in again shows the admin's reason (M6)  (Your account is suspended: Walk test: spam listings. Contact CampusMart support if you think this is a mistake.)
+PASS  Once lifted, they can sign in again
+PASS  Making them a seller opens a store and signs them out
+PASS  The audit log shows the suspension, its lifting and both role changes, by the admin
+PASS  Settings show the banned words, starting from the prohibited items
+PASS  Adding a word is saved and audited
+PASS  /admin/users fits a phone with no sideways scrolling
+PASS  /admin/listings?tab=HIDDEN fits a phone with no sideways scrolling
+PASS  /admin fits a phone with no sideways scrolling
+
+32/32 passed

@@ -7,22 +7,31 @@ Phase 2 ... Add the rest as each phase lands").
 |---|---|---|
 | A. Institutions and pickup stations (after Phase 2, decided 2026-10-09) | `feat/phase-9-admin-institutions-stations` | DONE pending manual checks |
 | B. Seller verification (with Phase 3, decided 2026-10-09) | `feat/phase-3-seller-verification` | DONE pending manual checks; logged in [Phase 3, 3.3](phase-3-listings.md) |
-| C. Users and roles, listings, disputes, payouts, reports, audit, overview metrics | later, as Phases 3 to 10 land | NOT STARTED |
+| C. Users and suspension, listing moderation, reports, audit log, overview, admin sign-in code (disputes and payouts came with Phases 5 and 6) | `feat/phase-9-admin-moderation` | DONE pending manual checks |
 
 ## 1. Checklist
 
-From the guide, verbatim. These close when slice B is done; the notes say where slice A leaves each one.
+From the guide, verbatim.
 
-- [ ] Every `/api/admin/*` route returns 403 for a seller and 401 when signed out. Test all of them in a loop from the route list.
-  *Slice A: passing for all 6 admin routes so far. The test reads the route list from the OpenAPI document, so new
-  routes are covered automatically.*
-- [ ] Suspending a user signs them out within 15 minutes, and immediately on their next refresh.
-  *Slice B (Users area).*
-- [ ] Every admin mutation appears in the audit log with who, what and when.
-  *Slice A: passing for all 4 mutations so far (create/edit institution, create/edit station).*
-- [ ] A new campus can go live end to end from the admin UI alone: institution, domains, station, agent.
-  *Slice A: institution, domains and station work from the UI. The agent step needs the Users screen
-  (`PATCH /admin/users/:id/role`), slice B.*
+- [x] Every `/api/admin/*` route returns 403 for a seller and 401 when signed out. Test all of them in a loop from the route list.
+  *e2e `test/phase9-admin.e2e-spec.ts` › access: the routes come from the OpenAPI document (44 now, every admin
+  screen from slices A to C and Phases 4b–8). Each returns 401 signed out and 403 `FORBIDDEN` for a SELLER, BUYER,
+  PICKUP_AGENT and, since slice C, a DISPATCH rider. The test also pins the slice C routes so none can drop out.*
+- [x] Suspending a user signs them out within 15 minutes, and immediately on their next refresh.
+  *Immediately, on their very next request. Suspending revokes every session, and the access-token check reads the
+  session on each request. e2e `phase9-moderation.e2e-spec.ts` › "suspending signs the user out at once…" (`/auth/me`
+  401, refresh 401, 0 live sessions). Walk: "Their sessions end at once".*
+- [x] Every admin mutation appears in the audit log with who, what and when.
+  *Slice C's: `ROLE_CHANGED`, `USER_SUSPENDED` (with `automatic` for M4d), `USER_UNSUSPENDED`, `LISTING_MODERATED`,
+  `REPORT_CLOSED`, `REPORT_REOPENED`, `SETTING_CHANGED` (banned words), each checked in e2e with `actorId` and
+  `createdAt`. The earlier screens' mutations were checked in their phases: slice A, Phase 3 verification, 4b
+  places and fees, Phase 5 payouts and settings, Phase 6 riders, deliveries and disputes, Phase 8 reviews. All of
+  it is now readable at `/admin/audit` (walk: "The audit log shows the suspension, its lifting and both role
+  changes, by the admin").*
+- [x] A new campus can go live end to end from the admin UI alone: institution, domains, station, agent.
+  *With delivery replacing stations (DL9), the steps are: institution and domains (slice A walk), campus places and
+  the delivery fee (Phase 4b walk), and riders instead of agents (Phase 6 walk: "An admin invites a rider for a
+  campus"). All are on the overview's "Get a new campus live" checklist.*
 
 Slice A gate:
 
@@ -36,6 +45,31 @@ Slice A gate:
 - [x] Admin screens follow the existing frontend patterns, are mobile-responsive and have loading, empty and error
   states.
 - [ ] MANUAL: you look over the console on a phone and a laptop and confirm it's easy to understand (steps below).
+
+Slice C, the plan's additions ([execution-plan.md](execution-plan.md#phase-9-admin-and-moderation)):
+
+- [x] Users: other admins sign up, then an admin sets their role (M1). Suspend and lift, and the user sees the
+  admin's reason (M6). e2e and the walk.
+- [x] Listings: moderation with the M3 reasons; listings go live at once (M2). e2e and the walk.
+- [x] Reports and the audit log. e2e and the walk.
+- [x] Sellers confirm "not on the prohibited list" before publishing (M4a). e2e, Vitest and the walk.
+- [x] Listings using a banned word wait for review; admins edit the list in settings (M4c). e2e and the walk.
+- [x] 5 different buyers' reports flag a listing (M4); a prohibited-item report hides it at once (M4b). e2e and
+  the walk.
+- [x] A confirmed prohibited item suspends the seller automatically until an admin lifts it (M4d, M4e), but not
+  for a listing the banned-word check held before it went live (M4f). e2e and unit; the walk shows the M4f case.
+- [x] A 6-digit email code at every admin sign-in, printed to the console until S4 (M7). e2e, unit, Vitest and
+  the walk.
+
+Slice C gate:
+
+- [x] Backend `pnpm exec tsc --noEmit`, `pnpm run lint --max-warnings 0`, `pnpm run build`, `pnpm test`,
+  `pnpm run test:e2e` pass.
+- [x] Frontend `pnpm run lint`, `pnpm exec tsc --noEmit`, `pnpm exec vitest run`, `pnpm run build` pass.
+- [x] `gen:api` produces no diff; `prisma migrate diff ... --exit-code` is clean.
+- [x] GitHub CI is green on the branch.
+- [x] Every new endpoint meets the definition of done (section 3).
+- [ ] MANUAL: the same look-over for the new screens (steps below).
 
 ## 2. Changes
 
@@ -110,6 +144,78 @@ Slice A gate:
 New migrations: none. New env vars: none. New error codes: `INSTITUTION_INACTIVE` (403), `DOMAIN_IN_USE` (409),
 `INSTITUTION_HAS_OPEN_ORDERS` (409).
 
+### Slice C: users, moderation, reports, audit log, overview, admin sign-in code
+
+**Schema.** Migration `20261021090000_moderation` (additive):
+
+| Change | Why |
+|---|---|
+| `User.suspendedAt`, `suspendedReason`, `suspendedById` | M6: the suspended user sees the admin's reason |
+| `Listing.heldAt`, `heldWords`, `wentLiveAt`, `prohibitedConfirmedAt`, `moderationReason` | M2–M4: held by a banned word; went live (M4f); the seller's confirmation (M4a); the reason the seller sees (M3) |
+| `SupportReport.reason`, `resolvedAt`, `resolvedById`, `resolutionNote`; unique `(userId, listingId)` | Listing reports, one per user per listing, and closing them |
+| `EmailCodePurpose.ADMIN_SIGN_IN` | M7 |
+
+The migration counts listings buyers could already see (active, sold out, archived) as having gone live.
+
+**Backend** (`src/moderation/`, plus changes in `auth`, `listings` and `settings`):
+
+| Endpoint | What it does |
+|---|---|
+| `GET /admin/users?q&role&institutionId&suspended` | Search by email or name, newest first |
+| `PATCH /admin/users/:id/role { role }` | BUYER, SELLER or ADMIN (M1). Not your own role; riders are managed on the riders screen (`CANNOT_CHANGE_ROLE`); a seller needs a school (`NO_INSTITUTION`). Signs the user out; a seller who stops selling has their live listings archived. Audited `ROLE_CHANGED` |
+| `POST /admin/users/:id/suspend { reason }` | Revokes every session at once, archives live listings (open orders stay). Not yourself or an admin (`CANNOT_SUSPEND`), not twice (`ALREADY_SUSPENDED`). Audited `USER_SUSPENDED` |
+| `POST /admin/users/:id/unsuspend` | Archived listings stay archived (`NOT_SUSPENDED` if not suspended). Audited |
+| `GET /admin/listings?view=REVIEW\|HIDDEN\|ALL&q` | REVIEW (oldest first): held by a banned word, flagged by reports or an admin, or edited after being taken down. With open report counts and reasons |
+| `POST /admin/listings/:id/moderate { type, reason?, note? }` | APPROVE puts it live (again) and closes its reports. REJECT needs an M3 reason, hides it and closes its reports; `PROHIBITED_ITEM` on a listing that went live suspends the seller in the same transaction (M4d–M4f). FLAG and UNFLAG move a visible listing in and out of the queue. `SELLER_SUSPENDED`, `MODERATION_NOT_APPLICABLE`. Audited `LISTING_MODERATED`, plus a `ModerationAction` row |
+| `POST /listings/:id/report { reason, details? }` | Verified users, live listings at their school, not their own (`OWN_LISTING`), once each (`ALREADY_REPORTED`). The 5th open report from a different user flags it (M4); `PROHIBITED_ITEM` hides it at once (M4b). Admins are alerted once |
+| `GET /admin/support-reports?status&type`, `PATCH /admin/support-reports/:id { status, note }` | Closing needs a note. Audited |
+| `GET /admin/audit-log?entityType&entityId&actorId&action` | Newest first, with the actor's email |
+| `GET /admin/overview` | Accounts, sellers, paid orders (7 and 30 days), sales (30 days), escrow held, and what's waiting: listings to review, open reports, open disputes, verifications, failed payouts, suspended users |
+| `GET/PUT /admin/settings/banned-words` | M4c. Starts from the M5 list; saved lower case, de-duplicated. Audited with what was added and removed |
+
+- **Publishing (M4a, M4c):** `POST /listings` with `ACTIVE`, and `PATCH /listings/:id/status` to `ACTIVE`, need
+  `confirmNotProhibited` (400 `CONFIRM_NOT_PROHIBITED`), once per listing. A banned word in the title or
+  description (whole words, any case) saves it as `FLAGGED` with `heldAt` and alerts admins. Editing a live
+  listing to use one does the same. Editing a listing an admin took down sends it back to the queue.
+- **The seller's view:** `ListingDto` gains owner-only `heldForReview` and `moderationReason`.
+- **Sign-in:**
+  - A suspended user gets 401 `ACCOUNT_SUSPENDED` with the reason (M6), after the password check.
+  - An admin's right password gets 401 `ADMIN_CODE_REQUIRED` and an emailed code (template `admin-sign-in`). The
+    same `POST /auth/login` with `code` finishes it; a wrong code is 401 with its reason (`INVALID_CODE`,
+    `CODE_EXPIRED`, `CODE_LOCKED`).
+- **Notifications:** sellers are told in the app when a listing is approved, taken down or hidden by a report;
+  admins are alerted (in the app and by email, P10) about held, resubmitted, flagged and hidden listings.
+
+**Frontend:**
+
+- **New admin screens:** `/admin/users`, `/admin/listings`, `/admin/reports`, `/admin/audit`, each with loading,
+  empty and error states.
+- **Overview:** platform numbers and a "Waiting for you" list.
+- **Settings:** a banned-words editor.
+- **Navigation:** the new screens are in the nav.
+- **Dialogs:** `RoleDialog` and `RejectDialog`, the latter warning when it will suspend the seller.
+  `ConfirmDialog` takes a label for its text field; `FilterBar` takes its own tabs.
+- **Sign-in:** the admin code step, and the suspension message with the reason.
+- **Sellers:** the "not on the prohibited list" tick with the list (`ProhibitedConfirm`, `lib/prohibitedItems.ts`)
+  in the add form and the Publish action, and a `ModerationNotice` on the product and edit pages.
+- **Buyers:** "Report this listing" on the product page (`ReportListingSheet`).
+- **Data:** `lib/api/moderation.ts`, `lib/api/hooks/useAdminModeration.ts` and `useReportListing.ts` (admin
+  queries aren't persisted), plus regenerated `lib/api/schema.d.ts`.
+
+**Tests.**
+
+- **e2e:**
+  - `test/phase9-moderation.e2e-spec.ts`, 23 tests: the admin code, users and roles, suspension, banned words and
+    the confirmation, moderation, reports, the audit log and the overview.
+  - The access loop now includes riders.
+  - The test helper `signIn` finishes an admin's code.
+  - Older suites send `confirmNotProhibited` when they publish.
+- **Unit:**
+  - `moderation-rules`, `suspension`, `admin-users`, `admin-listings`, `listing-reports` and `banned-words`.
+  - The auth spec covers the code and the reason; the listings spec covers resubmission.
+- **Vitest:** the four new pages, `BannedWordsForm`, `ReportListingSheet`, the sign-in form, the listing form's
+  confirmation, and the Publish dialog with `ModerationNotice`.
+
 ## 3. Verification evidence
 
 Local Postgres 16; e2e on `campusmart_test`; browser walk on `campusmart_dev` (seeded).
@@ -126,6 +232,70 @@ Local Postgres 16; e2e on `campusmart_test`; browser walk on `campusmart_dev` (s
 | Frontend gate | `npm run lint` exit 0 (0 errors, the 2 pre-existing warnings); `npx tsc --noEmit` exit 0; `npx vitest run` → 19 files, 100 tests passed; `API_ORIGIN=http://localhost:4000 npm run build` exit 0 (`/admin`, `/admin/institutions`, `/admin/stations` built). |
 | `gen:api` / migrate diff | CI path (`npm run openapi:export` + `openapi-typescript`) and `npm run gen:api` against the running API produce byte-identical files (`diff -q`). `migrate diff --from-migrations … --exit-code` → exit 0 (no schema change in this slice). |
 
+### Slice C evidence
+
+- **Backend** (local Postgres 16, `campusmart_test`):
+  - tsc clean, lint with 0 warnings, build OK.
+  - Unit: 375/375 in 53 suites.
+  - e2e: 183/183 in 15 suites, 23 of them in `phase9-moderation.e2e-spec.ts`; the access loop covers 44 admin
+    routes.
+  - `prisma migrate diff --exit-code` is clean.
+- **Frontend:**
+  - Lint and tsc clean; Vitest 309/309 in 73 files.
+  - `API_ORIGIN=http://localhost:4000 pnpm run build` OK, with `/admin/users`, `/admin/listings`, `/admin/reports`
+    and `/admin/audit` built.
+- **gen:api:** `lib/api/schema.d.ts` regenerated with the backend changes; CI re-checks it.
+- **GitHub CI:**
+  - [Run 82](https://github.com/KingSlayer-double07/campusmart_web/actions/runs/39159753546) on `e02fcd9` (the
+    last code change) is green.
+  - Runs 78–81 were red only on the frontend link crawl (`app/routes.test.ts`). The backend's notifications linked to
+    `/admin/listings` before that page was built in `e02fcd9`. The backend job passed in all four.
+- **Definition of done:**
+  - Every new body and query DTO rejects unknown fields (e2e: `extra: true` on a role change, `password=x` on the
+    users list, `type: 'DELETE'`).
+  - Admin checks sit on each controller class (`@AdminOnly()`); reporting needs a verified email.
+  - Rules live in the services: your own role, admins, the reporter's school, own listing.
+  - Responses are documented DTOs; errors use shared codes.
+  - Each service has unit tests and e2e happy and forbidden paths (401, 403, 400, 404, 409).
+  - Each screen has loading, empty and error states.
+- **Browser walk** ([`phase9-moderation-walk.mjs`](evidence/phase9-admin/phase9-moderation-walk.mjs) →
+  [`phase9-moderation-walk-output.txt`](evidence/phase9-admin/phase9-moderation-walk-output.txt), **32/32**):
+  Chromium → `next start` → NestJS → `campusmart_dev`, in West Africa Time. The API ran with the Phase 5 Paystack
+  stub and the made-up local `CLOUDINARY_*` values, as in Phase 7.
+  - **Seller (phone).**
+    - Publishing without the tick is refused.
+    - "Toy gun for display" waits for review and admins are alerted (`phone-seller-held-for-review`).
+    - Publishing a draft from the products list asks for the tick and shows the list
+      (`phone-seller-publish-confirm`), then goes live with the confirmation saved.
+  - **Admin sign-in (laptop).** The right password asks for the code. The code printed to the API console. A wrong
+    code is refused with its reason, and the right one signs in (`desktop-admin-sign-in-code`).
+  - **Overview** with the numbers and what's waiting (`desktop-admin-overview`, `phone-admin-overview`).
+  - **Held listing.**
+    - The queue shows "Uses: gun" (`desktop-admin-listings-queue`).
+    - Taking it down as a prohibited item says the seller won't be suspended (M4f) (`desktop-admin-reject-dialog`).
+    - The seller sees "Taken down: Prohibited item: Toy weapons aren't allowed…" and isn't suspended
+      (`phone-seller-taken-down`).
+  - **Buyer report (phone).**
+    - A prohibited-item report on Amaka's desk lamp hides it at once (`phone-buyer-report-sheet`); buyers can no
+      longer open it.
+    - The admin approves it back, which closes the report.
+    - A "misleading" report on the cargo pants is closed with a note (`desktop-admin-reports`).
+  - **Suspension (M6).**
+    - A throwaway buyer is signed in; the admin suspends them (`desktop-admin-suspend-dialog`), and their next
+      request is refused.
+    - Signing in again shows "Your account is suspended: Walk test: spam listings…" (`phone-suspended-sign-in`).
+    - Lifting it lets them in.
+  - **Roles (M1).** Making them a seller opens a store and signs them out; then back to buyer
+    (`desktop-admin-role-dialog`, `desktop-admin-users`).
+  - **Audit log** for that user (`desktop-admin-audit`). It shows two walk runs; the first run's checks failed on four
+    script mistakes (below), but its admin actions were real and audited.
+  - **Banned words** (`desktop-admin-banned-words`): adding "airsoft" is saved and audited, then removed.
+  - **Phone:** `/admin/users`, `/admin/listings` and `/admin` have no sideways scrolling (`phone-admin-users`,
+    `phone-admin-listings-taken-down`, `phone-admin-overview`).
+  - **Reruns.** The first run passed 28/32. All four failures were in the script, not the app. Two compared
+    booleans with `t` where SQL text gives `true`. Two read the first `role="alert"`, which is Next's route
+    announcer; they now read the form's own message. The second run is the evidence.
+
 ### MANUAL: look over the admin console (for you)
 
 1. `cd backend && npm run dev`, then in the repo root `API_ORIGIN=http://localhost:4000 npx next dev -H 0.0.0.0 -p 3000`.
@@ -137,6 +307,17 @@ Local Postgres 16; e2e on `campusmart_test`; browser walk on `campusmart_dev` (s
 5. Repeat steps 2–4 on your phone (`http://<laptop-LAN-IP>:3000`). Expect cards instead of a table, the pill nav at
    the bottom, and forms that slide up from the bottom.
 6. Tell me anything that felt unclear (wording, order of fields, what a button does).
+
+### MANUAL: the slice C screens (for you)
+
+1. Start both apps as above and sign in as the seed admin. You'll be asked for a 6-digit code: it prints in the API's
+   terminal (`[dev mail] ... template=admin-sign-in`) until email is set up.
+2. Overview: the numbers and "Waiting for you". Users: search, filter by role, change a test account's role, suspend
+   it with a reason, and sign in as it to see the message. Then lift it.
+3. Listings: as a seller, publish something whose title uses a word from Settings → Banned words, and see it wait in
+   "To review". Take it down with a reason and look at it as the seller.
+4. As a buyer, report a listing; see it in Reports and close it. Look at the Audit log for what you did.
+5. Tell me anything that felt unclear.
 
 ## 4. Deviations and assumptions
 
@@ -160,8 +341,9 @@ Local Postgres 16; e2e on `campusmart_test`; browser walk on `campusmart_dev` (s
    and "Switched off".
 9. **Opening hours:** one entry per day (`MON`…`SUN`), 24-hour `HH:MM`, closing after opening, 1–7 entries, stored
    Monday first. A new station starts Monday–Friday 09:00–17:00. Phone numbers must match `^\+?\d[\d ()-]{6,19}$`.
-10. **Overview** is a setup checklist plus active counts, not the guide's `GET /admin/overview` metrics (GMV,
-    escrow, disputes), which need Phase 5 data. The nav lists only screens that exist, so there are no dead links.
+10. **Overview** was a setup checklist plus active counts in slice A, since the guide's `GET /admin/overview`
+    metrics (GMV, escrow, disputes) needed Phase 5 data. Slice C added them. The nav lists only screens that exist,
+    so there are no dead links.
 11. **Shared components touched:** `Modal` gained dialog semantics (no visual change). The install prompt is hidden
     on `/admin` (it advertises "a better shopping experience" and covered the admin nav on phones).
 12. **Station form's institution picker** loads up to 100 institutions (one page). Fine for now; revisit if there
@@ -178,8 +360,58 @@ Local Postgres 16; e2e on `campusmart_test`; browser walk on `campusmart_dev` (s
     buyer whose institution is switched off, because an access token stays valid for up to 15 minutes after the
     switch.
 
+### Slice C
+
+16. **Endpoint shapes differ from the guide's table where a decision changed them:**
+    - `GET /admin/listings` takes `view=REVIEW|HIDDEN|ALL` instead of `flagged=true`, because the queue also holds
+      banned-word listings.
+    - `moderate` takes `{ type, reason, note }` with `reason` an M3 choice.
+    - Reports are `PATCH /admin/support-reports/:id { status, note }`, with a note to close.
+    - `PATCH /admin/users/:id/role` takes only `{ role }`: pickup agents went with the stations (DL9), and riders
+      are invited on their own screen.
+    - The buyer report adds optional `details`.
+    - Five reports flag a listing (M4), not the guide's three.
+17. **Suspension takes effect at once,** not within 15 minutes: the sessions are revoked and every request checks its
+    session. Admins can't suspend themselves or another admin (remove the role first). Listings archived by a
+    suspension stay archived when it's lifted; the seller publishes what they still sell.
+18. **Role changes sign the user out.** A seller who becomes a buyer or admin has their live listings archived; open
+    orders carry on. You can't change your own role, and the admin rows are locked in one order while changing, so
+    two admins removing each other can't leave none.
+19. **A taken-down listing goes back to the queue when its seller edits it.** The decisions didn't say how a seller
+    recovers from a rejection. This lets them fix it without a new listing, and admins are alerted.
+20. **Approving and unflagging close the listing's open reports;** taking it down does too, with the reason. A hidden
+    listing of a suspended seller can't be approved until the suspension is lifted (`SELLER_SUSPENDED`).
+21. **Reports:** only live listings at the reporter's school, one report per user per listing even after it's closed,
+    never your own. Any one prohibited-item report hides a listing (M4b), so someone could hide a fair listing
+    until an admin approves it back; admins are alerted at once.
+22. **The admin code** uses the same `POST /auth/login` with an optional `code`, rather than a separate endpoint, so
+    the password is checked again with the code. Codes last 10 minutes, 5 wrong tries lock one, and at most 1 is
+    sent a minute and 5 an hour (the Phase 1 limits). Until `MAIL_*` is set the code prints to the API console
+    (M7); production can't start without `MAIL_*`.
+23. **Notifications about moderation are in the app only** (T7: email is for order and payment events). Admin
+    alerts go by email too (P10). A suspended user isn't notified; they see the reason at sign-in.
+24. **The suspension message** says "Contact CampusMart support" without contact details; the support email,
+    phone and WhatsApp come from environment variables in Phase 10 (T4).
+25. **Banned words** match whole words and phrases in the title and description, in any case. Changing the list
+    doesn't re-check existing listings; it applies when a listing is published or its text edited. The starter
+    list is in `backend/src/moderation/moderation-rules.ts`.
+26. **Overview numbers:** paid orders and sales count orders by when they were paid, and sales include delivery
+    fees; "held in escrow" is the sellers' payouts held now.
+27. **The audit log has no index on time.** It reads newest first by `createdAt`; worth an index once it grows
+    large.
+28. **Local dev data.** The walk created a throwaway buyer `walk.suspended@students.unilag.edu.ng` (password as the
+    other local accounts) and soft-deleted its own listings when it finished. Amaka's desk lamp and the cargo pants
+    each have a closed report from Tobi.
+
 ## 5. Needs from you
 
 - **MANUAL check** above: the console on a phone and a laptop.
 - ~~**Switching off a school with orders in progress**~~ **Decided 2026-10-09:** blocked, with the count shown in the
   dialog. Done.
+- **Review the starter banned-word list** (Settings → Banned words). It's drawn from your M5 list. Some words are
+  common in harmless listings, such as "weed" or "expo" (exam-leak slang), and only send a listing to review, but
+  remove any you'd rather not hold.
+- **The other admins sign up** with their email, then you make them admins at `/admin/users` (M1).
+- **Email (`MAIL_*`, S4)** is needed before admins can sign in on a production server, since the code is emailed
+  (already in [setup-checklist.md](setup-checklist.md#14-email-mail_-open-since-phase-1)).
+- **MANUAL check** of the slice C screens (above).
