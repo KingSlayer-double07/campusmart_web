@@ -34,6 +34,7 @@ import { SettingsModule } from './settings/settings.module';
 import { ModerationModule } from './moderation/moderation.module';
 import { AccountModule } from './account/account.module';
 import { SupportModule } from './support/support.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { SupportModule } from './support/support.module';
     ModerationModule,
     AccountModule,
     SupportModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [

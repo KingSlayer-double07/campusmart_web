@@ -7,11 +7,15 @@ import {
   HttpStatus,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ThrottlerException } from '@nestjs/throttler';
+import * as Sentry from '@sentry/nestjs';
 import { Prisma } from '../../generated/prisma/client';
 import { AllExceptionsFilter } from './http-exception.filter';
+
+jest.mock('@sentry/nestjs', () => ({ captureException: jest.fn() }));
 
 function run(exception: unknown) {
   const json = jest.fn();
@@ -126,6 +130,18 @@ describe('AllExceptionsFilter', () => {
     run(boom);
     expect(errorSpy).toHaveBeenCalledWith(boom);
     expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('reports unexpected errors to Sentry, but not HttpExceptions or mapped Prisma errors', () => {
+    const capture = jest.mocked(Sentry.captureException);
+    capture.mockClear();
+    const boom = new Error('boom');
+    run(boom);
+    run(new ServiceUnavailableException({ code: 'UPLOADS_NOT_CONFIGURED' }));
+    run(new NotFoundException());
+    run(prismaError('P2002'));
+    expect(capture).toHaveBeenCalledTimes(1);
+    expect(capture).toHaveBeenCalledWith(boom);
   });
 
   it('logs 4xx at warn without the body', () => {

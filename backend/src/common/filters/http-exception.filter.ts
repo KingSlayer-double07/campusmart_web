@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import { Request, Response } from 'express';
 import { Prisma } from '../../generated/prisma/client';
 
@@ -40,6 +41,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     if (status >= 500) {
       this.logger.error(exception);
+      // Unexpected failures go to Sentry when it's set up (T8); a deliberate HttpException,
+      // such as 503 UPLOADS_NOT_CONFIGURED, is an answer rather than a bug
+      if (!(exception instanceof HttpException)) {
+        Sentry.captureException(exception);
+      }
     } else {
       this.logger.warn(`${request.method} ${request.url} -> ${status} ${code}`);
     }

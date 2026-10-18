@@ -94,4 +94,11 @@ describe('envSchema', () => {
     const env = envSchema.parse({ ...ciEnv, ESCROW_DISPUTE_WINDOW_HOURS: '0' });
     expect(env.ESCROW_DISPUTE_WINDOW_HOURS).toBe(0);
   });
+
+  it('keeps Sentry optional and rejects a DSN that is not a URL', () => {
+    expect(envSchema.parse(ciEnv).SENTRY_DSN).toBeUndefined();
+    expect(() =>
+      envSchema.parse({ ...ciEnv, SENTRY_DSN: 'not-a-dsn' }),
+    ).toThrow();
+  });
 });

@@ -59,6 +59,11 @@ export const envSchema = z
     SUPPORT_PHONE: optional,
     SUPPORT_WHATSAPP: optional,
 
+    // Error reporting (decision T8). Unset means errors go to the logs only.
+    // Read by src/instrument.ts before Nest starts; validated here as well.
+    SENTRY_DSN: z.url().optional(),
+    SENTRY_ENVIRONMENT: optional, // defaults to NODE_ENV
+
     // Marketplace rules
     PLATFORM_FEE_BPS: z.coerce.number().int().nonnegative().default(0), // 100 bps = 1%
     ORDER_PAYMENT_TTL_MINUTES: z.coerce.number().int().positive().default(30),

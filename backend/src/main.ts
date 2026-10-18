@@ -1,3 +1,4 @@
+import './instrument'; // must stay first: Sentry instruments Nest as it loads
 import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
 import { SwaggerModule } from '@nestjs/swagger';
