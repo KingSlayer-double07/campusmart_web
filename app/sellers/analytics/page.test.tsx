@@ -65,6 +65,7 @@ describe("Seller AnalyticsPage", () => {
     expect(await screen.findByText("₦16,500")).toBeTruthy();
     expect(screen.getByText("Revenue in the last 7 days")).toBeTruthy();
     expect(screen.getByLabelText("Down 10%")).toBeTruthy();
+    expect(screen.getByText("against the 7 days before")).toBeTruthy();
     expect(screen.getByLabelText("Up 25%")).toBeTruthy();
     // No orders the week before: nothing to compare with
     expect(screen.getByText("New")).toBeTruthy();
@@ -95,10 +96,12 @@ describe("Seller AnalyticsPage", () => {
   });
 
   it("says when nothing sold and nothing is low", async () => {
+    analyticsApi.stats.mockResolvedValue({ ...stats, revenueKobo: 0, revenueChangePct: null });
     analyticsApi.topListings.mockResolvedValue([]);
     analyticsApi.inventoryAlerts.mockResolvedValue({ threshold: 5, items: [] });
     renderPage();
     expect(await screen.findByText("Nothing sold in the last 7 days yet.")).toBeTruthy();
+    expect(screen.getByText("No sales in the 7 days before to compare with")).toBeTruthy();
     expect(await screen.findByText(/Nothing is running low. You'll be told when an item has 5 or fewer left./)).toBeTruthy();
   });
 

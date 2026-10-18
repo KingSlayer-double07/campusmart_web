@@ -101,6 +101,7 @@ export default function AnalyticsPage() {
   const top = useTopListings(range, 5);
   const alerts = useInventoryAlerts();
   const since = rangeSince(range);
+  const days = parseInt(range, 10);
   const numbers = stats.data;
 
   return (
@@ -128,10 +129,14 @@ export default function AnalyticsPage() {
           ) : numbers ? (
             <>
               <p className="text-[32px] font-bold leading-none tracking-tight text-white">{formatNaira(numbers.revenueKobo)}</p>
-              <div className="mt-1 flex items-center gap-2">
-                <ChangeBadge pct={numbers.revenueChangePct} tone="dark" />
-                <p className="text-xs text-white/50">against the {range.replace("d", "")} days before</p>
-              </div>
+              {numbers.revenueChangePct === null ? (
+                <p className="mt-1 text-xs text-white/50">No sales in the {days} days before to compare with</p>
+              ) : (
+                <div className="mt-1 flex items-center gap-2">
+                  <ChangeBadge pct={numbers.revenueChangePct} tone="dark" />
+                  <p className="text-xs text-white/50">against the {days} days before</p>
+                </div>
+              )}
             </>
           ) : (
             <span className="h-8 w-40 animate-pulse rounded bg-white/20" aria-label="Loading" />
