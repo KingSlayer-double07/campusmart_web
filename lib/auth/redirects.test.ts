@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { afterSignIn, homeForRole, safeNext, signInPathFor } from "./redirects";
+import { afterSignIn, homeForRole, needsSchool, safeNext, signInPathFor } from "./redirects";
 
 describe("homeForRole", () => {
   it.each([
@@ -13,18 +13,24 @@ describe("homeForRole", () => {
 
 describe("afterSignIn", () => {
   const verified = "2026-10-08T00:00:00.000Z";
+  const school = "i1";
 
   it("sends an unverified user to verify-email first", () => {
-    expect(afterSignIn({ role: "SELLER", emailVerifiedAt: null })).toBe("/onboarding/verify-email");
+    expect(afterSignIn({ role: "SELLER", emailVerifiedAt: null, institutionId: school })).toBe("/onboarding/verify-email");
   });
 
   it("redirects by role", () => {
-    expect(afterSignIn({ role: "ADMIN", emailVerifiedAt: verified })).toBe("/admin");
-    expect(afterSignIn({ role: "BUYER", emailVerifiedAt: verified })).toBe("/");
+    expect(afterSignIn({ role: "ADMIN", emailVerifiedAt: verified, institutionId: null })).toBe("/admin");
+    expect(afterSignIn({ role: "BUYER", emailVerifiedAt: verified, institutionId: school })).toBe("/");
+  });
+
+  it("asks a buyer without a school to pick one first (T1), even with a next path", () => {
+    expect(afterSignIn({ role: "BUYER", emailVerifiedAt: verified, institutionId: null }, "/orders")).toBe("/onboarding/school");
+    expect(needsSchool({ role: "SELLER", institutionId: null })).toBe(false);
   });
 
   it("honours a same-origin next path", () => {
-    expect(afterSignIn({ role: "BUYER", emailVerifiedAt: verified }, "/orders")).toBe("/orders");
+    expect(afterSignIn({ role: "BUYER", emailVerifiedAt: verified, institutionId: school }, "/orders")).toBe("/orders");
   });
 });
 

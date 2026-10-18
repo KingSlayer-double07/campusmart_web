@@ -11,6 +11,8 @@ export const safeUserSelect = {
   emailVerifiedAt: true,
   trustScore: true,
   institutionId: true,
+  schoolEmail: true,
+  schoolEmailVerifiedAt: true,
   isActive: true,
   isSuspended: true,
   createdAt: true,

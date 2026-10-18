@@ -59,7 +59,7 @@ async function context(options) {
 async function fillSignIn(page, email, password) {
   await page.goto(`${BASE}/onboarding/buyers/sign-in`);
   await page.waitForLoadState('networkidle');
-  await page.getByPlaceholder('School email').fill(email);
+  await page.getByPlaceholder(/^(School email|Email)$/).fill(email);
   await page.getByPlaceholder('Password').fill(password);
   await page.getByRole('button', { name: /sign in/i }).click();
 }

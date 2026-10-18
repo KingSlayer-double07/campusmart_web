@@ -26,7 +26,7 @@ function renderForm() {
 }
 
 function signIn(email = "admin@campusmart.test", password = "LocalAdmin123") {
-  fireEvent.change(screen.getByPlaceholderText("School email"), { target: { value: email } });
+  fireEvent.change(screen.getByPlaceholderText("Email"), { target: { value: email } });
   fireEvent.change(screen.getByPlaceholderText("Password"), { target: { value: password } });
   fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
 }
@@ -90,7 +90,7 @@ describe("SignInForm", () => {
     renderForm();
     signIn();
     await screen.findByPlaceholderText("6-digit code");
-    fireEvent.change(screen.getByPlaceholderText("School email"), { target: { value: "other@campusmart.test" } });
+    fireEvent.change(screen.getByPlaceholderText("Email"), { target: { value: "other@campusmart.test" } });
     expect(screen.queryByPlaceholderText("6-digit code")).toBeNull();
   });
 

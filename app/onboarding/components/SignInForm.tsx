@@ -107,7 +107,7 @@ export default function SignInForm({ roleType }: { roleType: "buyer" | "seller" 
       <FormInput
         icon={Mail}
         type="email"
-        placeholder="School email"
+        placeholder="Email"
         value={email}
         onChange={(e) => {
           setEmail(e.target.value);

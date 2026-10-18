@@ -48,6 +48,14 @@ export class UserDto {
   @ApiProperty({ type: String, format: 'uuid', nullable: true })
   institutionId!: string | null;
 
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      'The confirmed school email (T1, G2): the account email for one made with it, else one added to sell',
+  })
+  schoolEmail!: string | null;
+
   @ApiProperty()
   isActive!: boolean;
 
@@ -72,6 +80,7 @@ export function toUserDto(user: SafeUser): UserDto {
     emailVerifiedAt: user.emailVerifiedAt,
     trustScore: user.trustScore,
     institutionId: user.institutionId,
+    schoolEmail: user.schoolEmailVerifiedAt ? user.schoolEmail : null,
     isActive: user.isActive,
     isSuspended: user.isSuspended,
     createdAt: user.createdAt,

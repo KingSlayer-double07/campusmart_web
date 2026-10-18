@@ -62,17 +62,20 @@ export class AuthService {
   // ── Register (D7) ─────────────────────────────────────────────────────────
 
   async register(dto: RegisterDto, meta: ClientMeta) {
+    // D7 for sellers; decision T1 lets a buyer use any email and pick their school afterwards
+    const isSeller = dto.accountType === 'SELLER';
     const institution = await this.institutions.findForEmail(dto.email);
-    if (!institution) {
+    if (!institution && isSeller) {
       throw new UnprocessableEntityException({
         code: 'INSTITUTION_NOT_SUPPORTED',
         message: "CampusMart isn't available for your school yet",
       });
     }
-    if (!institution.isActive) throw institutionInactive();
+    if (institution && !institution.isActive) throw institutionInactive();
 
-    const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+    // Another account may already use it as its school email (G2)
+    const existing = await this.prisma.user.findFirst({
+      where: { OR: [{ email: dto.email }, { schoolEmail: dto.email }] },
       select: { id: true },
     });
     if (existing) {
@@ -81,7 +84,6 @@ export class AuthService {
 
     const password = await hash(dto.password, BCRYPT_ROUNDS);
     // D8: a seller account gets role SELLER and an empty SellerProfile (the store)
-    const isSeller = dto.accountType === 'SELLER';
     const role = isSeller ? UserRole.SELLER : UserRole.BUYER;
 
     const { user, session } = await this.prisma.$transaction(async (tx) => {
@@ -90,7 +92,11 @@ export class AuthService {
           email: dto.email,
           password,
           role,
-          institutionId: institution.id,
+          // A school email is also the account's school email, confirmed with the same code
+          ...(institution && {
+            institutionId: institution.id,
+            schoolEmail: dto.email,
+          }),
           ...(isSeller && { sellerProfile: { create: {} } }),
         },
         select: safeUserSelect,
@@ -113,9 +119,13 @@ export class AuthService {
   async verifyEmail(user: AuthUser, code: string): Promise<SafeUser> {
     if (user.emailVerifiedAt) return user;
     await this.emailCodes.consume(user.id, EmailCodePurpose.VERIFY_EMAIL, code);
+    const now = new Date();
     return this.prisma.user.update({
       where: { id: user.id },
-      data: { emailVerifiedAt: new Date() },
+      data: {
+        emailVerifiedAt: now,
+        ...(user.schoolEmail === user.email && { schoolEmailVerifiedAt: now }),
+      },
       select: safeUserSelect,
     });
   }
@@ -401,6 +411,7 @@ const CODE_TEMPLATES = {
   VERIFY_EMAIL: 'verify-email',
   RESET_PASSWORD: 'reset-password',
   ADMIN_SIGN_IN: 'admin-sign-in',
+  SCHOOL_EMAIL: 'school-email',
 } as const satisfies Record<EmailCodePurpose, string>;
 
 // Decision M6: a suspended user sees the admin's reason

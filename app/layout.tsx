@@ -7,6 +7,7 @@ import ServiceWorkerRegister from "./components/ServiceWorkerRegister";
 import { Analytics } from "@vercel/analytics/next";
 import Providers from "./providers";
 import AuthProvider from "./components/AuthProvider";
+import SchoolGate from "./components/SchoolGate";
 import { ThemeProvider } from "./components/ThemeProvider";
 import AppFrame from "./components/AppFrame";
 
@@ -77,6 +78,7 @@ export default function RootLayout({
           <AppFrame>
             <Providers>
               <AuthProvider>
+                <SchoolGate />
                 {children}
               </AuthProvider>
             </Providers>

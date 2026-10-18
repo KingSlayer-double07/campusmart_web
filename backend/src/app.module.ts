@@ -32,6 +32,7 @@ import { DispatchModule } from './dispatch/dispatch.module';
 import { PaystackModule } from './paystack/paystack.module';
 import { SettingsModule } from './settings/settings.module';
 import { ModerationModule } from './moderation/moderation.module';
+import { AccountModule } from './account/account.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { ModerationModule } from './moderation/moderation.module';
     StoresModule,
     TrustModule,
     ModerationModule,
+    AccountModule,
   ],
   controllers: [AppController],
   providers: [

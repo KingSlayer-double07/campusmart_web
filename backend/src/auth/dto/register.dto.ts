@@ -6,11 +6,16 @@ import { NormalizeEmail } from './normalize-email';
 export const ACCOUNT_TYPES = ['BUYER', 'SELLER'] as const;
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
-// D7: school email and password are the only required fields; the institution comes from the domain
+// D7: email and password are the only fields. A school email finds the institution from its domain;
+// sellers need one, buyers may use any email and pick their school afterwards (decision T1).
 export class RegisterDto {
-  @ApiProperty({ format: 'email', example: 'ada.obi@students.unilag.edu.ng' })
+  @ApiProperty({
+    format: 'email',
+    example: 'ada.obi@students.unilag.edu.ng',
+    description: 'A school email for a seller; any email for a buyer',
+  })
   @NormalizeEmail()
-  @IsEmail({}, { message: 'Enter a valid school email address' })
+  @IsEmail({}, { message: 'Enter a valid email address' })
   @MaxLength(254)
   email!: string;
 

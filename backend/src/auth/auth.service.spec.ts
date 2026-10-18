@@ -20,7 +20,12 @@ const responseCode = (error: unknown) =>
 describe('AuthService', () => {
   let service: AuthService;
   const prisma = {
-    user: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
+    user: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
     $transaction: jest.fn(),
   };
   const sessions = {
@@ -81,14 +86,28 @@ describe('AuthService', () => {
       accountType: 'BUYER' as const,
     };
 
-    it('returns 422 INSTITUTION_NOT_SUPPORTED for a non-school domain', async () => {
+    it('returns 422 INSTITUTION_NOT_SUPPORTED for a seller without a school email (D7)', async () => {
       institutions.findForEmail.mockResolvedValue(null);
       const error = await service
-        .register({ ...dto, email: 'ada@gmail.com' }, {})
+        .register({ ...dto, email: 'ada@gmail.com', accountType: 'SELLER' }, {})
         .catch((e: unknown) => e);
       expect((error as HttpException).getStatus()).toBe(422);
       expect(responseCode(error)).toBe('INSTITUTION_NOT_SUPPORTED');
       expect(prisma.user.create).not.toHaveBeenCalled();
+    });
+
+    it('lets a buyer sign up with any email and no school yet (T1)', async () => {
+      institutions.findForEmail.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue({ ...user, email: 'ada@gmail.com' });
+      await service.register({ ...dto, email: 'ada@gmail.com' }, {});
+      const { data } = prisma.user.create.mock.calls[0][0];
+      expect(data).toMatchObject({
+        email: 'ada@gmail.com',
+        role: UserRole.BUYER,
+      });
+      expect(data.institutionId).toBeUndefined();
+      expect(data.schoolEmail).toBeUndefined();
     });
 
     it('returns 403 INSTITUTION_INACTIVE when the school is switched off', async () => {
@@ -107,12 +126,13 @@ describe('AuthService', () => {
         id: 'unilag',
         isActive: true,
       });
-      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
       prisma.user.create.mockResolvedValue(user);
 
       await service.register(dto, {});
       const { data } = prisma.user.create.mock.calls[0][0];
       expect(data.institutionId).toBe('unilag');
+      expect(data.schoolEmail).toBe(dto.email);
       expect(data.role).toBe(UserRole.BUYER);
       expect(data.password).toMatch(/^\$2[aby]\$/);
       expect(data.sellerProfile).toBeUndefined();
@@ -123,7 +143,7 @@ describe('AuthService', () => {
         id: 'unilag',
         isActive: true,
       });
-      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
       prisma.user.create.mockResolvedValue({ ...user, role: UserRole.SELLER });
 
       await service.register({ ...dto, accountType: 'SELLER' }, {});
@@ -137,7 +157,7 @@ describe('AuthService', () => {
         id: 'unilag',
         isActive: true,
       });
-      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
       prisma.user.create.mockResolvedValue(user);
 
       const { tokens } = await service.register(dto, {});
@@ -162,7 +182,7 @@ describe('AuthService', () => {
         id: 'unilag',
         isActive: true,
       });
-      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
       prisma.user.create.mockResolvedValue(user);
       mail.send.mockRejectedValue(new Error('SMTP down'));
       jest
@@ -174,15 +194,19 @@ describe('AuthService', () => {
       });
     });
 
-    it('rejects an email that is already registered with 409', async () => {
+    it('rejects an email already used as an account or school email with 409', async () => {
       institutions.findForEmail.mockResolvedValue({
         id: 'unilag',
         isActive: true,
       });
-      prisma.user.findUnique.mockResolvedValue({ id: 'existing' });
+      prisma.user.findFirst.mockResolvedValue({ id: 'existing' });
       await expect(service.register(dto, {})).rejects.toBeInstanceOf(
         ConflictException,
       );
+      expect(prisma.user.findFirst).toHaveBeenCalledWith({
+        where: { OR: [{ email: dto.email }, { schoolEmail: dto.email }] },
+        select: { id: true },
+      });
     });
   });
 

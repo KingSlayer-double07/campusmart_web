@@ -19,7 +19,7 @@ import { useAuthStore } from "@/app/store/useAuthStore";
 import SignUpForm from "./SignUpForm";
 
 function fill(email: string, password = "Campus2026", confirm = password) {
-  fireEvent.change(screen.getByPlaceholderText("School email"), { target: { value: email } });
+  fireEvent.change(screen.getByPlaceholderText(/^(School email|Email)$/), { target: { value: email } });
   fireEvent.change(screen.getByPlaceholderText("Password"), { target: { value: password } });
   fireEvent.change(screen.getByPlaceholderText("Confirm password"), { target: { value: confirm } });
   fireEvent.click(screen.getByRole("button", { name: /create an account/i }));
@@ -39,18 +39,27 @@ describe("SignUpForm", () => {
     expect(screen.queryByPlaceholderText(/username|phone/i)).toBeNull();
   });
 
-  it("sends a non-school domain to /waitlist (422 INSTITUTION_NOT_SUPPORTED)", async () => {
+  it("sends a seller with a non-school email to /waitlist (422 INSTITUTION_NOT_SUPPORTED)", async () => {
     register.mockRejectedValue(
       new ApiError(422, "INSTITUTION_NOT_SUPPORTED", "CampusMart isn't available for your school yet"),
     );
-    render(<SignUpForm accountType="BUYER" />);
+    render(<SignUpForm accountType="SELLER" />);
+    expect(screen.getByPlaceholderText("School email")).toBeTruthy();
     fill("ada@gmail.com");
     await waitFor(() => expect(router.push).toHaveBeenCalledWith("/waitlist"));
     expect(register).toHaveBeenCalledWith({
       email: "ada@gmail.com",
       password: "Campus2026",
-      accountType: "BUYER",
+      accountType: "SELLER",
     });
+  });
+
+  it("lets a buyer sign up with any email (T1)", async () => {
+    register.mockResolvedValue({ id: "u1", email: "ada@gmail.com", role: "BUYER", emailVerifiedAt: null, institutionId: null });
+    render(<SignUpForm accountType="BUYER" />);
+    expect(screen.getByPlaceholderText("Email")).toBeTruthy();
+    fill("ada@gmail.com");
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/onboarding/verify-email"));
   });
 
   it("shows the friendly message for a switched-off school instead of the waitlist", async () => {

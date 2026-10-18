@@ -10,7 +10,7 @@ import { useAuthStore } from "@/app/store/useAuthStore";
 import { authApi } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { meKey } from "@/lib/api/hooks/useMe";
-import { homeForRole } from "@/lib/auth/redirects";
+import { afterSignIn } from "@/lib/auth/redirects";
 import { codeSchema } from "@/lib/validations/auth";
 
 const RESEND_SECONDS = 60;
@@ -47,7 +47,7 @@ export default function VerifyEmailPage() {
   useEffect(() => {
     if (!mounted) return;
     if (!user) router.replace("/onboarding/role-select");
-    else if (user.emailVerifiedAt) router.replace(homeForRole(user.role));
+    else if (user.emailVerifiedAt) router.replace(afterSignIn(user));
   }, [mounted, user, router]);
 
   const handleVerify = async () => {

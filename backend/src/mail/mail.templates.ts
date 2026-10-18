@@ -3,6 +3,8 @@ export interface MailTemplates {
   'reset-password': { code: string; minutes: number };
   // Decision M7: a code at every admin sign-in
   'admin-sign-in': { code: string; minutes: number };
+  // Decision G2: a buyer confirms a school email to sell
+  'school-email': { code: string; minutes: number };
   // Order, payment and admin alerts (decisions T7, P10): the in-app notification, by email
   notification: { title: string; body: string; link: string | null };
   // Decision DX1: an admin invites a rider; the link sets their password
@@ -71,6 +73,17 @@ export const renderers: {
       'Your CampusMart admin sign-in code is:',
       code,
       `It expires in ${minutes} minutes. If you didn't just sign in, change your password now: someone else knows it.`,
+    ),
+  }),
+  'school-email': ({ code, minutes }) => ({
+    subject: 'Confirm your school email for CampusMart',
+    text:
+      `Your code to confirm this school email and start selling on CampusMart is ${code}.\n\n` +
+      `It expires in ${minutes} minutes. If you didn't ask for this, you can ignore this email.`,
+    html: codeHtml(
+      'Your code to confirm this school email and start selling on CampusMart is:',
+      code,
+      `It expires in ${minutes} minutes. If you didn't ask for this, you can ignore this email.`,
     ),
   }),
   'rider-invite': ({ firstName, institution, link, days }) => {

@@ -11,48 +11,56 @@ enum EmailCodePurpose {
   VERIFY_EMAIL
   RESET_PASSWORD
   ADMIN_SIGN_IN // decision M7: a code at every admin sign-in
+  SCHOOL_EMAIL // decision G2: a buyer confirms a school email to become a seller
 }
 
 model User {
-  id                   String                @id @default(uuid())
-  email                String                @unique
-  password             String?
-  googleId             String?               @unique
-  username             String?               @unique
-  firstName            String?
-  lastName             String?
-  phone                String?
-  role                 UserRole
-  trustScore           Float                 @default(0)
-  verificationStatus   VerificationStatus    @default(UNVERIFIED)
-  isActive             Boolean               @default(true)
-  isSuspended          Boolean               @default(false)
+  id                    String                @id @default(uuid())
+  email                 String                @unique
+  password              String?
+  googleId              String?               @unique
+  username              String?               @unique
+  firstName             String?
+  lastName              String?
+  phone                 String?
+  role                  UserRole
+  trustScore            Float                 @default(0)
+  verificationStatus    VerificationStatus    @default(UNVERIFIED)
+  isActive              Boolean               @default(true)
+  isSuspended           Boolean               @default(false)
   // Decision M6: the suspended user sees the admin's reason
-  suspendedAt          DateTime?
-  suspendedReason      String?
-  suspendedById        String?
-  institutionId        String?
-  pickupStationId      String? // set only for PICKUP_AGENT
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  emailVerifiedAt      DateTime?
-  sessions             Session[]
-  emailCodes           EmailCode[]
-  listings             Listing[]             @relation("SellerListings")
-  moderationActions    ModerationAction[]
-  orders               Order[]               @relation("BuyerOrders")
-  sellerOrders         SellerOrder[]         @relation("SellerOrders")
-  sellerProfile        SellerProfile?
-  cartItems            CartItem[]
-  notifications        Notification[]
-  reviewsReceived      Review[]              @relation("Reviewee")
-  reviewsGiven         Review[]              @relation("Reviewer")
-  institution          Institution?          @relation(fields: [institutionId], references: [id])
-  pickupStation        PickupStation?        @relation("StationAgents", fields: [pickupStationId], references: [id])
-  verificationRequests VerificationRequest[]
-  wishlist             Wishlist[]
-  deliveryJobs         DeliveryJob[]         @relation("RiderJobs")
-  invites              Invite[]
+  suspendedAt           DateTime?
+  suspendedReason       String?
+  suspendedById         String?
+  institutionId         String?
+  pickupStationId       String? // set only for PICKUP_AGENT
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  emailVerifiedAt       DateTime?
+  // Decisions T1 and G2: buyers may use any email; selling needs a confirmed school email. For an account
+  // made with a school email it's the same address.
+  schoolEmail           String?               @unique
+  schoolEmailVerifiedAt DateTime?
+  pendingSchoolEmail    String? // the school email a code was sent to, until it's confirmed
+  notificationPrefs     Json? // Guide 10: which notifications also go by email (T7)
+  deletedAt             DateTime? // Decision T6: personal details anonymised; orders kept 6 years
+  sessions              Session[]
+  emailCodes            EmailCode[]
+  listings              Listing[]             @relation("SellerListings")
+  moderationActions     ModerationAction[]
+  orders                Order[]               @relation("BuyerOrders")
+  sellerOrders          SellerOrder[]         @relation("SellerOrders")
+  sellerProfile         SellerProfile?
+  cartItems             CartItem[]
+  notifications         Notification[]
+  reviewsReceived       Review[]              @relation("Reviewee")
+  reviewsGiven          Review[]              @relation("Reviewer")
+  institution           Institution?          @relation(fields: [institutionId], references: [id])
+  pickupStation         PickupStation?        @relation("StationAgents", fields: [pickupStationId], references: [id])
+  verificationRequests  VerificationRequest[]
+  wishlist              Wishlist[]
+  deliveryJobs          DeliveryJob[]         @relation("RiderJobs")
+  invites               Invite[]
 }
 
 model Session {

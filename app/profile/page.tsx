@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useEffect } from "react";
-import { LogOut, Edit2 } from "lucide-react";
+import { LogOut, Edit2, School, Store } from "lucide-react";
 import Nav from "../components/nav";
 import PageHeader from "../components/PageHeader";
 import ActionListItem from "../components/ActionListItem";
@@ -10,6 +10,22 @@ import { useAuthStore } from "../store/useAuthStore";
 import { useLogout } from "@/lib/api/hooks/useLogout";
 import { useRouter } from "next/navigation";
 import { profileMenuGroups } from "../lib/data";
+
+// A buyer starts selling here (G2) and changes school (G1); a seller goes to their seller pages
+function menuGroups(role: string | undefined) {
+  return profileMenuGroups.map((group) => ({
+    ...group,
+    items: group.items.flatMap((item) => {
+      if (item.href === "/sellers" && role !== "SELLER") {
+        return [{ icon: Store, label: "Sell on CampusMart", description: "Open a store with your school email", href: "/profile/sell" }];
+      }
+      if (item.href === "/profile/settings" && role === "BUYER") {
+        return [{ icon: School, label: "Your school", description: "Change the campus you shop at", href: "/profile/school" }, item];
+      }
+      return [item];
+    }),
+  }));
+}
 
 export default function ProfilePage() {
   const [mounted, setMounted] = useState(false);
@@ -74,7 +90,7 @@ export default function ProfilePage() {
 
           {/* Menu groups */}
           <div className="flex flex-col gap-6 mt-2">
-            {profileMenuGroups.map((group, groupIdx) => (
+            {menuGroups(authUser?.role).map((group, groupIdx) => (
               <div key={group.title} className="flex flex-col gap-3">
                 <p className="text-xs font-semibold tracking-widest text-foreground-muted uppercase">
                   {group.title}

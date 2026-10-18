@@ -16,11 +16,19 @@ export function homeForRole(role: UserRole | undefined): string {
   }
 }
 
-// After sign-in: unverified users finish verification first, then everyone goes to their home
-export function afterSignIn(user: Pick<User, 'role' | 'emailVerifiedAt'>, next?: string | null): string {
+// After sign-in: unverified users finish verification first, and a buyer who signed up without a
+// school email picks their school (decision T1); then everyone goes to their home
+export function afterSignIn(
+  user: Pick<User, 'role' | 'emailVerifiedAt' | 'institutionId'>,
+  next?: string | null,
+): string {
   if (!user.emailVerifiedAt) return '/onboarding/verify-email';
+  if (needsSchool(user)) return '/onboarding/school';
   return safeNext(next) ?? homeForRole(user.role);
 }
+
+export const needsSchool = (user: Pick<User, 'role' | 'institutionId'>) =>
+  user.role === 'BUYER' && !user.institutionId;
 
 // Only same-origin paths, never protocol-relative or absolute URLs
 export function safeNext(next?: string | null): string | null {

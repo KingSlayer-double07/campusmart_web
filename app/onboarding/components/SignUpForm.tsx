@@ -30,8 +30,8 @@ const TITLES: Record<AccountType, React.ReactNode> = {
   ),
 };
 
-// D7: school email and password are the only required fields; the API finds the school from the
-// email domain and sends a 6-digit code.
+// D7: email and password are the only fields, and the API sends a 6-digit code. A seller needs a school
+// email, from which the API finds the school; a buyer may use any email and picks their school next (T1).
 export default function SignUpForm({ accountType }: { accountType: AccountType }) {
   const router = useRouter();
   const setUser = useAuthStore((s) => s.setUser);
@@ -63,6 +63,7 @@ export default function SignUpForm({ accountType }: { accountType: AccountType }
       }
       router.push("/onboarding/verify-email");
     } catch (err) {
+      // Sellers only: a buyer's email doesn't have to be a school's (G4: an unlisted school waits)
       if (err instanceof ApiError && err.code === "INSTITUTION_NOT_SUPPORTED") {
         router.push("/waitlist");
         return;
@@ -96,7 +97,7 @@ export default function SignUpForm({ accountType }: { accountType: AccountType }
       <FormInput
         icon={Mail}
         type="email"
-        placeholder="School email"
+        placeholder={accountType === "SELLER" ? "School email" : "Email"}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         autoComplete="email"
