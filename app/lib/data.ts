@@ -95,20 +95,12 @@ export const loginItems = [
   },
 ];
 
+// Phone verification stays hidden (decision T3): it needs an SMS provider and nothing requires it
 export const verificationItems = [
   {
     icon: Mail,
     label: "Email Verification",
-    status: "verified",
-    statusText: "Verified ✓",
     href: "/profile/account_security/email_verification",
-  },
-  {
-    icon: Smartphone,
-    label: "Phone Verification",
-    status: "unverified",
-    statusText: "Not verified — Verify now",
-    href: "/profile/account_security/phone_verification",
   },
 ];
 

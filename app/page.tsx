@@ -2,6 +2,7 @@
 
 import Nav from "./components/nav";
 import SearchBar from "./components/SearchBar";
+import NotificationBell from "./components/NotificationBell";
 import CategoryList from "./components/CategoryList";
 import SectionHeader from "./components/SectionHeader";
 import ListingsCarousel from "./components/ListingsCarousel";
@@ -17,7 +18,12 @@ export default function Home() {
       <main className="pb-28 pt-8">
         {/* Section 1: Search & Filter */}
         <section className="flex flex-col gap-5 bg-card pt-0 pb-2 px-4 sm:px-6">
-          <SearchBar />
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <SearchBar />
+            </div>
+            <NotificationBell href="/profile/notifications" className="border border-border-default bg-card text-foreground" />
+          </div>
           <CategoryList />
         </section>
 

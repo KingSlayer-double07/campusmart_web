@@ -25,6 +25,7 @@ const report = (overrides: object = {}) => ({
   type: "LISTING",
   reason: "COUNTERFEIT",
   message: "Logo looks off",
+  screenshotUrl: null,
   listingId: "l1",
   listingTitle: "Desk lamp",
   reporterEmail: "tobi@unilag.edu.ng",

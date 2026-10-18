@@ -11,6 +11,8 @@ type RegisterBody = components['schemas']['RegisterDto'];
 type LoginBody = components['schemas']['LoginDto'];
 type ResetPasswordBody = components['schemas']['ResetPasswordDto'];
 type ChangePasswordBody = components['schemas']['ChangePasswordDto'];
+export type UpdateProfileBody = components['schemas']['UpdateProfileDto'];
+export type DeleteAccountBody = components['schemas']['DeleteAccountDto'];
 export type AuthProviders = components['schemas']['AuthProvidersDto'];
 
 const post = (body?: unknown): RequestInit => ({
@@ -32,6 +34,11 @@ export const authApi = {
 };
 
 export const accountApi = {
+  updateProfile: (body: UpdateProfileBody) =>
+    fetchApi<User>('/users/me/profile', { method: 'PATCH', body: JSON.stringify(body) }),
+  // Decision T6: personal details anonymised, orders kept
+  deleteAccount: (body: DeleteAccountBody) =>
+    fetchApi<void>('/users/me', { method: 'DELETE', body: JSON.stringify(body) }),
   changePassword: (body: ChangePasswordBody) =>
     fetchApi<void>('/users/me/password', { method: 'PATCH', body: JSON.stringify(body) }),
   sessions: () => fetchApi<Session[]>('/users/me/sessions'),

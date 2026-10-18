@@ -1,303 +1,173 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { AlertTriangle, ChevronDown, X, Send } from "lucide-react";
+import { useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AlertTriangle, ImagePlus, Send, X } from "lucide-react";
 import Nav from "../../../components/nav";
 import PageHeader from "../../../components/PageHeader";
 import PageHero from "../../../components/PageHero";
-import { useToast, ToastContainer } from "../../../components/Toast";
-import { problemTypes, screenOptions } from "../../../lib/data";
+import { ToastContainer, useToast } from "../../../components/Toast";
+import { ApiError } from "@/lib/api/client";
+import { useSendSupportReport } from "@/lib/api/hooks/useSupport";
+import { SUPPORT_TYPE_LABELS, type SupportType } from "@/lib/api/support";
+import { uploadImages } from "@/lib/uploads";
 
-const MAX_CHARS = 1000;
+const MIN_CHARS = 10;
+const MAX_CHARS = 2000;
+const TYPES = Object.keys(SUPPORT_TYPE_LABELS) as SupportType[];
 
-/* ─────────────────────────────────────────────
-   Custom select
-───────────────────────────────────────────── */
-function SelectField({
-  id,
-  label,
-  placeholder,
-  options,
-  value,
-  onChange,
-  accent,
-}: {
-  id: string;
-  label: string;
-  placeholder: string;
-  options: string[];
-  value: string;
-  onChange: (v: string) => void;
-  accent?: boolean;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-sm font-medium text-foreground">
-        {label}
-      </label>
-      <div className="relative">
-        <select
-          id={id}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className={`w-full appearance-none rounded-2xl px-4 py-3.5 text-sm outline-none transition pr-10 ${
-            value
-              ? accent
-                ? "bg-card border-2 border-main text-foreground font-medium"
-                : "bg-surface-muted text-foreground"
-              : "bg-surface-muted text-foreground-muted"
-          }`}
-        >
-          <option value="" disabled>
-            {placeholder}
-          </option>
-          {options.map((o) => (
-            <option key={o} value={o}>
-              {o}
-            </option>
-          ))}
-        </select>
-        <ChevronDown
-          size={16}
-          className={`absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none ${
-            accent && value ? "text-main" : "text-foreground-muted"
-          }`}
-        />
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────
-   Screenshot slot
-───────────────────────────────────────────── */
-function ScreenshotSlot({
-  file,
-  onPick,
-  onRemove,
-}: {
-  file: File | null;
-  onPick: () => void;
-  onRemove: () => void;
-}) {
-  const previewUrl = file ? URL.createObjectURL(file) : null;
-
-  return (
-    <div className="relative">
-      {previewUrl ? (
-        <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={previewUrl}
-            alt="screenshot"
-            className="size-24 rounded-2xl object-cover border border-border-default"
-          />
-          <button
-            onClick={onRemove}
-            className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-neutral-700 text-white flex items-center justify-center"
-          >
-            <X size={10} />
-          </button>
-        </>
-      ) : (
-        <button
-          onClick={onPick}
-          className="size-24 rounded-2xl border-2 border-dashed border-border-default flex items-center justify-center hover:bg-surface-muted transition-all"
-        >
-          <span className="text-foreground-muted text-2xl font-light">+</span>
-        </button>
-      )}
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────
-   Toggle
-───────────────────────────────────────────── */
-function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
-  return (
-    <button
-      onClick={onToggle}
-      role="switch"
-      aria-checked={enabled}
-      className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-300 ${
-        enabled ? "bg-main" : "bg-neutral-300"
-      }`}
-    >
-      <span
-        className={`inline-block h-5 w-5 transform rounded-full bg-card shadow-md transition-transform duration-300 ${
-          enabled ? "translate-x-6" : "translate-x-1"
-        }`}
-      />
-    </button>
-  );
-}
-
-/* ─────────────────────────────────────────────
-   Page
-───────────────────────────────────────────── */
+// Guide 10: a report goes to the admins' queue. A listing is reported from its own page.
 export default function ReportPage() {
   const router = useRouter();
   const toast = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [activeSlot, setActiveSlot] = useState<number>(0);
-
-  const [problemType, setProblemType] = useState("");
-  const [screen, setScreen] = useState("");
-  const [description, setDescription] = useState("");
-  const [screenshots, setScreenshots] = useState<(File | null)[]>([null, null, null]);
+  const send = useSendSupportReport();
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [type, setType] = useState<SupportType | "">("");
+  const [message, setMessage] = useState("");
+  const [screenshot, setScreenshot] = useState<File | null>(null);
   const [includeDevice, setIncludeDevice] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = problemType && description.trim().length > 0 && !submitting;
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    if (file) {
-      setScreenshots((prev) => {
-        const next = [...prev];
-        next[activeSlot] = file;
-        return next;
-      });
+  const submit = async () => {
+    if (!type) {
+      setError("Choose what it's about");
+      return;
     }
-    e.target.value = "";
+    if (message.trim().length < MIN_CHARS) {
+      setError(`Tell us what happened in at least ${MIN_CHARS} characters`);
+      return;
+    }
+    setError(null);
+    try {
+      let screenshotUrl: string | undefined;
+      if (screenshot) {
+        setUploading(true);
+        [{ url: screenshotUrl }] = await uploadImages([screenshot], "SUPPORT", () => undefined);
+      }
+      const device = includeDevice ? `\n\nDevice: ${navigator.userAgent}` : "";
+      await send.mutateAsync({ type, message: `${message.trim()}${device}`.slice(0, MAX_CHARS), screenshotUrl });
+      toast.success("Report sent", "Our team will look into it");
+      setTimeout(() => router.back(), 1500);
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "UPLOADS_NOT_CONFIGURED") {
+        setError("Screenshots can't be uploaded yet. Remove it and send the report without one.");
+      } else {
+        setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+      }
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const removeScreenshot = (i: number) => {
-    setScreenshots((prev) => {
-      const next = [...prev];
-      next[i] = null;
-      return next;
-    });
-  };
-
-  const handleSubmit = async () => {
-    if (!canSubmit) return;
-    setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setSubmitting(false);
-    toast.success("Report Submitted!", "We'll review and get back to you");
-    setTimeout(() => router.back(), 1800);
-  };
+  const busy = uploading || send.isPending;
 
   return (
     <>
       <ToastContainer toasts={toast.toasts} onDismiss={toast.dismiss} duration={4000} />
-
-      <main className="pb-36 pt-8 px-6">
-        <PageHeader title="Report a Problem" showBack={true} />
-
+      <main className="px-6 pb-36 pt-8">
+        <PageHeader title="Report a Problem" showBack />
         <PageHero icon={AlertTriangle} title="Help us fix issues by reporting them" />
 
-        <div className="flex flex-col gap-5">
+        <form
+          noValidate
+          className="flex flex-col gap-5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void submit();
+          }}
+        >
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-1.5 text-sm font-medium text-foreground">What is it about?</legend>
+            {TYPES.map((t) => (
+              <label
+                key={t}
+                className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm ${type === t ? "border-main bg-main-subtle" : "border-border-default"}`}
+              >
+                <input type="radio" name="support-type" value={t} checked={type === t} onChange={() => setType(t)} className="accent-main" />
+                {SUPPORT_TYPE_LABELS[t]}
+              </label>
+            ))}
+            <p className="text-xs text-foreground-muted">
+              A problem with a listing? Use &ldquo;Report this listing&rdquo; on its page. A problem with an order you received? Open it from{" "}
+              <Link href="/orders" className="font-semibold text-main">
+                your orders
+              </Link>
+              .
+            </p>
+          </fieldset>
 
-          {/* Problem type */}
-          <SelectField
-            id="report-problem-type"
-            label="Problem Type"
-            placeholder="Select problem type"
-            options={problemTypes}
-            value={problemType}
-            onChange={setProblemType}
-            accent
-          />
-
-          {/* Where does it happen */}
-          <SelectField
-            id="report-screen"
-            label="Where does it happen?"
-            placeholder="Select a screen or feature"
-            options={screenOptions}
-            value={screen}
-            onChange={setScreen}
-          />
-
-          {/* Description */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">
-              Describe the Problem
+            <label htmlFor="report-message" className="text-sm font-medium text-foreground">
+              What happened?
             </label>
-            <div className="relative">
-              <textarea
-                id="report-description"
-                rows={5}
-                maxLength={MAX_CHARS}
-                placeholder="Tell us what happened and how to reproduce the issue…"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full bg-surface-muted rounded-2xl px-4 py-3.5 text-sm text-foreground placeholder-neutral-400 outline-none resize-none focus:ring-2 focus:ring-main/30 transition pb-7"
-              />
-              <span className="absolute bottom-3 right-4 text-xs text-foreground-muted">
-                {description.length}/{MAX_CHARS}
-              </span>
-            </div>
+            <textarea
+              id="report-message"
+              rows={5}
+              maxLength={MAX_CHARS - 300}
+              placeholder="What you did, what you expected, and what happened instead. An order code (CM-…) helps."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              className="w-full resize-none rounded-2xl bg-surface-muted px-4 py-3.5 text-sm text-foreground outline-none transition placeholder-neutral-400 focus:ring-2 focus:ring-main/30"
+            />
           </div>
 
-          {/* Screenshots */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-foreground">
-              Screenshots{" "}
-              <span className="text-foreground-muted font-normal">(optional)</span>
-            </label>
-            <div className="flex gap-3">
-              {screenshots.map((file, i) => (
-                <ScreenshotSlot
-                  key={i}
-                  file={file}
-                  onPick={() => {
-                    setActiveSlot(i);
-                    fileInputRef.current?.click();
-                  }}
-                  onRemove={() => removeScreenshot(i)}
-                />
-              ))}
-            </div>
-            <p className="text-xs text-foreground-muted">Max 3 screenshots, up to 5 MB each</p>
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-
-          {/* Include device info */}
-          <div className="flex items-center justify-between py-1">
-            <p className="text-sm font-medium text-foreground">Include device information</p>
-            <Toggle enabled={includeDevice} onToggle={() => setIncludeDevice((v) => !v)} />
-          </div>
-
-        </div>
-      </main>
-
-      {/* Sticky submit */}
-      <div className="fixed bottom-0 left-0 w-full flex justify-center pb-6 pt-3 bg-gradient-to-t from-white via-white/90 to-transparent z-50">
-        <div className="w-full max-w-md px-6">
-          <button
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            className="w-full bg-main text-white rounded-full py-4 font-semibold text-[15px] hover:brightness-105 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none shadow-lg shadow-main/30"
-          >
-            {submitting ? (
-              <span className="flex items-center gap-2">
-                <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                </svg>
-                Submitting…
-              </span>
+            <p className="text-sm font-medium text-foreground">
+              Screenshot <span className="font-normal text-foreground-muted">(optional)</span>
+            </p>
+            {screenshot ? (
+              <div className="flex items-center gap-2 self-start rounded-full border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-medium text-main">
+                <span className="max-w-[180px] truncate">{screenshot.name}</span>
+                <button type="button" aria-label="Remove screenshot" onClick={() => setScreenshot(null)}>
+                  <X size={12} />
+                </button>
+              </div>
             ) : (
-              <>
-                <Send size={16} />
-                Submit Report
-              </>
+              <button
+                type="button"
+                onClick={() => fileInput.current?.click()}
+                className="flex items-center gap-2 self-start rounded-full border border-dashed border-border-default px-4 py-2 text-sm text-foreground-muted"
+              >
+                <ImagePlus size={16} />
+                Add a screenshot
+              </button>
             )}
-          </button>
-        </div>
-      </div>
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/*"
+              aria-label="Choose a screenshot"
+              className="hidden"
+              onChange={(e) => {
+                setScreenshot(e.target.files?.[0] ?? null);
+                e.target.value = "";
+              }}
+            />
+          </div>
 
+          <label className="flex items-center justify-between py-1 text-sm font-medium text-foreground">
+            Include my device and browser
+            <input type="checkbox" checked={includeDevice} onChange={(e) => setIncludeDevice(e.target.checked)} className="size-4 accent-main" />
+          </label>
+
+          {error && (
+            <p role="alert" className="text-sm font-medium text-red-500">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={busy}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-main py-4 text-[15px] font-semibold text-white shadow-lg shadow-main/30 transition-all disabled:opacity-50"
+          >
+            <Send size={16} />
+            {uploading ? "Uploading…" : send.isPending ? "Sending…" : "Send report"}
+          </button>
+        </form>
+      </main>
       <Nav />
     </>
   );

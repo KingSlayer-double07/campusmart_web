@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Bell, Package, ClipboardList } from "lucide-react";
+import { Package, ClipboardList } from "lucide-react";
+import NotificationBell from "@/app/components/NotificationBell";
 import { useSellerStore } from "@/app/store/useSellerStore";
 import { useAuthStore } from "@/app/store/useAuthStore";
 import { useSellerProfile, useUpdateSellerProfile } from "@/lib/api/hooks/useSellerProfile";
@@ -107,12 +108,10 @@ export default function SellersPage() {
                 Manage your business smoothly
               </p>
             </div>
-            <Link
+            <NotificationBell
               href="/sellers/notifications"
-              className="size-9 rounded-full bg-card/10 border border-white/20 flex items-center justify-center text-white hover:bg-card/20 transition"
-            >
-              <Bell size={18} />
-            </Link>
+              className="bg-card/10 border border-white/20 text-white hover:bg-card/20 transition"
+            />
           </div>
 
           {/* Stats for the chosen range (guide 7.2.1) */}

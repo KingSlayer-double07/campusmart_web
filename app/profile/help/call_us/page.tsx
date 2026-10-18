@@ -1,88 +1,78 @@
 "use client";
 
-import { Phone } from "lucide-react";
+import { MessageCircle, Phone } from "lucide-react";
 import Nav from "../../../components/nav";
 import PageHeader from "../../../components/PageHeader";
 import PageHero from "../../../components/PageHero";
-import InfoBanner from "../../../components/InfoBanner";
-import { phoneLines } from "../../../lib/data";
+import { useSupportContacts } from "@/lib/api/hooks/useSupport";
 
-/* Check if within working hours (12:00 AM – 11:59 PM = always open for demo) */
-function isOpenNow() {
-  const h = new Date().getHours();
-  return h >= 0 && h < 24; // always open per the mockup schedule
-}
+const digits = (n: string) => n.replace(/[^\d+]/g, "");
 
+// Decision T4: the numbers come from SUPPORT_PHONE and SUPPORT_WHATSAPP; one not set says so
 export default function CallUsPage() {
-  const open = isOpenNow();
+  const contacts = useSupportContacts();
+  const lines = [
+    {
+      label: "Call us",
+      icon: Phone,
+      value: contacts.data?.phone ?? null,
+      href: (n: string) => `tel:${digits(n)}`,
+    },
+    {
+      label: "WhatsApp",
+      icon: MessageCircle,
+      value: contacts.data?.whatsapp ?? null,
+      href: (n: string) => `https://wa.me/${digits(n).replace(/^\+/, "")}`,
+    },
+  ];
 
   return (
     <>
-      <main className="pb-28 pt-8 px-6">
-        <PageHeader title="Call Us" showBack={true} />
-
-        <PageHero
-          icon={Phone}
-          title="Get in Touch"
-          subtitle="Our team is available to assist you"
-        />
-
-        <div className="flex flex-col gap-7">
-
-          {/* Working hours */}
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
-              <Phone size={16} className="text-main" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">Working Hours</p>
-              <p className="text-xs text-foreground-muted">Monday – Sunday: 12:00 AM – 11:59 PM</p>
-            </div>
-            <span
-              className={`text-xs font-semibold px-3 py-1 rounded-full shrink-0 ${
-                open ? "bg-green-100 text-green-600" : "bg-red-100 text-red-500"
-              }`}
-            >
-              {open ? "Open now" : "Closed"}
-            </span>
+      <main className="px-6 pb-28 pt-8">
+        <PageHeader title="Call Us" showBack />
+        <PageHero icon={Phone} title="Get in Touch" subtitle="Talk to the CampusMart team" />
+        {contacts.isPending ? (
+          <div className="flex flex-col gap-3" aria-busy="true" aria-label="Loading contacts">
+            <div className="h-14 animate-pulse rounded-2xl bg-surface-muted" />
+            <div className="h-14 animate-pulse rounded-2xl bg-surface-muted" />
           </div>
-
-          {/* Phone lines */}
-          <section className="flex flex-col gap-1">
-            <p className="text-xs font-semibold tracking-widest text-foreground-muted uppercase mb-3">
-              Phone Lines
-            </p>
-
-            {phoneLines.map((line) => {
-              const Icon = line.icon;
-              return (
-                <a
-                  key={line.label}
-                  href={line.tel}
-                  className="flex items-center gap-4 py-3 group"
-                >
-                  <div
-                    className={`size-10 rounded-full flex items-center justify-center shrink-0 ${line.iconBg}`}
-                  >
-                    <Icon size={18} className={line.iconColor} />
+        ) : contacts.isError ? (
+          <p className="text-sm text-foreground-muted">
+            We couldn&apos;t load our numbers.{" "}
+            <button type="button" onClick={() => contacts.refetch()} className="font-semibold text-main">
+              Try again
+            </button>
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {lines.map(({ label, icon: Icon, value, href }) => (
+              <li key={label}>
+                {value ? (
+                  <a href={href(value)} className="flex items-center gap-4 rounded-2xl border border-border-default p-4">
+                    <span className="flex size-10 items-center justify-center rounded-full bg-orange-100">
+                      <Icon size={18} className="text-main" />
+                    </span>
+                    <span>
+                      <span className="block text-sm font-medium text-foreground">{label}</span>
+                      <span className="block text-sm font-medium text-main">{value}</span>
+                    </span>
+                  </a>
+                ) : (
+                  <div className="flex items-center gap-4 rounded-2xl border border-border-default p-4 opacity-70">
+                    <span className="flex size-10 items-center justify-center rounded-full bg-surface-muted">
+                      <Icon size={18} className="text-foreground-muted" />
+                    </span>
+                    <span>
+                      <span className="block text-sm font-medium text-foreground">{label}</span>
+                      <span className="block text-sm text-foreground-muted">Coming soon</span>
+                    </span>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{line.label}</p>
-                    <p className={`text-sm font-medium ${line.numColor}`}>{line.number}</p>
-                  </div>
-                </a>
-              );
-            })}
-          </section>
-
-          {/* Disclaimer banner */}
-          <InfoBanner
-            text="Standard call rates may apply. WhatsApp messages are free with internet connection."
-          />
-
-        </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </main>
-
       <Nav />
     </>
   );

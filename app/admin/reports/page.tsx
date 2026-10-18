@@ -39,7 +39,12 @@ const columns: Column<AdminReport>[] = [
         <p className="text-sm font-semibold text-foreground">
           {r.reason ? (REPORT_REASON_LABELS[r.reason as ReportReason] ?? r.reason) : TYPE_LABELS[r.type]}
         </p>
-        <p className="mt-0.5 break-words text-foreground">{r.message}</p>
+        <p className="mt-0.5 whitespace-pre-line break-words text-foreground">{r.message}</p>
+        {r.screenshotUrl && (
+          <a href={r.screenshotUrl} target="_blank" rel="noreferrer" className="mt-1 inline-block font-semibold text-main hover:underline">
+            View screenshot
+          </a>
+        )}
         {r.resolutionNote && <p className="mt-1 break-words text-foreground-muted">Closed: {r.resolutionNote}</p>}
       </div>
     ),

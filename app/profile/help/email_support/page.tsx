@@ -1,189 +1,133 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Mail, Paperclip, X, Send } from "lucide-react";
+import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Mail, Send } from "lucide-react";
 import Nav from "../../../components/nav";
 import PageHeader from "../../../components/PageHeader";
-import { useToast, ToastContainer } from "../../../components/Toast";
+import { ToastContainer, useToast } from "../../../components/Toast";
+import { ApiError } from "@/lib/api/client";
+import { useSendSupportReport, useSupportContacts } from "@/lib/api/hooks/useSupport";
 
-const MAX_CHARS = 1000;
+const MAX_CHARS = 1500;
 
-/* ─────────────────────────────────────────────
-   Attached file pill
-───────────────────────────────────────────── */
-function FilePill({ name, onRemove }: { name: string; onRemove: () => void }) {
-  return (
-    <div className="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-full px-3 py-1.5">
-      <Paperclip size={12} className="text-main shrink-0" />
-      <span className="text-xs text-main font-medium max-w-[120px] truncate">{name}</span>
-      <button onClick={onRemove} className="text-main/60 hover:text-main transition-colors">
-        <X size={12} />
-      </button>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────
-   Page
-───────────────────────────────────────────── */
+// Decision T4: the address comes from SUPPORT_EMAIL ("coming soon" until it's set). The form here
+// always works: it goes to the admins' queue like any report.
 export default function EmailSupportPage() {
   const router = useRouter();
   const toast = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const contacts = useSupportContacts();
+  const send = useSendSupportReport();
   const [subject, setSubject] = useState("");
-  const [orderNo, setOrderNo] = useState("");
+  const [orderCode, setOrderCode] = useState("");
   const [message, setMessage] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
-  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const charCount = message.length;
-  const canSend = subject.trim().length > 0 && message.trim().length > 0 && !sending;
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const picked = Array.from(e.target.files ?? []);
-    setFiles((prev) => [...prev, ...picked].slice(0, 3)); // max 3 files
-    e.target.value = "";
+  const submit = async () => {
+    if (!subject.trim() || message.trim().length < 10) {
+      setError("Add a subject and a message of at least 10 characters");
+      return;
+    }
+    setError(null);
+    const code = orderCode.trim().toUpperCase();
+    try {
+      await send.mutateAsync({
+        type: code ? "ORDER" : "OTHER",
+        message: [subject.trim(), code && `Order: ${code}`, message.trim()].filter(Boolean).join("\n\n"),
+      });
+      toast.success("Message sent", "Our team will get back to you");
+      setTimeout(() => router.back(), 1500);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+    }
   };
 
-  const removeFile = (index: number) =>
-    setFiles((prev) => prev.filter((_, i) => i !== index));
-
-  const handleSend = async () => {
-    if (!canSend) return;
-    setSending(true);
-    // Simulate network delay
-    await new Promise((r) => setTimeout(r, 1200));
-    setSending(false);
-    toast.success("Message Sent!", "We'll get back to you within 24 hours.");
-    setTimeout(() => router.back(), 1800);
-  };
+  const email = contacts.data?.email;
 
   return (
     <>
-      <ToastContainer toasts={toast.toasts} onDismiss={toast.dismiss} duration={4000} />
+      <ToastContainer toasts={toast.toasts} onDismiss={toast.dismiss} />
+      <main className="flex flex-col gap-6 px-6 pb-28 pt-8">
+        <PageHeader title="Email Support" showBack />
 
-      <main className="pb-36 pt-8 px-6">
-        <PageHeader title="Email Support" showBack={true} />
-
-        {/* Hero */}
-        <div className="flex flex-col items-center gap-3 mt-6 mb-8">
-          <div className="size-16 rounded-full bg-orange-100 flex items-center justify-center">
-            <Mail size={28} className="text-main" />
-          </div>
-          <p className="text-lg font-semibold text-foreground text-center">
-            We&apos;ll respond within 24 hours
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-5">
-
-          {/* Subject */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">Subject</label>
-            <input
-              id="email-subject"
-              type="text"
-              placeholder="What do you need help with?"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              className="w-full bg-surface-muted rounded-2xl px-4 py-3.5 text-sm text-foreground placeholder-neutral-400 outline-none focus:ring-2 focus:ring-main/30 transition"
-            />
-          </div>
-
-          {/* Order Number */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">
-              Order Number{" "}
-              <span className="text-foreground-muted font-normal">(optional)</span>
-            </label>
-            <input
-              id="email-order"
-              type="text"
-              placeholder="#ORD-"
-              value={orderNo}
-              onChange={(e) => setOrderNo(e.target.value)}
-              className="w-full bg-surface-muted rounded-2xl px-4 py-3.5 text-sm text-foreground placeholder-neutral-400 outline-none focus:ring-2 focus:ring-main/30 transition"
-            />
-          </div>
-
-          {/* Message */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">Message</label>
-            <div className="relative">
-              <textarea
-                id="email-message"
-                rows={5}
-                maxLength={MAX_CHARS}
-                placeholder="I ordered a product last week but received the wrong item. The order was supposed to be a blue shirt but I got a red one instead."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                className="w-full bg-surface-muted rounded-2xl px-4 py-3.5 text-sm text-foreground placeholder-neutral-400 outline-none resize-none focus:ring-2 focus:ring-main/30 transition pb-7"
-              />
-              {/* Char count */}
-              <span className="absolute bottom-3 right-4 text-xs text-foreground-muted">
-                {charCount}/{MAX_CHARS}
-              </span>
-            </div>
-          </div>
-
-          {/* Attached files */}
-          {files.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {files.map((f, i) => (
-                <FilePill key={i} name={f.name} onRemove={() => removeFile(i)} />
-              ))}
-            </div>
-          )}
-
-          {/* Attach files button */}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={files.length >= 3}
-            className="flex items-center justify-center gap-2 w-full border border-border-default rounded-2xl py-3.5 text-sm font-medium text-main hover:bg-orange-50 transition-all disabled:opacity-40 disabled:pointer-events-none"
-          >
-            <Paperclip size={16} />
-            {files.length >= 3 ? "Max 3 files attached" : "Attach files"}
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept="image/*,.pdf,.doc,.docx"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-
-        </div>
-      </main>
-
-      {/* Sticky Send button */}
-      <div className="fixed bottom-0 left-0 w-full flex justify-center pb-6 pt-3 bg-gradient-to-t from-white via-white/90 to-transparent z-50">
-        <div className="w-full max-w-md px-6">
-          <button
-            onClick={handleSend}
-            disabled={!canSend}
-            className="w-full bg-main text-white rounded-full py-4 font-semibold text-[15px] hover:brightness-105 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none shadow-lg shadow-main/30"
-          >
-            {sending ? (
-              <span className="flex items-center gap-2">
-                <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                </svg>
-                Sending…
-              </span>
+        <div className="flex items-center gap-3 rounded-2xl border border-border-default p-4">
+          <span className="flex size-10 items-center justify-center rounded-full bg-orange-100">
+            <Mail size={18} className="text-main" />
+          </span>
+          <div className="text-sm">
+            <p className="font-medium text-foreground">Email us</p>
+            {contacts.isPending ? (
+              <span className="mt-1 block h-4 w-40 animate-pulse rounded bg-surface-muted" aria-label="Loading" />
+            ) : email ? (
+              <a href={`mailto:${email}`} className="font-medium text-main">
+                {email}
+              </a>
             ) : (
-              <>
-                <Send size={16} />
-                Send Message
-              </>
+              <p className="text-foreground-muted">Coming soon. Send us a message below instead.</p>
             )}
-          </button>
+          </div>
         </div>
-      </div>
 
+        <form
+          noValidate
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void submit();
+          }}
+        >
+          <p className="text-sm font-semibold text-foreground">Or message us here</p>
+          <label className="flex flex-col gap-1.5 text-sm font-medium">
+            Subject
+            <input
+              value={subject}
+              maxLength={120}
+              onChange={(e) => setSubject(e.target.value)}
+              className="rounded-2xl bg-surface-muted px-4 py-3.5 text-sm font-normal outline-none focus:ring-2 focus:ring-main/30"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm font-medium">
+            Order code (optional)
+            <input
+              value={orderCode}
+              maxLength={20}
+              placeholder="CM-…"
+              onChange={(e) => setOrderCode(e.target.value)}
+              className="rounded-2xl bg-surface-muted px-4 py-3.5 text-sm font-normal uppercase outline-none focus:ring-2 focus:ring-main/30"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm font-medium">
+            Message
+            <textarea
+              rows={6}
+              maxLength={MAX_CHARS}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              className="resize-none rounded-2xl bg-surface-muted px-4 py-3.5 text-sm font-normal outline-none focus:ring-2 focus:ring-main/30"
+            />
+          </label>
+          {error && (
+            <p role="alert" className="text-sm font-medium text-red-500">
+              {error}
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={send.isPending}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-main py-4 text-[15px] font-semibold text-white disabled:opacity-50"
+          >
+            <Send size={16} />
+            {send.isPending ? "Sending…" : "Send message"}
+          </button>
+          <p className="text-center text-xs text-foreground-muted">
+            Something broken?{" "}
+            <Link href="/profile/help/report" className="font-semibold text-main">
+              Report a problem
+            </Link>
+          </p>
+        </form>
+      </main>
       <Nav />
     </>
   );

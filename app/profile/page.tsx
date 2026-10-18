@@ -9,6 +9,7 @@ import { useCart } from "@/lib/api/hooks/useCart";
 import { useAuthStore } from "../store/useAuthStore";
 import { useLogout } from "@/lib/api/hooks/useLogout";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { profileMenuGroups } from "../lib/data";
 
 // A buyer starts selling here (G2) and changes school (G1); a seller goes to their seller pages
@@ -49,7 +50,7 @@ export default function ProfilePage() {
   const user = {
     name: fullName || authUser?.username || authUser?.email?.split("@")[0] || "",
     email: authUser?.email ?? "",
-    phone: "",
+    phone: authUser?.phone ?? "",
     verified: !!authUser?.emailVerifiedAt,
     joinedDate: authUser
       ? new Date(authUser.createdAt).toLocaleDateString("en-NG", { month: "long", year: "numeric" })
@@ -82,9 +83,13 @@ export default function ProfilePage() {
                   Member since {user.joinedDate}
                 </p>
               </div>
-              <button className="p-2 bg-card rounded-full border border-blue-200 hover:bg-blue-50 transition">
+              <Link
+                href="/profile/edit"
+                aria-label="Edit profile"
+                className="p-2 bg-card rounded-full border border-blue-200 hover:bg-blue-50 transition"
+              >
                 <Edit2 size={18} className="text-blue-600" />
-              </button>
+              </Link>
             </div>
           </div>
 
