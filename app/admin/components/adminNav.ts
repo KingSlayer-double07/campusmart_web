@@ -1,4 +1,4 @@
-import { Bike, LayoutGrid, MapPin, MapPinned, Package, Scale, School, Settings, ShieldCheck, Wallet, type LucideIcon } from "lucide-react";
+import { Bike, LayoutGrid, MapPin, MapPinned, Package, Scale, School, Settings, ShieldCheck, Star, Wallet, type LucideIcon } from "lucide-react";
 
 export interface AdminNavItem {
   href: string;
@@ -17,6 +17,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { href: "/admin/verifications", label: "Verifications", icon: ShieldCheck },
   { href: "/admin/deliveries", label: "Deliveries", icon: Package },
   { href: "/admin/disputes", label: "Disputes", icon: Scale },
+  { href: "/admin/reviews", label: "Reviews", icon: Star },
   { href: "/admin/riders", label: "Riders", icon: Bike },
   { href: "/admin/payouts", label: "Payouts", icon: Wallet },
   { href: "/admin/settings", label: "Settings", icon: Settings },

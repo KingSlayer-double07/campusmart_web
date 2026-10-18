@@ -14,7 +14,9 @@ import { useCancelOrder, useOrder } from "@/lib/api/hooks/useBuyerOrders";
 import { usePaymentConfig, usePayOrder } from "@/lib/api/hooks/usePayments";
 import { formatNaira, type FulfillmentStatus } from "@/lib/labels";
 import { cancelReasonText, whenText } from "@/lib/orderText";
+import RateItemDialog from "../RateItemDialog";
 import ReportProblemDialog from "../ReportProblemDialog";
+import { Stars } from "@/app/components/ReviewList";
 import { summarizeOpeningHours } from "@/lib/openingHours";
 import OrderStatusBadge from "../OrderStatusBadge";
 import { deliveryLine } from "../delivery";
@@ -118,7 +120,21 @@ function DeliverySteps({ method, status }: { method: NonNullable<SellerOrder["de
   );
 }
 
-function SellerOrderCard({ order, sellerOrder, onReport }: { order: Order; sellerOrder: SellerOrder; onReport: (so: SellerOrder) => void }) {
+type OrderItem = SellerOrder["items"][number];
+
+function SellerOrderCard({
+  order,
+  sellerOrder,
+  onReport,
+  onRate,
+  rateAnchor,
+}: {
+  order: Order;
+  sellerOrder: SellerOrder;
+  onReport: (so: SellerOrder) => void;
+  onRate: (so: SellerOrder, item: OrderItem) => void;
+  rateAnchor: boolean;
+}) {
   const so = sellerOrder;
   return (
     <section aria-label={so.seller.storeName} className="flex flex-col gap-4 rounded-2xl border border-border-default bg-card p-4">
@@ -218,6 +234,12 @@ function SellerOrderCard({ order, sellerOrder, onReport }: { order: Order; selle
         </button>
       )}
 
+      {/* Guide 8.4: once received, each item can be rated */}
+      {so.canReview && so.items.some((i) => i.myRating === null) && (
+        <p id={rateAnchor ? "rate" : undefined} className="text-sm font-semibold text-foreground">
+          Rate your items
+        </p>
+      )}
       <ul className="flex flex-col gap-3" aria-label={`Items from ${so.seller.storeName}`}>
         {so.items.map((item) => (
           <li key={item.id} className="flex items-center gap-3">
@@ -231,6 +253,22 @@ function SellerOrderCard({ order, sellerOrder, onReport }: { order: Order; selle
                 {item.quantity} × {formatNaira(item.unitPriceKobo)}
               </p>
             </div>
+            {so.canReview &&
+              (item.myRating !== null ? (
+                <span className="flex shrink-0 flex-col items-end gap-0.5 text-[11px] text-foreground-muted">
+                  <Stars rating={item.myRating} size={12} />
+                  You rated it
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onRate(so, item)}
+                  aria-label={`Rate ${item.title}`}
+                  className="shrink-0 rounded-full border border-main px-3 py-1 text-xs font-semibold text-main"
+                >
+                  Rate
+                </button>
+              ))}
           </li>
         ))}
       </ul>
@@ -247,6 +285,7 @@ export default function OrderDetailPage() {
   const payOrder = usePayOrder();
   const [confirming, setConfirming] = useState(false);
   const [reporting, setReporting] = useState<SellerOrder | null>(null);
+  const [rating, setRating] = useState<{ so: SellerOrder; item: OrderItem } | null>(null);
   const order = query.data;
 
   const header = (
@@ -404,10 +443,28 @@ export default function OrderDetailPage() {
           )}
 
           {order.sellerOrders.map((so) => (
-            <SellerOrderCard key={so.id} order={order} sellerOrder={so} onReport={setReporting} />
+            <SellerOrderCard
+              key={so.id}
+              order={order}
+              sellerOrder={so}
+              onReport={setReporting}
+              onRate={(sellerOrder, item) => setRating({ so: sellerOrder, item })}
+              rateAnchor={so.id === order.sellerOrders.find((s) => s.canReview && s.items.some((i) => i.myRating === null))?.id}
+            />
           ))}
         </div>
       </main>
+
+      {rating && (
+        <RateItemDialog
+          sellerOrderId={rating.so.id}
+          listingId={rating.item.listingId}
+          title={rating.item.title}
+          isOpen={!!rating}
+          onClose={() => setRating(null)}
+          onDone={() => toast.success("Thanks for rating", "It helps other students choose")}
+        />
+      )}
 
       {reporting && (
         <ReportProblemDialog

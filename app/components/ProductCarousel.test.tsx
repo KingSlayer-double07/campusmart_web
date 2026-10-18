@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
@@ -9,7 +10,11 @@ describe("ProductCarousel", () => {
   afterEach(cleanup);
 
   it("has loading, error, empty and filled states", () => {
-    const { rerender } = render(<ProductCarousel items={undefined} isLoading />);
+    // The cards' hearts read the wishlist (guide 8.1); signed out, they ask nothing of the API
+    const client = new QueryClient();
+    const { rerender } = render(<ProductCarousel items={undefined} isLoading />, {
+      wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
+    });
     expect(screen.getByLabelText("Loading products")).toBeTruthy();
 
     const onRetry = vi.fn();

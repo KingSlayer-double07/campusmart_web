@@ -9,6 +9,8 @@ const paymentsApi = vi.hoisted(() => ({ config: vi.fn(), pay: vi.fn() }));
 vi.mock("@/lib/api/payments", () => ({ paymentsApi }));
 const problemsApi = vi.hoisted(() => ({ report: vi.fn() }));
 vi.mock("@/lib/api/dispatch", () => ({ problemsApi }));
+const reviewsApi = vi.hoisted(() => ({ create: vi.fn() }));
+vi.mock("@/lib/api/reviews", () => ({ reviewsApi }));
 
 import { ApiError } from "@/lib/api/client";
 import OrderDetailPage from "./page";
@@ -250,5 +252,45 @@ describe("OrderDetailPage", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Send to CampusMart" }));
     await waitFor(() => expect(problemsApi.report).toHaveBeenCalledWith("o1", "so1", { reason: "DAMAGED" }));
     expect(await screen.findByText("Problem reported")).toBeTruthy();
+  });
+
+  it("asks the buyer to rate what they received, once per item (guide 8.4)", async () => {
+    buyerOrdersApi.get.mockResolvedValue(
+      order(
+        { pickupStation: null },
+        {
+          fulfillmentStatus: "DELIVERED",
+          collectedAt: "2026-10-10T10:00:00Z",
+          canReview: true,
+          items: [
+            { id: "i1", listingId: "l1", variantId: null, title: "Desk lamp", variantLabel: null, imageUrl: null, unitPriceKobo: 450_000, quantity: 1, myRating: null },
+            { id: "i2", listingId: "l2", variantId: null, title: "Kettle", variantLabel: null, imageUrl: null, unitPriceKobo: 450_000, quantity: 1, myRating: 4 },
+          ],
+        },
+      ),
+    );
+    reviewsApi.create.mockResolvedValue({ id: "r1" });
+    renderPage();
+    expect(await screen.findByText("Rate your items")).toBeTruthy();
+    expect(screen.getByText("You rated it")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "4 out of 5 stars" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Rate Desk lamp" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Send rating" }));
+    expect(await within(dialog).findByText("Choose 1 to 5 stars")).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("radio", { name: "5 stars" }));
+    fireEvent.change(within(dialog).getByRole("textbox"), { target: { value: "  Bright and sturdy " } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Send rating" }));
+    await waitFor(() => expect(reviewsApi.create).toHaveBeenCalledWith("so1", { listingId: "l1", rating: 5, comment: "Bright and sturdy" }));
+    expect(await screen.findByText("Thanks for rating")).toBeTruthy();
+  });
+
+  it("offers no rating before the order is received", async () => {
+    buyerOrdersApi.get.mockResolvedValue(order({}, { fulfillmentStatus: "AWAITING_RIDER", canReview: false }));
+    renderPage();
+    await screen.findByText("Desk lamp");
+    expect(screen.queryByText("Rate your items")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Rate / })).toBeNull();
   });
 });

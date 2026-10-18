@@ -65,7 +65,8 @@ export const settingGroups = [
         icon: Moon,
         label: "Dark Mode",
         description: "Off",
-        href: "/profile/settings/dark_mode",
+        // Opens the theme sheet on the settings page; there's no page to link to
+        href: null,
       },
     ],
   },

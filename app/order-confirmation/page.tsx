@@ -8,7 +8,7 @@ import ListingsCarousel from "../components/ListingsCarousel";
 import PageHeader from "../components/PageHeader";
 import ProductCarousel from "../components/ProductCarousel";
 import SectionHeader from "../components/SectionHeader";
-import { useFavouritesStore } from "../store/useFavouritesStore";
+import FavouritesCarousel from "../components/FavouritesCarousel";
 import type { Order } from "@/lib/api/checkout";
 import { useOrder } from "@/lib/api/hooks/useBuyerOrders";
 import { useVerifyPayment } from "@/lib/api/hooks/usePayments";
@@ -171,7 +171,6 @@ function ConfirmationBody() {
 
 // Guide 4.3.5: where Paystack returns the buyer after paying
 export default function OrderConfirmationPage() {
-  const { favourites } = useFavouritesStore();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
@@ -200,7 +199,7 @@ export default function OrderConfirmationPage() {
 
       <section className="flex flex-col gap-3 pt-3 pb-6">
         <SectionHeader title="Favourites" href="/favourites" linkText="See all" />
-        <ProductCarousel items={favourites} emptyText="Tap the heart on a product to save it here." />
+        <FavouritesCarousel />
       </section>
     </main>
   );

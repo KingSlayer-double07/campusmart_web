@@ -13,7 +13,9 @@ import ProductCarousel from "../components/ProductCarousel";
 import SectionHeader from "../components/SectionHeader";
 import SwipeToDismiss from "../components/SwipeToDismiss";
 import { ToastContainer, useToast } from "../components/Toast";
-import { useFavouritesStore } from "../store/useFavouritesStore";
+import FavouritesCarousel from "../components/FavouritesCarousel";
+import SignInToSaveSheet from "../components/SignInToSaveSheet";
+import { useWishlist } from "@/lib/api/hooks/useWishlist";
 import { ApiError } from "@/lib/api/client";
 import { blockingIssues, useCart, useCartActions, type CartLine } from "@/lib/api/hooks/useCart";
 import { formatNaira } from "@/lib/labels";
@@ -100,7 +102,8 @@ export default function CartPage() {
   const cart = useCart();
   const actions = useCartActions();
   const toast = useToast();
-  const { addFavourite, favourites } = useFavouritesStore();
+  const wishlist = useWishlist();
+  const [askSignIn, setAskSignIn] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busyKey, setBusyKey] = useState<string | null>(null);
@@ -137,19 +140,17 @@ export default function CartPage() {
     setSelected(new Set());
   };
 
-  const favouriteSelected = () => {
-    for (const line of lines.filter((l) => selected.has(l.key))) {
-      addFavourite({
-        id: line.listingId,
-        title: line.title,
-        minPriceKobo: line.unitPriceKobo,
-        maxPriceKobo: line.unitPriceKobo,
-        imageUrl: line.imageUrl,
-        categoryLabel: line.categoryLabel,
-      });
+  // Guide 8.1: favourites live in the account, so a guest is asked to sign in first
+  const favouriteSelected = async () => {
+    if (!wishlist.canSave) return setAskSignIn(true);
+    const ids = [...new Set(lines.filter((l) => selected.has(l.key)).map((l) => l.listingId))].filter((id) => !wishlist.isSaved(id));
+    try {
+      for (const id of ids) await wishlist.toggle(id);
+      toast.success("Saved to favourites", `${selected.size} item${selected.size === 1 ? "" : "s"}`);
+      setSelected(new Set());
+    } catch (err) {
+      toast.error("Couldn't save to favourites", err instanceof ApiError ? err.message : "Please try again");
     }
-    toast.success("Saved to favourites", `${selected.size} item${selected.size === 1 ? "" : "s"}`);
-    setSelected(new Set());
   };
 
   const iconButton = "size-8 bg-card rounded-full border border-border-default flex justify-center items-center shadow-lg hover:bg-surface-muted transition shrink-0";
@@ -157,6 +158,7 @@ export default function CartPage() {
   return (
     <>
       <ToastContainer toasts={toast.toasts} onDismiss={toast.dismiss} />
+      <SignInToSaveSheet isOpen={askSignIn} onClose={() => setAskSignIn(false)} />
       <main className="pb-36 pt-8">
         <div className="flex flex-col gap-2 pb-4">
           <div className="px-4 sm:px-6">
@@ -272,7 +274,7 @@ export default function CartPage() {
 
           <section className="flex flex-col gap-3 bg-card py-1">
             <SectionHeader title="Favorites" href="/favourites" />
-            <ProductCarousel items={favourites} emptyText="Tap the heart on a product to save it here." />
+            <FavouritesCarousel />
           </section>
         </div>
       </main>

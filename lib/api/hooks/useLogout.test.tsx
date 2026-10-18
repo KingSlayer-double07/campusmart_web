@@ -7,17 +7,17 @@ vi.mock("../auth", () => ({ authApi: { logout } }));
 
 import { useAuthStore } from "@/app/store/useAuthStore";
 import { useCartStore } from "@/app/store/useCartStore";
-import { useFavouritesStore } from "@/app/store/useFavouritesStore";
 import { useLogout } from "./useLogout";
 
 describe("useLogout", () => {
-  it("calls the API, clears the query cache, the cart, favourites and their storage keys", async () => {
+  it("calls the API, clears the query cache (favourites included), the cart and the storage keys", async () => {
     logout.mockResolvedValue(undefined);
     const client = new QueryClient();
     client.setQueryData(["orders"], [{ id: "o1" }]);
     useAuthStore.setState({ user: { id: "u1" } as never });
     useCartStore.setState({ cart: [{ id: "p1" } as never] });
-    useFavouritesStore.setState({ favourites: [{ id: "p1" } as never] });
+    client.setQueryData(["wishlist", "ids"], { listingIds: ["p1"] });
+    localStorage.setItem("campus-mart-favourites", JSON.stringify({ state: { favourites: [{ id: "p1" }] } }));
     expect(localStorage.getItem("campus-mart-cart")).not.toBeNull();
 
     const { result } = renderHook(() => useLogout(), {
@@ -28,7 +28,7 @@ describe("useLogout", () => {
     expect(logout).toHaveBeenCalled();
     expect(client.getQueryData(["orders"])).toBeUndefined();
     expect(useCartStore.getState().cart).toEqual([]);
-    expect(useFavouritesStore.getState().favourites).toEqual([]);
+    expect(client.getQueryData(["wishlist", "ids"])).toBeUndefined();
     expect(localStorage.getItem("campus-mart-cart")).toBeNull();
     expect(localStorage.getItem("campus-mart-favourites")).toBeNull();
     expect(useAuthStore.getState().user).toBeNull();

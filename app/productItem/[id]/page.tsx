@@ -4,15 +4,19 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { BadgeCheck, Heart, HeartPlus, ImageOff, Search, Share2, Star } from "lucide-react";
+import { BadgeCheck, ChevronRight, Heart, HeartPlus, ImageOff, Search, Share2, Star } from "lucide-react";
 import AddCartNav from "@/app/components/addCartNav";
 import PageHeader from "@/app/components/PageHeader";
 import ProductsCard, { ProductsCardSkeleton, toCardItem } from "@/app/components/ProductsCard";
+import ReviewList, { Stars } from "@/app/components/ReviewList";
+import SignInToSaveSheet from "@/app/components/SignInToSaveSheet";
 import { ToastContainer, useToast } from "@/app/components/Toast";
-import { useFavouritesStore } from "@/app/store/useFavouritesStore";
+import TrustedBadge from "@/app/components/TrustedBadge";
 import type { Listing, ListingVariant } from "@/lib/api/listings";
 import { ApiError } from "@/lib/api/client";
 import { useListing, useRelatedListings } from "@/lib/api/hooks/useListings";
+import { useListingReviews } from "@/lib/api/hooks/useReviews";
+import { useWishlist } from "@/lib/api/hooks/useWishlist";
 import { shareLink } from "@/lib/share";
 import {
   CATEGORY_LABELS,
@@ -121,8 +125,10 @@ export default function ProductItem() {
   const { data: listing, isPending, isError, error, refetch } = useListing(id);
   const related = useRelatedListings(listing ? id : undefined);
   const [variant, setVariant] = useState<ListingVariant | null>(null);
-  const isHearted = useFavouritesStore((s) => s.favourites.some((f) => f.id === id));
-  const toggleFavourite = useFavouritesStore((s) => s.toggleFavourite);
+  const wishlist = useWishlist();
+  const [askSignIn, setAskSignIn] = useState(false);
+  const isHearted = wishlist.isSaved(id);
+  const reviews = useListingReviews(listing && listing.ratingCount > 0 ? id : undefined);
 
   if (isPending) return <ProductSkeleton />;
 
@@ -174,7 +180,10 @@ export default function ProductItem() {
       <button
         type="button"
         aria-label={isHearted ? "Remove from favourites" : "Add to favourites"}
-        onClick={() => toggleFavourite(toCardItem(listing))}
+        onClick={() => {
+          if (!wishlist.canSave) return setAskSignIn(true);
+          wishlist.toggle(id).catch(() => toast.error("Couldn't update your favourites", "Please try again."));
+        }}
         className={iconButton}
       >
         {isHearted ? <Heart size={16} fill="#ff681f" color="#ff681f" /> : <HeartPlus size={16} />}
@@ -185,6 +194,7 @@ export default function ProductItem() {
   return (
     <>
       <ToastContainer toasts={toast.toasts} onDismiss={toast.dismiss} />
+      <SignInToSaveSheet isOpen={askSignIn} onClose={() => setAskSignIn(false)} />
       <main className="flex flex-col gap-2 pb-28">
         <div className="fixed top-0 z-50 pt-8 px-6 pb-2 w-full max-w-md">
           <PageHeader rightItems={rightItems} />
@@ -223,20 +233,40 @@ export default function ProductItem() {
             <VariantPicker variants={listing.variants} selected={variant} onSelect={setVariant} />
           )}
 
-          {/* Reviews (the list arrives with Phase 8) */}
-          <div className="w-full flex justify-between mt-4">
+          {/* Reviews (guide 8.4) */}
+          <div className="w-full flex items-center justify-between mt-4">
             <p className="text-sm font-medium">Reviews</p>
+            {listing.ratingCount > 0 && (
+              <span className="flex items-center gap-1.5 text-xs text-foreground-muted">
+                <Stars rating={listing.ratingAvg} size={12} />
+                {listing.ratingAvg.toFixed(1)} ({listing.ratingCount})
+              </span>
+            )}
           </div>
-          <p className="text-sm text-foreground-muted">
-            {listing.ratingCount === 0
-              ? "No reviews yet. Buyers can review after they collect."
-              : `Rated ${listing.ratingAvg.toFixed(1)} out of 5 by ${listing.ratingCount} buyer${listing.ratingCount === 1 ? "" : "s"}.`}
-          </p>
+          {listing.ratingCount === 0 ? (
+            <p className="text-sm text-foreground-muted">No reviews yet. Buyers can review once they receive it.</p>
+          ) : reviews.isError ? (
+            <p className="text-sm text-foreground-muted">
+              Couldn&apos;t load the reviews.{" "}
+              <button type="button" onClick={() => reviews.refetch()} className="font-semibold text-main">
+                Try again
+              </button>
+            </p>
+          ) : !reviews.data ? (
+            <div className="h-16 animate-pulse rounded-lg bg-surface-muted" aria-label="Loading" />
+          ) : (
+            <ReviewList
+              reviews={reviews.data.pages.flatMap((p) => p.items)}
+              hasMore={reviews.hasNextPage}
+              loadingMore={reviews.isFetchingNextPage}
+              onMore={() => reviews.fetchNextPage()}
+            />
+          )}
 
           <div className="w-full flex justify-between mt-4">
             <p className="text-sm font-medium">Seller Info</p>
           </div>
-          <div className="flex items-center gap-2">
+          <Link href={`/stores/${listing.seller.id}`} className="flex items-center gap-2" aria-label={`Visit ${listing.seller.displayName}`}>
             <div className="relative size-9 shrink-0 overflow-hidden rounded-full bg-surface-muted">
               {listing.seller.logoUrl && (
                 <Image src={listing.seller.logoUrl} alt="" fill sizes="36px" className="object-cover" />
@@ -246,6 +276,7 @@ export default function ProductItem() {
               <div className="flex gap-1.5 items-center">
                 <p className="text-sm font-medium">{listing.seller.displayName}</p>
                 {listing.seller.verified && <BadgeCheck color="#ff681f" strokeWidth={3} size={16} aria-label="Verified seller" />}
+                {listing.seller.trusted && <TrustedBadge />}
               </div>
               <div className="flex gap-1.5 text-xs text-foreground/70 items-center">
                 <p>
@@ -261,7 +292,8 @@ export default function ProductItem() {
                 )}
               </div>
             </div>
-          </div>
+            <ChevronRight size={16} className="ml-auto text-foreground-muted" aria-hidden />
+          </Link>
 
           <div className="w-full flex justify-between mt-4">
             <p className="text-sm font-medium">More like this</p>

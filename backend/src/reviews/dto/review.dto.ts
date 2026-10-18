@@ -103,12 +103,12 @@ export class AdminReviewPageDto {
 
 export class HideReviewDto {
   @ApiProperty({
-    minLength: 5,
+    minLength: 3,
     maxLength: 500,
     description: 'Why it’s hidden; kept in the audit log',
   })
   @Trim()
   @IsString()
-  @Length(5, 500, { message: 'Give a reason of 5 to 500 characters' })
+  @Length(3, 500, { message: 'The reason must be 3 to 500 characters' })
   reason!: string;
 }

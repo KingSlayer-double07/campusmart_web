@@ -8,6 +8,7 @@ import ListingsCarousel from "./components/ListingsCarousel";
 import FeaturedBanner from "./components/FeaturedBanner";
 import SectionDivider from "./components/SectionDivider";
 import { useRequireAuth } from "./hooks/useRequireAuth";
+import FeaturedStoresRow from "./components/FeaturedStoresRow";
 
 export default function Home() {
   useRequireAuth(); // redirects to splash if not signed in
@@ -29,7 +30,7 @@ export default function Home() {
 
         {/* Section 3: Recommendations: most viewed this week */}
         <section className="flex flex-col gap-3 bg-card py-5">
-          <SectionHeader title="You Might Need" href="/recommendations" />
+          <SectionHeader title="You Might Need" href="/browse?sort=popular" />
           <ListingsCarousel filters={{ sort: "popular" }} emptyText="No listings at your school yet. Check back soon." />
         </section>
 
@@ -37,11 +38,17 @@ export default function Home() {
 
         {/* Section 4: New Stocks */}
         <section className="flex flex-col gap-3 bg-card py-5">
-          <SectionHeader title="New in Stock" href="/new" />
+          <SectionHeader title="New in Stock" href="/browse?sort=newest" />
           <ListingsCarousel filters={{ sort: "newest" }} emptyText="No listings at your school yet. Check back soon." />
         </section>
 
-        {/* The Featured Store row returns in Phase 8, fed by GET /stores?featured=true */}
+        <SectionDivider />
+
+        {/* Section 5: Featured stores (guide 8.2, R3) */}
+        <section className="flex flex-col gap-3 bg-card py-5">
+          <SectionHeader title="Featured Store" href="/stores" />
+          <FeaturedStoresRow />
+        </section>
       </main>
 
       {/* Mobile bottom nav */}

@@ -2,11 +2,11 @@ import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/app/store/useAuthStore';
 import { useCartStore } from '@/app/store/useCartStore';
-import { useFavouritesStore } from '@/app/store/useFavouritesStore';
 import { authApi } from '../auth';
+import { clearSavedFavourites } from './useSavedFavouritesMerge';
 
-// Guide 1.6.9: call the API, clear every cached query, reset the cart and favourites stores and
-// remove their localStorage keys, so nothing from this account survives on a shared phone.
+// Guide 1.6.9: call the API, clear every cached query (favourites included), reset the cart store
+// and remove its localStorage key, so nothing from this account survives on a shared phone.
 export function useLogout() {
   const queryClient = useQueryClient();
 
@@ -19,8 +19,7 @@ export function useLogout() {
     queryClient.clear();
     useCartStore.setState({ cart: [] });
     useCartStore.persist.clearStorage();
-    useFavouritesStore.setState({ favourites: [] });
-    useFavouritesStore.persist.clearStorage();
+    clearSavedFavourites();
     useAuthStore.getState().clearAuth();
   }, [queryClient]);
 }

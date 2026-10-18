@@ -1,14 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import { Heart, HeartPlus, ImageOff, ShoppingCart } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { ListingCard } from "@/lib/api/listings";
+import { useWishlist } from "@/lib/api/hooks/useWishlist";
 import { CATEGORY_LABELS, formatPriceRange } from "@/lib/labels";
-import { useFavouritesStore, type FavouriteItem } from "../store/useFavouritesStore";
+import SignInToSaveSheet from "./SignInToSaveSheet";
 
-// What a product card shows. Built from a listing, or from a saved favourite.
-export type CardItem = FavouriteItem;
+// What a product card shows, built from a listing (or a favourite, which is a listing card)
+export type CardItem = {
+  id: string; // listing id
+  title: string;
+  minPriceKobo: number;
+  maxPriceKobo: number;
+  imageUrl: string | null;
+  categoryLabel: string;
+};
 
 export function toCardItem(listing: ListingCard): CardItem {
   return {
@@ -24,16 +33,17 @@ export function toCardItem(listing: ListingCard): CardItem {
 export default function ProductsCard({ item }: { item: CardItem }) {
   const router = useRouter();
 
-  // Precise selectors avoid re-rendering every card when one heart changes
-  const isHearted = useFavouritesStore((state) => state.favourites.some((f) => f.id === item.id));
-  const toggleFavourite = useFavouritesStore((state) => state.toggleFavourite);
+  const wishlist = useWishlist();
+  const [askSignIn, setAskSignIn] = useState(false);
+  const isHearted = wishlist.isSaved(item.id);
 
   const open = () => router.push(`/productItem/${item.id}`);
 
   const handleHeart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    toggleFavourite(item);
+    if (!wishlist.canSave) return setAskSignIn(true);
+    wishlist.toggle(item.id).catch(() => undefined);
   };
 
   return (
@@ -75,6 +85,12 @@ export default function ProductsCard({ item }: { item: CardItem }) {
           </div>
         </div>
       </main>
+      {askSignIn && (
+        // Clicks inside the sheet mustn't open the product behind it
+        <div onClick={(e) => e.stopPropagation()}>
+          <SignInToSaveSheet isOpen onClose={() => setAskSignIn(false)} />
+        </div>
+      )}
     </div>
   );
 }
