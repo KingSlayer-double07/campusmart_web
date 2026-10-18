@@ -1,5 +1,7 @@
 // Phase 7 browser walk: Chromium -> next start (:3000, API_ORIGIN=http://localhost:4000) -> NestJS (:4000)
-// -> local campusmart_dev. The sales come from the Phase 5 and 6 walks' paid orders.
+// -> local campusmart_dev. The sales come from the Phase 5 and 6 walks' paid orders. The API runs with
+// made-up CLOUDINARY_* values (cloud name campusmart-dev, as the dev seed's photos use), so saving a
+// listing that keeps its photos passes the ownership check; nothing is uploaded to or deleted from Cloudinary.
 // Accounts (local dev only): admin@campusmart.test, seller chidi.store@, buyer tobi.buyer@.
 // The walk resets its own setup (stock levels and Chidi's low-stock flag), so it can be repeated.
 // Run: node analytics-walk.mjs <shots dir> <repo>/public

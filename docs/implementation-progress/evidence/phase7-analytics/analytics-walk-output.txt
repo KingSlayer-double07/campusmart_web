@@ -1,0 +1,15 @@
+PASS  Two visits by one buyer on one day count as one view; the seller’s own visit doesn’t count (A2)  (1 -> 1, already seen today)
+PASS  The dashboard’s 7-day sales equal the SQL sum of paid store orders (Phase 7 checklist)  (₦40,500, 9 orders)
+PASS  The dashboard shows the order count from SQL
+PASS  The best seller of the range shows with units sold
+PASS  Switching to 30 days shows the 30-day sum  (₦40,500)
+PASS  The analytics page keeps the range and draws the daily trend (recharts)
+PASS  Items running low list the charger (1 left) before the lamp (2 left), with Restock
+PASS  Restocking takes the lamp off the list at once; the charger stays (Phase 7 checklist)
+PASS  The admin settings show the low-stock level, 5 by default (A1)
+PASS  Saving it is audited
+PASS  …and set back to 5
+PASS  The 10-minute job sends Chidi one low-stock notification  (1 item has 5 or fewer left. Restock so buyers can keep ordering.)
+
+12/12 passed
+exit 0
