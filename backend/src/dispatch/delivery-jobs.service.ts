@@ -226,6 +226,9 @@ export class DeliveryJobsService {
       windows.size !== toCollect.length ||
       toCollect.some((so) => !windows.has(so.id))
     ) {
+      // The job and its stores are read separately, so another rider's accept can land in
+      // between: the job still looks open but its stores are already theirs. That's a lost race.
+      if (await this.takenSince(job.id)) throw jobTaken();
       throw new BadRequestException({
         code: 'WINDOW_REQUIRED',
         message: 'Say when you will reach each store on this job',
@@ -530,6 +533,14 @@ export class DeliveryJobsService {
       throw jobNotFound();
     }
     return job;
+  }
+
+  private async takenSince(jobId: string): Promise<boolean> {
+    const now = await this.prisma.deliveryJob.findUnique({
+      where: { id: jobId },
+      select: { status: true },
+    });
+    return now?.status !== DeliveryJobStatus.OPEN;
   }
 
   private async myJob(rider: AuthUser, id: string) {
