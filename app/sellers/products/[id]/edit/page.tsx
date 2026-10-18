@@ -6,6 +6,7 @@ import PageHeader from "@/app/components/PageHeader";
 import { ApiError } from "@/lib/api/client";
 import { useListing, useUpdateListing } from "@/lib/api/hooks/useListings";
 import ListingForm from "../../../components/ListingForm";
+import ModerationNotice from "../../../components/ModerationNotice";
 import { valuesFromListing } from "../../../components/listingFormModel";
 
 // Guide 3.2.6g: the add form in edit mode. Photos and options sent here replace the saved ones.
@@ -58,6 +59,11 @@ export default function EditProductPage() {
   return (
     <main className="flex flex-col max-w-md w-full pb-32 bg-card">
       {header}
+      {(listing.heldForReview || listing.status === "FLAGGED") && (
+        <div className="px-4 pt-4">
+          <ModerationNotice listing={listing} />
+        </div>
+      )}
       <ListingForm
         key={listing.id}
         mode="edit"

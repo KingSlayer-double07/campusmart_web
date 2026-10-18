@@ -7,6 +7,7 @@ import type { ListingCard, OwnerListingStatus } from "@/lib/api/listings";
 import { ApiError } from "@/lib/api/client";
 import { useDeleteListing, useSetListingStatus } from "@/lib/api/hooks/useListings";
 import { LISTING_STATUS_LABELS } from "@/lib/labels";
+import ProhibitedConfirm from "./ProhibitedConfirm";
 import StockSheet from "./StockSheet";
 
 // Status changes, stock and delete, shared by the products list and a product's own page.
@@ -18,15 +19,33 @@ export function useListingActions(onDeleted?: () => void) {
   const [stockFor, setStockFor] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<Pick<ListingCard, "id" | "title"> | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // Decision M4a: publishing asks the seller to confirm the item isn't prohibited
+  const [publishing, setPublishing] = useState<Pick<ListingCard, "id" | "title"> | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+
+  const changeStatus = async (listing: Pick<ListingCard, "id" | "title">, status: OwnerListingStatus) => {
+    try {
+      const saved = await setStatus.mutateAsync({ id: listing.id, status, confirmNotProhibited: status === "ACTIVE" });
+      // A banned word holds it for review instead (M4c)
+      if (status === "ACTIVE" && saved.status === "FLAGGED") {
+        toast.success("Sent for review", `${listing.title} uses a word an admin needs to check first`);
+      } else {
+        toast.success(LISTING_STATUS_LABELS[saved.status], listing.title);
+      }
+      return true;
+    } catch (err) {
+      toast.error("Couldn't change it", err instanceof ApiError ? err.message : "Please try again");
+      return false;
+    }
+  };
 
   const actions = {
-    onStatus: async (listing: Pick<ListingCard, "id" | "title">, status: OwnerListingStatus) => {
-      try {
-        const saved = await setStatus.mutateAsync({ id: listing.id, status });
-        toast.success(LISTING_STATUS_LABELS[saved.status], listing.title);
-      } catch (err) {
-        toast.error("Couldn't change it", err instanceof ApiError ? err.message : "Please try again");
-      }
+    onStatus: (listing: Pick<ListingCard, "id" | "title">, status: OwnerListingStatus) => {
+      if (status !== "ACTIVE") return void changeStatus(listing, status);
+      setConfirmed(false);
+      setConfirmError(null);
+      setPublishing(listing);
     },
     onAdjustStock: (listing: Pick<ListingCard, "id">) => setStockFor(listing.id),
     onDelete: (listing: Pick<ListingCard, "id" | "title">) => {
@@ -47,9 +66,48 @@ export function useListingActions(onDeleted?: () => void) {
     }
   };
 
+  const confirmPublish = async () => {
+    if (!publishing) return;
+    if (!confirmed) {
+      setConfirmError("Confirm the item isn't on the prohibited list to publish it");
+      return;
+    }
+    if (await changeStatus(publishing, "ACTIVE")) setPublishing(null);
+  };
+
   const dialogs = (
     <>
       <ToastContainer toasts={toast.toasts} onDismiss={toast.dismiss} />
+      <Modal isOpen={!!publishing} onClose={() => setPublishing(null)} title="Publish this product?">
+        <p className="text-sm text-foreground-muted mb-4 mt-2">
+          <strong className="text-foreground">{publishing?.title}</strong> goes live for buyers at your school.
+        </p>
+        <ProhibitedConfirm
+          checked={confirmed}
+          onChange={(checked) => {
+            setConfirmed(checked);
+            setConfirmError(null);
+          }}
+          error={confirmError}
+        />
+        <div className="mt-4 flex flex-col gap-3">
+          <button
+            type="button"
+            disabled={setStatus.isPending}
+            onClick={confirmPublish}
+            className="w-full py-4 rounded-full bg-seller-main text-white font-bold text-sm disabled:opacity-50"
+          >
+            {setStatus.isPending ? "Publishing…" : "Publish"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setPublishing(null)}
+            className="w-full py-4 rounded-full bg-card border border-border-default text-foreground font-bold text-sm"
+          >
+            Cancel
+          </button>
+        </div>
+      </Modal>
       <StockSheet listingId={stockFor} onClose={() => setStockFor(null)} onSaved={(title) => toast.success("Stock saved", title)} />
       <Modal isOpen={!!deleting} onClose={() => setDeleting(null)} title="Delete product?">
         <p className="text-sm text-foreground-muted mb-4 mt-2">

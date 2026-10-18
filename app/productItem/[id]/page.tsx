@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { BadgeCheck, ChevronRight, Heart, HeartPlus, ImageOff, Search, Share2, Star } from "lucide-react";
+import { BadgeCheck, ChevronRight, Flag, Heart, HeartPlus, ImageOff, Search, Share2, Star } from "lucide-react";
 import AddCartNav from "@/app/components/addCartNav";
 import PageHeader from "@/app/components/PageHeader";
 import ProductsCard, { ProductsCardSkeleton, toCardItem } from "@/app/components/ProductsCard";
@@ -25,6 +25,7 @@ import {
   formatNaira,
   formatPriceRange,
 } from "@/lib/labels";
+import ReportListingSheet from "./ReportListingSheet";
 
 const iconButton =
   "size-8 bg-card rounded-full border border-border-default flex justify-center items-center shadow-lg hover:bg-surface-muted transition";
@@ -127,6 +128,7 @@ export default function ProductItem() {
   const [variant, setVariant] = useState<ListingVariant | null>(null);
   const wishlist = useWishlist();
   const [askSignIn, setAskSignIn] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const isHearted = wishlist.isSaved(id);
   const reviews = useListingReviews(listing && listing.ratingCount > 0 ? id : undefined);
 
@@ -294,6 +296,16 @@ export default function ProductItem() {
             </div>
             <ChevronRight size={16} className="ml-auto text-foreground-muted" aria-hidden />
           </Link>
+          {!listing.isOwner && (
+            <button
+              type="button"
+              onClick={() => setReporting(true)}
+              className="mt-1 flex items-center gap-1.5 self-start text-xs font-medium text-foreground-muted hover:text-foreground"
+            >
+              <Flag size={13} />
+              Report this listing
+            </button>
+          )}
 
           <div className="w-full flex justify-between mt-4">
             <p className="text-sm font-medium">More like this</p>
@@ -318,6 +330,17 @@ export default function ProductItem() {
       </main>
 
       <AddCartNav listing={listing} variant={variant} onError={(message) => toast.error("Couldn't add it", message)} />
+      <ReportListingSheet
+        listingId={listing.id}
+        isOpen={reporting}
+        onClose={() => setReporting(false)}
+        onReported={(hidden) =>
+          toast.success(
+            "Thanks for telling us",
+            hidden ? "It's hidden from buyers until an admin checks it" : "An admin will take a look",
+          )
+        }
+      />
     </>
   );
 }

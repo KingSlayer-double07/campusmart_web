@@ -51,8 +51,9 @@ export const listingsApi = {
     fetchApi<ListingPage>('/sellers/me/listings', { params: params(filters) }),
   create: (body: CreateListingBody) => fetchApi<Listing>('/listings', json('POST', body)),
   update: (id: string, body: UpdateListingBody) => fetchApi<Listing>(`/listings/${id}`, json('PATCH', body)),
-  setStatus: (id: string, status: OwnerListingStatus) =>
-    fetchApi<Listing>(`/listings/${id}/status`, json('PATCH', { status })),
+  // Decision M4a: publishing confirms the item isn't on the prohibited list
+  setStatus: (id: string, status: OwnerListingStatus, confirmNotProhibited?: boolean) =>
+    fetchApi<Listing>(`/listings/${id}/status`, json('PATCH', { status, ...(confirmNotProhibited && { confirmNotProhibited }) })),
   remove: (id: string) => fetchApi<void>(`/listings/${id}`, { method: 'DELETE' }),
 };
 

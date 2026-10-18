@@ -1,4 +1,21 @@
-import { Bike, LayoutGrid, MapPin, MapPinned, Package, Scale, School, Settings, ShieldCheck, Star, Wallet, type LucideIcon } from "lucide-react";
+import {
+  Bike,
+  Flag,
+  LayoutGrid,
+  MapPin,
+  MapPinned,
+  Package,
+  PackageSearch,
+  Scale,
+  School,
+  ScrollText,
+  Settings,
+  ShieldCheck,
+  Star,
+  Users,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 
 export interface AdminNavItem {
   href: string;
@@ -6,10 +23,12 @@ export interface AdminNavItem {
   icon: LucideIcon;
 }
 
-// Only screens that exist are listed, so no link leads to a missing page. Users, listings,
-// reports and the audit log join as their phases land (guide 9.2.2).
+// Only screens that exist are listed, so no link leads to a missing page (guide 9.2.2)
 export const ADMIN_NAV: AdminNavItem[] = [
   { href: "/admin", label: "Overview", icon: LayoutGrid },
+  { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/listings", label: "Listings", icon: PackageSearch },
+  { href: "/admin/reports", label: "Reports", icon: Flag },
   { href: "/admin/institutions", label: "Institutions", icon: School },
   { href: "/admin/places", label: "Campus places", icon: MapPinned },
   // Kept for when pickup stations come back (decision DL9)
@@ -20,6 +39,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { href: "/admin/reviews", label: "Reviews", icon: Star },
   { href: "/admin/riders", label: "Riders", icon: Bike },
   { href: "/admin/payouts", label: "Payouts", icon: Wallet },
+  { href: "/admin/audit", label: "Audit log", icon: ScrollText },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 

@@ -23,6 +23,9 @@ function fillBasics() {
   fireEvent.change(screen.getByLabelText("Condition"), { target: { value: "USED_GOOD" } });
 }
 
+// Decision M4a: publishing needs "not on the prohibited list" ticked
+const confirmNotProhibited = () => fireEvent.click(screen.getByRole("checkbox", { name: /isn't on CampusMart's prohibited list/ }));
+
 describe("ListingForm", () => {
   // Braces matter: a function returned from beforeEach runs as a cleanup hook
   beforeEach(() => {
@@ -35,6 +38,7 @@ describe("ListingForm", () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(<ListingForm mode="create" initialValues={{ ...emptyValues(), photos: [existing] }} onSubmit={onSubmit} />);
     fillBasics();
+    confirmNotProhibited();
     fireEvent.click(screen.getByRole("button", { name: "Publish" }));
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
@@ -71,6 +75,34 @@ describe("ListingForm", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it("won't publish until the seller confirms the item isn't prohibited (M4a), and shows the list", async () => {
+    uploadImages.mockResolvedValue([]);
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<ListingForm mode="create" initialValues={{ ...emptyValues(), photos: [existing] }} onSubmit={onSubmit} />);
+    fillBasics();
+    fireEvent.click(screen.getByRole("button", { name: "Publish" }));
+    expect((await screen.findByRole("alert")).textContent).toMatch(/prohibited list to publish/);
+    expect(uploadImages).not.toHaveBeenCalled();
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /See the list/ }));
+    expect(screen.getByText(/Firearms, ammunition, explosives/)).toBeTruthy();
+
+    // A draft never needs it
+    fireEvent.click(screen.getByRole("button", { name: "Save as draft" }));
+    await waitFor(() => expect(onSubmit.mock.calls[0]?.[2]).toBe("DRAFT"));
+    confirmNotProhibited();
+    expect(screen.queryByText(/prohibited list to publish/)).toBeNull();
+  });
+
+  it("asks nothing about prohibited items when editing or saving drafts only", () => {
+    render(<ListingForm mode="edit" initialValues={{ ...emptyValues(), photos: [existing] }} onSubmit={vi.fn()} />);
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    cleanup();
+    render(<ListingForm mode="create" canPublish={false} initialValues={emptyValues()} onSubmit={vi.fn()} />);
+    expect(screen.queryByRole("checkbox")).toBeNull();
+  });
+
   it("switches stock to per-option rows", async () => {
     uploadImages.mockResolvedValue([]);
     const onSubmit = vi.fn().mockResolvedValue(undefined);
@@ -84,6 +116,7 @@ describe("ListingForm", () => {
     fireEvent.change(screen.getByLabelText("Option 2 name"), { target: { value: "L" } });
     fireEvent.change(screen.getByLabelText("Option 2 price"), { target: { value: "5000" } });
     fireEvent.change(screen.getByLabelText("Option 2 stock"), { target: { value: "1" } });
+    confirmNotProhibited();
     fireEvent.click(screen.getByRole("button", { name: "Publish" }));
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
@@ -103,6 +136,7 @@ describe("ListingForm", () => {
     render(<ListingForm mode="create" initialValues={emptyValues()} onSubmit={vi.fn()} />);
     fireEvent.change(screen.getByLabelText("Choose photos"), { target: { files: [file] } });
     fillBasics();
+    confirmNotProhibited();
     fireEvent.click(screen.getByRole("button", { name: "Publish" }));
     expect(await screen.findByText(/Photo uploads aren't set up yet/)).toBeTruthy();
     expect(uploadImages.mock.calls[0][0]).toEqual([file]);

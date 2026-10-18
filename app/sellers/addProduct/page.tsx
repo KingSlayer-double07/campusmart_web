@@ -38,6 +38,8 @@ export default function AddProductPage() {
             ...fields,
             images,
             status: intent === "DRAFT" ? "DRAFT" : "ACTIVE",
+            // The form only publishes once the seller has ticked it (M4a)
+            ...(intent === "ACTIVE" && { confirmNotProhibited: true }),
           });
           router.push("/sellers/products");
         }}

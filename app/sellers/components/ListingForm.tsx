@@ -19,6 +19,7 @@ import {
   type OptionRow,
   type PhotoSlot,
 } from "./listingFormModel";
+import ProhibitedConfirm from "./ProhibitedConfirm";
 
 const inputClass =
   "w-full bg-surface-muted border border-border-default rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-foreground-muted focus:outline-none focus:ring-2 focus:ring-seller-main/30 focus:border-seller-main transition disabled:opacity-60";
@@ -105,6 +106,9 @@ export default function ListingForm({ initialValues, mode, canPublish = true, on
   const [formError, setFormError] = useState<string | null>(null);
   const [progress, setProgress] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState<SubmitIntent | null>(null);
+  // Decision M4a: publishing needs "not on the prohibited list"; drafts and edits don't
+  const [confirmed, setConfirmed] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const previews = useRef<string[]>([]);
 
@@ -141,8 +145,10 @@ export default function ListingForm({ initialValues, mode, canPublish = true, on
     const { errors: found, fields } = validateListingForm(values);
     setErrors(found);
     setFormError(null);
-    if (!fields) {
-      setFormError("Some details need fixing. They're marked in red.");
+    const unconfirmed = intent === "ACTIVE" && !confirmed;
+    setConfirmError(unconfirmed ? "Confirm the item isn't on the prohibited list to publish it" : null);
+    if (!fields || unconfirmed) {
+      setFormError(fields ? null : "Some details need fixing. They're marked in red.");
       return;
     }
 
@@ -450,6 +456,19 @@ export default function ListingForm({ initialValues, mode, canPublish = true, on
       {formError && (
         <div className="px-4 pt-4">
           <InfoBanner variant="error" text={formError} />
+        </div>
+      )}
+
+      {mode === "create" && canPublish && (
+        <div className="px-4 pt-4">
+          <ProhibitedConfirm
+            checked={confirmed}
+            onChange={(checked) => {
+              setConfirmed(checked);
+              setConfirmError(null);
+            }}
+            error={confirmError}
+          />
         </div>
       )}
 

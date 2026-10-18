@@ -2,15 +2,17 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Bike, Percent, Pencil, School } from "lucide-react";
+import { Bike, Percent, Pencil, School, ShieldAlert } from "lucide-react";
 import { ToastContainer, useToast } from "@/app/components/Toast";
 import type { AdminInstitution } from "@/lib/api/admin";
 import { useAdminSettings } from "@/lib/api/hooks/useAdminPayments";
 import { useAdminInstitutions } from "@/lib/api/hooks/useAdminInstitutions";
+import { useBannedWords } from "@/lib/api/hooks/useAdminModeration";
 import { formatNaira } from "@/lib/labels";
 import AdminPageHeader from "../components/AdminPageHeader";
 import DataTable, { RowAction, type Column } from "../components/DataTable";
 import EmptyState from "../components/EmptyState";
+import BannedWordsForm from "./BannedWordsForm";
 import DeliveryFeeDialog from "./DeliveryFeeDialog";
 import PlatformSettingsForm from "./PlatformSettingsForm";
 
@@ -48,11 +50,12 @@ const columns: Column<AdminInstitution>[] = [
 ];
 
 // Platform settings an admin can change (decision R1a): the platform fee and seller deadline
-// (Phase 5) and each campus's delivery fee (Phase 4b). More settings join in later phases.
+// (Phase 5), each campus's delivery fee (Phase 4b) and the banned words (Phase 9).
 export default function AdminSettingsPage() {
   const toast = useToast();
   const institutions = useAdminInstitutions({ limit: 100 });
   const settings = useAdminSettings();
+  const bannedWords = useBannedWords();
   const [editing, setEditing] = useState<AdminInstitution | null>(null);
   const rows = institutions.data?.pages.flatMap((p) => p.items);
 
@@ -86,6 +89,36 @@ export default function AdminSettingsPage() {
                   "Settings saved",
                   `Platform fee ${saved.platformFeeBps / 100}% · ${saved.pickupDeadlineDays} days to hand over · low stock at ${saved.lowStockThreshold}`,
                 )
+              }
+            />
+          )}
+        </section>
+
+        <section aria-labelledby="banned-heading" className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <ShieldAlert size={18} className="text-main" />
+            <h2 id="banned-heading" className="text-base font-semibold text-foreground">
+              Banned words
+            </h2>
+          </div>
+          <p className="text-sm text-foreground-muted">
+            A listing that uses one of these waits in the review queue instead of going live. The list started from the
+            prohibited items; sellers also confirm their item isn&apos;t prohibited before publishing.
+          </p>
+          {bannedWords.isPending ? (
+            <div className="h-56 animate-pulse rounded-2xl bg-surface-muted" aria-busy="true" aria-label="Loading banned words" />
+          ) : bannedWords.isError ? (
+            <div className="flex flex-col items-center gap-2 rounded-2xl border border-border-default bg-card p-6 text-center">
+              <p className="text-sm font-medium">We couldn&apos;t load the banned words</p>
+              <button type="button" onClick={() => bannedWords.refetch()} className="text-sm font-semibold text-main">
+                Try again
+              </button>
+            </div>
+          ) : (
+            <BannedWordsForm
+              words={bannedWords.data.words}
+              onSaved={(saved, added, removed) =>
+                toast.success("Banned words saved", `${saved.length} in the list · ${added} added · ${removed} removed`)
               }
             />
           )}

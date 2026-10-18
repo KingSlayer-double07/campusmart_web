@@ -8,6 +8,7 @@ import { ImageOff, Star } from "lucide-react";
 import Modal from "@/app/components/Modal";
 import PageHeader from "@/app/components/PageHeader";
 import { StatusBadge, skuOf, statusActions } from "@/app/sellers/components/SellerProductCard";
+import ModerationNotice from "@/app/sellers/components/ModerationNotice";
 import { useListingActions } from "@/app/sellers/components/useListingActions";
 import VerificationNotice from "@/app/sellers/components/VerificationNotice";
 import { useCanPublish } from "@/lib/api/hooks/useSellerVerification";
@@ -89,6 +90,7 @@ export default function ProductDetailPage() {
     <>
       {shell(
         <div className="flex flex-col gap-4 px-4 py-4">
+          <ModerationNotice listing={product} />
           <div className="bg-card rounded-3xl overflow-hidden flex flex-col items-center justify-center pt-6 pb-4 gap-3 relative">
             <div className="relative w-48 h-48 rounded-2xl overflow-hidden bg-surface-muted flex items-center justify-center text-foreground-muted">
               {current ? <Image src={current.url} alt={product.title} fill className="object-cover" sizes="192px" /> : <ImageOff size={28} />}

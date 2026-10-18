@@ -76,7 +76,8 @@ export function useUpdateListing() {
 export function useSetListingStatus() {
   const invalidate = useInvalidateListings();
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: OwnerListingStatus }) => listingsApi.setStatus(id, status),
+    mutationFn: ({ id, status, confirmNotProhibited }: { id: string; status: OwnerListingStatus; confirmNotProhibited?: boolean }) =>
+      listingsApi.setStatus(id, status, confirmNotProhibited),
     onSuccess: invalidate,
   });
 }
