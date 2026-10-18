@@ -5,12 +5,14 @@ import {
   OrderStatus,
 } from '../generated/prisma/enums';
 
-// A seller order that isn't finished yet (decided 2026-10-09): an unpaid checkout that hasn't
-// expired, a paid order waiting for drop-off, at the station or disputed, and a collected order
-// whose 48-hour dispute window is still open (escrow held).
+// A seller order that isn't finished yet (decided 2026-10-09, widened for Phase 6 dispatch): an unpaid
+// checkout that hasn't expired; a paid order not yet handed over (waiting for a rider, with the
+// rider, waiting for pickup or drop-off, at the station, or disputed); and a handed-over order whose
+// 48-hour dispute window is still open (escrow held).
 export function openSellerOrderWhere(
   now = new Date(),
 ): Prisma.SellerOrderWhereInput {
+  const handedOver = [FulfillmentStatus.COLLECTED, FulfillmentStatus.DELIVERED];
   return {
     OR: [
       {
@@ -20,16 +22,12 @@ export function openSellerOrderWhere(
       {
         order: { status: OrderStatus.PAID },
         fulfillmentStatus: {
-          in: [
-            FulfillmentStatus.AWAITING_DROPOFF,
-            FulfillmentStatus.DROPPED_OFF,
-            FulfillmentStatus.DISPUTED,
-          ],
+          notIn: [...handedOver, FulfillmentStatus.CANCELLED],
         },
       },
       {
         order: { status: OrderStatus.PAID },
-        fulfillmentStatus: FulfillmentStatus.COLLECTED,
+        fulfillmentStatus: { in: handedOver },
         escrowStatus: EscrowStatus.HELD,
       },
     ],

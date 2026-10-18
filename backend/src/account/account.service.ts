@@ -5,8 +5,10 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { compare } from 'bcrypt';
 import type { AuthUser, SafeUser } from '../auth/auth-user';
 import {
   CODE_TTL_MINUTES,
@@ -14,13 +16,22 @@ import {
   EmailCodesService,
 } from '../auth/email-codes.service';
 import { AuditService } from '../audit/audit.service';
-import type { Prisma } from '../generated/prisma/client';
-import { EmailCodePurpose, UserRole } from '../generated/prisma/enums';
+import { openSellerOrderWhere } from '../common/open-seller-orders';
+import { Prisma } from '../generated/prisma/client';
+import {
+  EmailCodePurpose,
+  PayoutStatus,
+  UserRole,
+} from '../generated/prisma/enums';
 import { institutionInactive } from '../institutions/institution-access';
 import { InstitutionsService } from '../institutions/institutions.service';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { SessionsService } from '../sessions/sessions.service';
+import { CloudinaryService } from '../uploads/cloudinary.service';
+import { parseImageUrl } from '../uploads/cloudinary-urls';
 import { safeUserSelect } from '../users/user.select';
+import type { DeleteAccountDto } from './dto/account.dto';
 
 type Tx = Prisma.TransactionClient;
 
@@ -36,6 +47,8 @@ export class AccountService {
     private readonly emailCodes: EmailCodesService,
     private readonly mail: MailService,
     private readonly institutions: InstitutionsService,
+    private readonly sessions: SessionsService,
+    private readonly cloudinary: CloudinaryService,
   ) {}
 
   // Onboarding and the profile (G1). Changing school empties the cart, whose items belong to the old
@@ -175,6 +188,133 @@ export class AccountService {
       tx,
     );
     return seller;
+  }
+
+  // Decision T6 (and guide 10): personal details are anonymised and the account can't be used again;
+  // orders, payments and payouts stay as records for 6 years. Refused while orders or payouts are open.
+  async deleteAccount(user: AuthUser, dto: DeleteAccountDto): Promise<void> {
+    if (user.role !== UserRole.BUYER && user.role !== UserRole.SELLER) {
+      throw new BadRequestException({
+        code: 'CANNOT_DELETE',
+        message:
+          user.role === UserRole.ADMIN
+            ? 'Ask another admin to remove your admin role first'
+            : 'Ask an admin to switch off your rider account',
+      });
+    }
+    const account = await this.prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+      select: { password: true },
+    });
+    if (account.password) {
+      if (!dto.password || !(await compare(dto.password, account.password))) {
+        throw new UnauthorizedException({
+          code: 'INVALID_PASSWORD',
+          message: 'That password is incorrect',
+        });
+      }
+    } else if (dto.confirm !== 'DELETE') {
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: 'Type DELETE to confirm',
+      });
+    }
+
+    const [openOrders, openPayouts] = await Promise.all([
+      this.prisma.sellerOrder.count({
+        where: {
+          AND: [
+            openSellerOrderWhere(),
+            { OR: [{ sellerId: user.id }, { order: { buyerId: user.id } }] },
+          ],
+        },
+      }),
+      this.prisma.payout.count({
+        where: { sellerId: user.id, status: { not: PayoutStatus.PAID } },
+      }),
+    ]);
+    if (openOrders || openPayouts) {
+      throw new ConflictException({
+        code: 'ACCOUNT_HAS_OPEN_ORDERS',
+        message: openOrders
+          ? `You have ${openOrders} order${openOrders === 1 ? '' : 's'} in progress. Delete your account once they're finished and the 48-hour window has passed.`
+          : 'A payout to you hasn’t been paid yet. Delete your account once it has.',
+        details: { openOrders, openPayouts },
+      });
+    }
+
+    const documents = await this.prisma.verificationRequest.findMany({
+      where: { userId: user.id },
+      select: { documentUrl: true },
+    });
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          email: `deleted+${user.id}@deleted.campusmart.invalid`,
+          password: null,
+          googleId: null,
+          username: null,
+          firstName: null,
+          lastName: null,
+          phone: null,
+          schoolEmail: null,
+          schoolEmailVerifiedAt: null,
+          pendingSchoolEmail: null,
+          notificationPrefs: Prisma.DbNull,
+          isActive: false,
+          deletedAt: new Date(),
+        },
+      });
+      await this.sessions.revokeAll(user.id, tx);
+      await tx.cartItem.deleteMany({ where: { userId: user.id } });
+      await tx.wishlist.deleteMany({ where: { userId: user.id } });
+      await tx.notification.deleteMany({ where: { userId: user.id } });
+      await tx.emailCode.deleteMany({ where: { userId: user.id } });
+      await tx.verificationRequest.deleteMany({ where: { userId: user.id } });
+      await tx.listing.updateMany({
+        where: { sellerId: user.id, isDeleted: false },
+        data: { isDeleted: true },
+      });
+      await tx.sellerProfile.updateMany({
+        where: { userId: user.id },
+        data: {
+          storeName: null,
+          bio: null,
+          logoUrl: null,
+          isOnline: false,
+          payoutBankName: null,
+          payoutAccountLast4: null,
+          payoutAccountName: null,
+          paystackRecipientCode: null,
+          payoutBankCode: null,
+          pickupArea: null,
+          pickupAddress: null,
+          contactPhone: null,
+          allowsPickup: false,
+        },
+      });
+      await this.audit.record(
+        {
+          actorId: user.id,
+          action: 'ACCOUNT_DELETED',
+          entityType: 'User',
+          entityId: user.id,
+          meta: { role: user.role },
+        },
+        tx,
+      );
+    });
+
+    // The student ID photos are private uploads; they go too (best effort)
+    const cloudName = this.cloudinary.settings?.cloudName;
+    const ids = cloudName
+      ? documents
+          .map((d) => parseImageUrl(d.documentUrl, cloudName))
+          .filter((d) => d?.type === 'authenticated')
+          .map((d) => d!.publicId)
+      : [];
+    if (ids.length) void this.cloudinary.destroy(ids, 'authenticated');
   }
 
   private assertBuyer(user: AuthUser) {

@@ -1,6 +1,11 @@
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { hash } from 'bcrypt';
+import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { safeUserSelect } from './user.select';
@@ -50,8 +55,37 @@ describe('UsersService', () => {
       );
     });
 
+    it('saves the username, names and phone, and nothing it wasn’t sent', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
+      prisma.user.update.mockResolvedValue({ id: 'u1' });
+      await service.updateProfile('u1', { username: 'ada_obi', phone: null });
+      expect(prisma.user.update.mock.calls[0][0].data).toEqual({
+        username: 'ada_obi',
+        firstName: undefined,
+        lastName: undefined,
+        phone: null,
+      });
+    });
+
+    it('answers a taken username with 409 USERNAME_TAKEN', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
+      prisma.user.update.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique', {
+          code: 'P2002',
+          clientVersion: 'test',
+        }),
+      );
+      const error = await service
+        .updateProfile('u1', { username: 'taken' })
+        .catch((e: unknown) => e);
+      expect((error as HttpException).getResponse()).toMatchObject({
+        code: 'USERNAME_TAKEN',
+      });
+    });
+
     it('never writes the email or institution', async () => {
       prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
+      prisma.user.update.mockResolvedValue({ id: 'u1' });
       await service.updateProfile('u1', {
         firstName: 'Ada',
         email: 'x@y.z',

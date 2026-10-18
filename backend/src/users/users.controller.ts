@@ -43,8 +43,17 @@ export class UsersController {
     return toUserDto(user);
   }
 
-  @ApiOperation({ summary: "Update the signed-in user's profile" })
+  @ApiOperation({
+    summary: "Update the signed-in user's profile",
+    description:
+      'Username, names and phone. Fields left out stay; null or empty text clears one.',
+  })
   @ApiOkEnvelope(UserDto)
+  @ApiResponse({
+    status: 409,
+    type: ErrorResponseDto,
+    description: 'USERNAME_TAKEN',
+  })
   @Patch('me/profile')
   async updateMyProfile(
     @CurrentUser() user: AuthUser,

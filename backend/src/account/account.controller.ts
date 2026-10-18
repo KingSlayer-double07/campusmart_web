@@ -1,12 +1,16 @@
 import {
   Body,
   Controller,
+  Delete,
   HttpCode,
   HttpStatus,
   Patch,
   Post,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
+import { clearAuthCookies } from '../auth/auth-cookies';
 import {
   ApiCookieAuth,
   ApiNoContentResponse,
@@ -24,6 +28,7 @@ import { ErrorResponseDto } from '../common/swagger/error-response.dto';
 import { toUserDto, UserDto } from '../users/dto/user.dto';
 import { AccountService } from './account.service';
 import {
+  DeleteAccountDto,
   SchoolEmailCodeDto,
   SchoolEmailDto,
   SetInstitutionDto,
@@ -140,5 +145,40 @@ export class AccountController {
   @HttpCode(HttpStatus.OK)
   async becomeSeller(@CurrentUser() user: AuthUser): Promise<UserDto> {
     return toUserDto(await this.account.becomeSeller(user));
+  }
+
+  @ApiOperation({
+    summary: 'Delete your account (T6)',
+    description:
+      'Buyers and sellers. Needs the password, or DELETE for an account made with Google. Personal details ' +
+      'are anonymised and the account signed out everywhere; orders and payments are kept for 6 years. ' +
+      'Refused while orders or payouts are open.',
+  })
+  @ApiNoContentResponse({ description: 'Deleted; the cookies are cleared' })
+  @ApiResponse({
+    status: 400,
+    type: ErrorResponseDto,
+    description: 'CANNOT_DELETE or VALIDATION_FAILED',
+  })
+  @ApiResponse({
+    status: 401,
+    type: ErrorResponseDto,
+    description: 'INVALID_PASSWORD',
+  })
+  @ApiResponse({
+    status: 409,
+    type: ErrorResponseDto,
+    description: 'ACCOUNT_HAS_OPEN_ORDERS',
+  })
+  @Throttle(STRICT)
+  @Delete()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteAccount(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: DeleteAccountDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
+    await this.account.deleteAccount(user, dto);
+    clearAuthCookies(res);
   }
 }

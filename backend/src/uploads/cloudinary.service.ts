@@ -72,11 +72,16 @@ export class CloudinaryService {
   }
 
   // Best effort: a failure is logged, never surfaced, so a listing edit never fails on cleanup
-  async destroy(publicIds: string[]): Promise<void> {
+  // `authenticated` for private uploads such as student ID photos
+  async destroy(
+    publicIds: string[],
+    type: 'upload' | 'authenticated' = 'upload',
+  ): Promise<void> {
     const settings = this.settings;
     if (!settings || publicIds.length === 0) return;
     try {
       await cloudinary.api.delete_resources(publicIds, {
+        type,
         cloud_name: settings.cloudName,
         api_key: settings.apiKey,
         api_secret: settings.apiSecret,

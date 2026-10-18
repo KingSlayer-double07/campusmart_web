@@ -3,6 +3,7 @@ export const UPLOAD_PURPOSES = [
   'AVATAR',
   'VERIFICATION',
   'DISPUTE', // up to 3 photos with a dispute (F7)
+  'SUPPORT', // a screenshot with a support report (guide 10)
 ] as const;
 export type UploadPurpose = (typeof UPLOAD_PURPOSES)[number];
 
@@ -11,6 +12,7 @@ const FOLDER_BY_PURPOSE: Record<UploadPurpose, string> = {
   AVATAR: 'avatars',
   VERIFICATION: 'verification',
   DISPUTE: 'disputes',
+  SUPPORT: 'support',
 };
 
 // Every user uploads into their own folder, e.g. campusmart/listings/<userId>

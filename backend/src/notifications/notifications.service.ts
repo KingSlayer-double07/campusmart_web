@@ -4,6 +4,7 @@ import type { Env } from '../config/env';
 import { UserRole } from '../generated/prisma/enums';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { readPrefs } from './notification-prefs';
 
 export interface NotificationInput {
   type: string; // 'ORDER_PAID', 'NEW_ORDER', 'PAYOUT_FAILED', ...
@@ -15,7 +16,7 @@ export interface NotificationInput {
 }
 
 // D19: status changes become Notification rows the app polls; order and payment events also go by
-// email (decision T7; console in development). The bell and preferences arrive in Phase 10.
+// email unless the user turned that off (decision T7; console in development).
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
@@ -29,7 +30,8 @@ export class NotificationsService {
   async notify(
     userIds: string | string[],
     input: NotificationInput,
-    { email = true } = {},
+    // `alert` is an admin alert (P10), emailed whatever the admin's preferences
+    { email = true, alert = false } = {},
   ): Promise<void> {
     const ids = [...new Set(Array.isArray(userIds) ? userIds : [userIds])];
     if (ids.length === 0) return;
@@ -46,10 +48,13 @@ export class NotificationsService {
       })),
     });
     if (!email) return;
-    const users = await this.prisma.user.findMany({
-      where: { id: { in: ids } },
-      select: { email: true },
-    });
+    // A user can turn off order and payment emails (T7); deleted accounts get none (T6)
+    const users = (
+      await this.prisma.user.findMany({
+        where: { id: { in: ids }, deletedAt: null },
+        select: { email: true, notificationPrefs: true },
+      })
+    ).filter((u) => alert || readPrefs(u.notificationPrefs).orderEmails);
     const link = input.link
       ? `${this.config.get('APP_URL', { infer: true })}${input.link}`
       : null;
@@ -81,6 +86,7 @@ export class NotificationsService {
     await this.notify(
       admins.map((a) => a.id),
       input,
+      { alert: true },
     );
   }
 }

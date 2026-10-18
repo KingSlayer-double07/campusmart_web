@@ -6,6 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { hash, compare } from 'bcrypt';
+import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -27,14 +28,30 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-      },
-      select: safeUserSelect,
-    });
+    // Only the fields sent change; null clears one
+    return this.prisma.user
+      .update({
+        where: { id: userId },
+        data: {
+          username: dto.username,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          phone: dto.phone,
+        },
+        select: safeUserSelect,
+      })
+      .catch((error: unknown) => {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          throw new ConflictException({
+            code: 'USERNAME_TAKEN',
+            message: 'That username is taken',
+          });
+        }
+        throw error;
+      });
   }
 
   // Needs the current password; on success every other session is signed out (guide 0.4, 1.4 rule 11)

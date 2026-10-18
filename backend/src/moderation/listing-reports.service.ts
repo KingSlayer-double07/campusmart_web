@@ -39,6 +39,7 @@ const reportSelect = {
   type: true,
   reason: true,
   message: true,
+  screenshotUrl: true,
   listingId: true,
   status: true,
   resolutionNote: true,

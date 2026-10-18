@@ -311,6 +311,9 @@ export class AdminReportDto {
   @ApiProperty()
   message!: string;
 
+  @ApiProperty({ type: String, nullable: true, description: 'A screenshot sent with a support report' })
+  screenshotUrl!: string | null;
+
   @ApiProperty({ type: String, format: 'uuid', nullable: true })
   listingId!: string | null;
 

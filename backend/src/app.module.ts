@@ -33,6 +33,7 @@ import { PaystackModule } from './paystack/paystack.module';
 import { SettingsModule } from './settings/settings.module';
 import { ModerationModule } from './moderation/moderation.module';
 import { AccountModule } from './account/account.module';
+import { SupportModule } from './support/support.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { AccountModule } from './account/account.module';
     TrustModule,
     ModerationModule,
     AccountModule,
+    SupportModule,
   ],
   controllers: [AppController],
   providers: [

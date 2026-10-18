@@ -1,5 +1,6 @@
 import { HttpException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { hash } from 'bcrypt';
 import type { AuthUser } from '../auth/auth-user';
 import { EmailCodesService } from '../auth/email-codes.service';
 import { AuditService } from '../audit/audit.service';
@@ -7,6 +8,8 @@ import { EmailCodePurpose, UserRole } from '../generated/prisma/enums';
 import { InstitutionsService } from '../institutions/institutions.service';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { SessionsService } from '../sessions/sessions.service';
+import { CloudinaryService } from '../uploads/cloudinary.service';
 import { AccountService } from './account.service';
 
 const failure = (error: unknown) => ({
@@ -36,7 +39,14 @@ describe('AccountService', () => {
       findUniqueOrThrow: jest.fn(),
     },
     cartItem: { deleteMany: jest.fn() },
-    sellerProfile: { upsert: jest.fn() },
+    sellerProfile: { upsert: jest.fn(), updateMany: jest.fn() },
+    sellerOrder: { count: jest.fn() },
+    payout: { count: jest.fn() },
+    verificationRequest: { findMany: jest.fn(), deleteMany: jest.fn() },
+    wishlist: { deleteMany: jest.fn() },
+    notification: { deleteMany: jest.fn() },
+    emailCode: { deleteMany: jest.fn() },
+    listing: { updateMany: jest.fn() },
     $transaction: jest.fn(),
   };
   const audit = { record: jest.fn() };
@@ -47,6 +57,11 @@ describe('AccountService', () => {
   };
   const mail = { send: jest.fn() };
   const institutions = { findForEmail: jest.fn() };
+  const sessions = { revokeAll: jest.fn() };
+  const cloudinary = {
+    settings: { cloudName: 'campusmart' } as { cloudName: string } | null,
+    destroy: jest.fn(),
+  };
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -71,6 +86,8 @@ describe('AccountService', () => {
         { provide: EmailCodesService, useValue: emailCodes },
         { provide: MailService, useValue: mail },
         { provide: InstitutionsService, useValue: institutions },
+        { provide: SessionsService, useValue: sessions },
+        { provide: CloudinaryService, useValue: cloudinary },
       ],
     }).compile();
     service = moduleRef.get(AccountService);
@@ -242,5 +259,124 @@ describe('AccountService', () => {
         ),
       ).toEqual({ status: 400, code: 'SCHOOL_EMAIL_REQUIRED' });
     });
+  });
+
+  describe('deleteAccount (T6)', () => {
+    beforeEach(() => {
+      prisma.sellerOrder.count.mockResolvedValue(0);
+      prisma.payout.count.mockResolvedValue(0);
+      prisma.verificationRequest.findMany.mockResolvedValue([]);
+    });
+
+    it('anonymises the account, signs it out and keeps the orders', async () => {
+      prisma.user.findUniqueOrThrow.mockResolvedValue({
+        password: await hash('Campus2026', 4),
+      });
+      await service.deleteAccount(buyer(), { password: 'Campus2026' });
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'u1' },
+        data: expect.objectContaining({
+          email: 'deleted+u1@deleted.campusmart.invalid',
+          password: null,
+          googleId: null,
+          firstName: null,
+          phone: null,
+          schoolEmail: null,
+          isActive: false,
+          deletedAt: expect.any(Date),
+        }),
+      });
+      expect(sessions.revokeAll).toHaveBeenCalledWith('u1', prisma);
+      expect(prisma.listing.updateMany).toHaveBeenCalledWith({
+        where: { sellerId: 'u1', isDeleted: false },
+        data: { isDeleted: true },
+      });
+      expect(prisma.sellerProfile.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            payoutAccountName: null,
+            contactPhone: null,
+          }),
+        }),
+      );
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'ACCOUNT_DELETED', actorId: 'u1' }),
+        prisma,
+      );
+    });
+
+    it('removes the student ID photos from Cloudinary', async () => {
+      prisma.user.findUniqueOrThrow.mockResolvedValue({ password: null });
+      prisma.verificationRequest.findMany.mockResolvedValue([
+        {
+          documentUrl:
+            'https://res.cloudinary.com/campusmart/image/authenticated/s--Ab12Cd34--/v1/campusmart/verification/u1/card.jpg',
+        },
+      ]);
+      await service.deleteAccount(buyer({ role: UserRole.SELLER }), {
+        confirm: 'DELETE',
+      });
+      expect(cloudinary.destroy).toHaveBeenCalledWith(
+        ['campusmart/verification/u1/card'],
+        'authenticated',
+      );
+    });
+
+    it('needs the right password, or DELETE for a Google account', async () => {
+      prisma.user.findUniqueOrThrow.mockResolvedValue({
+        password: await hash('Campus2026', 4),
+      });
+      expect(
+        failure(
+          await service
+            .deleteAccount(buyer(), { password: 'Wrong2026x' })
+            .catch((e) => e),
+        ),
+      ).toEqual({ status: 401, code: 'INVALID_PASSWORD' });
+      prisma.user.findUniqueOrThrow.mockResolvedValue({ password: null });
+      expect(
+        failure(await service.deleteAccount(buyer(), {}).catch((e) => e))
+          .status,
+      ).toBe(400);
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it('is refused while orders or payouts are open, saying how many', async () => {
+      prisma.user.findUniqueOrThrow.mockResolvedValue({ password: null });
+      prisma.sellerOrder.count.mockResolvedValue(2);
+      const error = await service
+        .deleteAccount(buyer(), { confirm: 'DELETE' })
+        .catch((e: unknown) => e);
+      expect(failure(error)).toEqual({
+        status: 409,
+        code: 'ACCOUNT_HAS_OPEN_ORDERS',
+      });
+      expect((error as HttpException).getResponse()).toMatchObject({
+        details: { openOrders: 2, openPayouts: 0 },
+      });
+      prisma.sellerOrder.count.mockResolvedValue(0);
+      prisma.payout.count.mockResolvedValue(1);
+      expect(
+        failure(
+          await service
+            .deleteAccount(buyer(), { confirm: 'DELETE' })
+            .catch((e) => e),
+        ).code,
+      ).toBe('ACCOUNT_HAS_OPEN_ORDERS');
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it.each([UserRole.ADMIN, UserRole.DISPATCH])(
+      'refuses a %s',
+      async (role) => {
+        expect(
+          failure(
+            await service
+              .deleteAccount(buyer({ role }), { confirm: 'DELETE' })
+              .catch((e) => e),
+          ),
+        ).toEqual({ status: 400, code: 'CANNOT_DELETE' });
+      },
+    );
   });
 });

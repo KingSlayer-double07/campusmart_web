@@ -1,5 +1,13 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsUUID, Matches, MaxLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  Equals,
+  IsEmail,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  MaxLength,
+} from 'class-validator';
 import { NormalizeEmail } from '../../auth/dto/normalize-email';
 
 export class SetInstitutionDto {
@@ -26,4 +34,23 @@ export class SchoolEmailCodeDto {
   })
   @Matches(/^\d{6}$/, { message: 'The code is 6 digits' })
   code!: string;
+}
+
+export class DeleteAccountDto {
+  @ApiPropertyOptional({
+    description: 'Needed when the account has a password',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  password?: string;
+
+  @ApiPropertyOptional({
+    enum: ['DELETE'],
+    description:
+      'For an account made with Google and no password: type DELETE to confirm',
+  })
+  @IsOptional()
+  @Equals('DELETE', { message: 'Type DELETE to confirm' })
+  confirm?: 'DELETE';
 }

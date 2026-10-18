@@ -54,6 +54,11 @@ export const envSchema = z
     GOOGLE_CLIENT_SECRET: optional,
     GOOGLE_REDIRECT_URI: z.url().optional(),
 
+    // Support contacts on Help (decision T4); each one unset shows "coming soon"
+    SUPPORT_EMAIL: z.email().optional(),
+    SUPPORT_PHONE: optional,
+    SUPPORT_WHATSAPP: optional,
+
     // Marketplace rules
     PLATFORM_FEE_BPS: z.coerce.number().int().nonnegative().default(0), // 100 bps = 1%
     ORDER_PAYMENT_TTL_MINUTES: z.coerce.number().int().positive().default(30),

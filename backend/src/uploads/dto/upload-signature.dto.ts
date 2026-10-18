@@ -5,7 +5,8 @@ import { UPLOAD_PURPOSES, type UploadPurpose } from '../cloudinary-urls';
 export class UploadSignatureRequestDto {
   @ApiProperty({ enum: UPLOAD_PURPOSES, enumName: 'UploadPurpose' })
   @IsIn(UPLOAD_PURPOSES, {
-    message: 'purpose must be LISTING, AVATAR, VERIFICATION or DISPUTE',
+    message:
+      'purpose must be LISTING, AVATAR, VERIFICATION, DISPUTE or SUPPORT',
   })
   purpose!: UploadPurpose;
 }

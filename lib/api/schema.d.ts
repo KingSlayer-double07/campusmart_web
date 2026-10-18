@@ -79,7 +79,10 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Update the signed-in user's profile */
+        /**
+         * Update the signed-in user's profile
+         * @description Username, names and phone. Fields left out stay; null or empty text clears one.
+         */
         patch: operations["UsersController_updateMyProfile"];
         trace?: never;
     };
@@ -1134,6 +1137,75 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your notifications, newest first */
+        get: operations["NotificationsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How many are unread (the bell polls this every 60 seconds) */
+        get: operations["NotificationsController_unreadCount"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark some, or all, as read */
+        post: operations["NotificationsController_markRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/me/notification-preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your email preferences (T7) */
+        get: operations["NotificationsController_prefs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Turn order and payment emails on or off */
+        patch: operations["NotificationsController_setPrefs"];
         trace?: never;
     };
     "/api/admin/settings": {
@@ -2356,6 +2428,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/users/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete your account (T6)
+         * @description Buyers and sellers. Needs the password, or DELETE for an account made with Google. Personal details are anonymised and the account signed out everywhere; orders and payments are kept for 6 years. Refused while orders or payouts are open.
+         */
+        delete: operations["AccountController_deleteAccount"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/support/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How to reach CampusMart (T4)
+         * @description Public. Each one unset is null.
+         */
+        get: operations["SupportController_contacts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/support/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a report to CampusMart
+         * @description Any signed-in user. Admins see it at /admin/reports and are alerted.
+         */
+        post: operations["SupportController_report"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2421,10 +2553,17 @@ export interface components {
             createdAt: string;
         };
         UpdateProfileDto: {
+            /**
+             * @description 3–20 lower-case letters, digits or _; unique (409 USERNAME_TAKEN)
+             * @example ada_obi
+             */
+            username?: string | null;
             /** @example Ada */
-            firstName?: string;
+            firstName?: string | null;
             /** @example Obi */
-            lastName?: string;
+            lastName?: string | null;
+            /** @example +234 801 234 5678 */
+            phone?: string | null;
         };
         ChangePasswordDto: {
             /** @description Current password of the account */
@@ -2757,7 +2896,7 @@ export interface components {
             type?: "authenticated";
         };
         /** @enum {string} */
-        UploadPurpose: "LISTING" | "AVATAR" | "VERIFICATION" | "DISPUTE";
+        UploadPurpose: "LISTING" | "AVATAR" | "VERIFICATION" | "DISPUTE" | "SUPPORT";
         UploadSignatureRequestDto: {
             purpose: components["schemas"]["UploadPurpose"];
         };
@@ -3404,6 +3543,39 @@ export interface components {
             items: components["schemas"]["AdminPayoutDto"][];
             /** Format: uuid */
             nextCursor: string | null;
+        };
+        NotificationDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example ORDER_PAID */
+            type: string;
+            title: string;
+            body: string;
+            /** @description An app path it opens, e.g. /orders/<id> */
+            link: string | null;
+            /** Format: date-time */
+            readAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        NotificationPageDto: {
+            items: components["schemas"]["NotificationDto"][];
+            nextCursor: string | null;
+        };
+        UnreadCountDto: {
+            count: number;
+        };
+        MarkedDto: {
+            /** @description How many were marked read */
+            count: number;
+        };
+        MarkReadDto: {
+            /** @description Mark these read; leave out to mark everything read */
+            ids?: string[];
+        };
+        NotificationPrefsDto: {
+            /** @description Order and payment updates also by email (T7). Everything else is in the app only. */
+            orderEmails: boolean;
         };
         SettingsDto: {
             /**
@@ -4226,6 +4398,8 @@ export interface components {
             type: "LISTING" | "BUG" | "ORDER" | "PAYMENT" | "OTHER";
             reason: string | null;
             message: string;
+            /** @description A screenshot sent with a support report */
+            screenshotUrl: string | null;
             /** Format: uuid */
             listingId: string | null;
             listingTitle: string | null;
@@ -4319,6 +4493,35 @@ export interface components {
              * @example 048213
              */
             code: string;
+        };
+        DeleteAccountDto: {
+            /** @description Needed when the account has a password */
+            password?: string;
+            /**
+             * @description For an account made with Google and no password: type DELETE to confirm
+             * @enum {string}
+             */
+            confirm?: "DELETE";
+        };
+        SupportContactsDto: {
+            /** @description Null shows "coming soon" (T4) */
+            email: string | null;
+            phone: string | null;
+            /** @description A WhatsApp number */
+            whatsapp: string | null;
+        };
+        SupportReceiptDto: {
+            /** Format: uuid */
+            id: string;
+        };
+        /** @enum {string} */
+        SupportType: "BUG" | "ORDER" | "PAYMENT" | "OTHER";
+        CreateSupportReportDto: {
+            type: components["schemas"]["SupportType"];
+            /** @description What happened; an order code helps */
+            message: string;
+            /** @description A screenshot uploaded with purpose SUPPORT (guide 3.1) */
+            screenshotUrl?: string;
         };
     };
     responses: never;
@@ -4517,6 +4720,15 @@ export interface operations {
                         /** Format: date-time */
                         timestamp: string;
                     };
+                };
+            };
+            /** @description USERNAME_TAKEN */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
             /** @description Internal Server Error */
@@ -8099,6 +8311,188 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    NotificationsController_list: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["NotificationPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    NotificationsController_unreadCount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["UnreadCountDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    NotificationsController_markRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkReadDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["MarkedDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    NotificationsController_prefs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["NotificationPrefsDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    NotificationsController_setPrefs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationPrefsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["NotificationPrefsDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
                 };
             };
             /** @description Internal Server Error */
@@ -12545,6 +12939,153 @@ export interface operations {
             };
             /** @description EMAIL_NOT_VERIFIED */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AccountController_deleteAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteAccountDto"];
+            };
+        };
+        responses: {
+            /** @description Deleted; the cookies are cleared */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description CANNOT_DELETE or VALIDATION_FAILED */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description INVALID_PASSWORD */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description ACCOUNT_HAS_OPEN_ORDERS */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SupportController_contacts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["SupportContactsDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    SupportController_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSupportReportDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["SupportReceiptDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description VALIDATION_FAILED or INVALID_IMAGE */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
