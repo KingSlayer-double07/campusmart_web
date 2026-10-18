@@ -11,6 +11,7 @@ type RegisterBody = components['schemas']['RegisterDto'];
 type LoginBody = components['schemas']['LoginDto'];
 type ResetPasswordBody = components['schemas']['ResetPasswordDto'];
 type ChangePasswordBody = components['schemas']['ChangePasswordDto'];
+export type AuthProviders = components['schemas']['AuthProvidersDto'];
 
 const post = (body?: unknown): RequestInit => ({
   method: 'POST',
@@ -23,6 +24,7 @@ export const authApi = {
   logout: () => fetchApi<void>('/auth/logout', post()),
   refresh: () => fetchApi<void>('/auth/refresh', post()),
   me: () => fetchApi<User>('/auth/me'),
+  providers: () => fetchApi<AuthProviders>('/auth/providers'),
   verifyEmail: (code: string) => fetchApi<User>('/auth/verify-email', post({ code })),
   resendVerification: () => fetchApi<void>('/auth/verify-email/resend', post()),
   forgotPassword: (email: string) => fetchApi<void>('/auth/forgot-password', post({ email })),

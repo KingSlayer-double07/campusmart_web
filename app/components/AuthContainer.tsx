@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CornerUpLeft } from "lucide-react";
 import Button from "./Button";
+import GoogleButton from "./GoogleButton";
 import TermsOverlay from "./TermsOverlay";
 import PrivacyPolicyOverlay from "./PrivacyPolicyOverlay";
 
@@ -17,6 +18,8 @@ interface AuthContainerProps {
   loading?: boolean;
   /** Shown under the form, e.g. the ApiError message */
   error?: string | null;
+  /** Where to go after Google sign-in */
+  next?: string | null;
 }
 
 export default function AuthContainer({
@@ -27,6 +30,7 @@ export default function AuthContainer({
   onSubmit,
   loading = false,
   error,
+  next,
 }: AuthContainerProps) {
   const router = useRouter();
   const [isTermsOpen, setIsTermsOpen] = useState(false);
@@ -108,7 +112,8 @@ export default function AuthContainer({
           </p>
         )}
 
-        {/* "Continue with Google" returns with Google sign-in in Phase 10 */}
+        {/* Buyers only (G3); hidden until Google sign-in is set up */}
+        {roleType === "buyer" && <GoogleButton next={next} />}
 
         <p className="text-foreground-muted text-[12.5px] text-center tracking-tight">
           {type === "login" ? (

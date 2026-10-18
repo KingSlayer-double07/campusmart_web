@@ -9,6 +9,7 @@ import { SessionsModule } from '../sessions/sessions.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { EmailCodesService } from './email-codes.service';
+import { GoogleOAuthService } from './google/google-oauth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
@@ -25,7 +26,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       }),
     }),
   ],
-  providers: [AuthService, EmailCodesService, JwtStrategy],
+  providers: [AuthService, EmailCodesService, JwtStrategy, GoogleOAuthService],
   controllers: [AuthController],
   exports: [EmailCodesService],
 })

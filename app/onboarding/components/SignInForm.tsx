@@ -13,6 +13,15 @@ import { meKey } from "@/lib/api/hooks/useMe";
 import { afterSignIn } from "@/lib/auth/redirects";
 import { firstError, loginSchema } from "@/lib/validations/auth";
 
+// Why Google sign-in sent the buyer back here (GET /auth/google/callback)
+const GOOGLE_ERRORS: Record<string, string> = {
+  GOOGLE_FAILED: "Google sign-in didn't work. Please try again.",
+  GOOGLE_BUYERS_ONLY: "Google sign-in is for buyer accounts. Sign in with your email and password.",
+  ACCOUNT_SUSPENDED: "Your account is suspended. Contact CampusMart support if you think this is a mistake.",
+  INSTITUTION_INACTIVE: "CampusMart isn't available at your school right now. Please check back soon.",
+  EMAIL_TAKEN: "Another account already uses this Google email.",
+};
+
 const TITLES = {
   buyer: (
     <>
@@ -32,12 +41,16 @@ const TITLES = {
 
 export default function SignInForm({ roleType }: { roleType: "buyer" | "seller" }) {
   const router = useRouter();
-  const next = useSearchParams().get("next");
+  const params = useSearchParams();
+  const next = params.get("next");
+  const googleError = params.get("error");
   const queryClient = useQueryClient();
   const setUser = useAuthStore((s) => s.setUser);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    googleError ? (GOOGLE_ERRORS[googleError] ?? GOOGLE_ERRORS.GOOGLE_FAILED) : null,
+  );
   const [loading, setLoading] = useState(false);
   // Decision M7: an admin's right password emails a 6-digit code; the sign-in finishes with it
   const [codeStep, setCodeStep] = useState<string | null>(null);
@@ -103,6 +116,7 @@ export default function SignInForm({ roleType }: { roleType: "buyer" | "seller" 
       onSubmit={handleLogin}
       loading={loading}
       error={error}
+      next={next}
     >
       <FormInput
         icon={Mail}

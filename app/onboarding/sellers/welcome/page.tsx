@@ -32,7 +32,7 @@ export default function SellerWelcomePage() {
             </Button>
           </div>
 
-          {/* "Continue with Google" returns with Google sign-in in Phase 10 */}
+          {/* Sellers sign in with email and password only (G3) */}
 
           <p className="text-foreground-muted text-[12.5px] text-center tracking-tight">
             Don&apos;t have an account?{" "}

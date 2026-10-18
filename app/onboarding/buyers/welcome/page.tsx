@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Button from "@/app/components/Button";
 import { CornerUpLeft } from "lucide-react";
 import Image from "next/image";
+import GoogleButton from "@/app/components/GoogleButton";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,11 +29,12 @@ export default function LoginPage() {
 
           <div className="mb-8">
             <Button href="/onboarding/buyers/sign-in" outerRing roleType="buyer">
-              Sign in with school email
+              Sign in with email
             </Button>
           </div>
 
-          {/* "Continue with Google" returns with Google sign-in in Phase 10 */}
+          {/* Buyers only (G3); hidden until Google sign-in is set up */}
+          <GoogleButton />
 
           <p className="text-foreground-muted text-[12.5px] text-center tracking-tight">
             Don&apos;t have an account?{" "}

@@ -48,6 +48,12 @@ export const envSchema = z
       .string()
       .default('52.31.139.75,52.49.173.169,52.214.14.220'),
 
+    // Google sign-in for buyers (decisions T1, G3), Phase 10. Without both, the button stays hidden.
+    // The redirect URI registered with Google defaults to APP_URL/api/auth/google/callback.
+    GOOGLE_CLIENT_ID: optional,
+    GOOGLE_CLIENT_SECRET: optional,
+    GOOGLE_REDIRECT_URI: z.url().optional(),
+
     // Marketplace rules
     PLATFORM_FEE_BPS: z.coerce.number().int().nonnegative().default(0), // 100 bps = 1%
     ORDER_PAYMENT_TTL_MINUTES: z.coerce.number().int().positive().default(30),

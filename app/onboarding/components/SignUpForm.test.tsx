@@ -12,11 +12,19 @@ vi.mock("next/link", () => ({
     </a>
   ),
 }));
-vi.mock("@/lib/api/auth", () => ({ authApi: { register } }));
+vi.mock("@/lib/api/auth", () => ({ authApi: { register, providers: vi.fn().mockResolvedValue({ google: false }) } }));
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApiError } from "@/lib/api/client";
 import { useAuthStore } from "@/app/store/useAuthStore";
-import SignUpForm from "./SignUpForm";
+import SignUpFormBase from "./SignUpForm";
+
+// The Google button asks the API whether Google sign-in is set up
+const SignUpForm = (props: React.ComponentProps<typeof SignUpFormBase>) => (
+  <QueryClientProvider client={new QueryClient()}>
+    <SignUpFormBase {...props} />
+  </QueryClientProvider>
+);
 
 function fill(email: string, password = "Campus2026", confirm = password) {
   fireEvent.change(screen.getByPlaceholderText(/^(School email|Email)$/), { target: { value: email } });

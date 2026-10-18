@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -30,6 +31,7 @@ import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import type { GoogleProfile } from './google/google-oauth.service';
 import {
   CODE_TTL_MINUTES,
   EmailCodeError,
@@ -204,6 +206,100 @@ export class AuthService {
 
   async logout(refreshCookie: unknown) {
     await this.sessions.revokeByCookie(refreshCookie);
+  }
+
+  // ── Google sign-in (decisions T1, G3, C4) ─────────────────────────────────
+
+  // Buyers only: a Google account signs in, links to a buyer account with the same email, or makes a
+  // new buyer. Google has confirmed the email, so no code is needed (C4). Sellers, admins and riders
+  // always use their email and password.
+  async googleSignIn(profile: GoogleProfile, meta: ClientMeta) {
+    const select = {
+      ...safeUserSelect,
+      googleId: true,
+      suspendedReason: true,
+      institution: { select: { isActive: true } },
+    } as const;
+    let found =
+      (await this.prisma.user.findUnique({
+        where: { googleId: profile.sub },
+        select,
+      })) ??
+      (await this.prisma.user.findUnique({
+        where: { email: profile.email },
+        select,
+      }));
+
+    if (found && found.role !== UserRole.BUYER) {
+      throw new ForbiddenException({
+        code: 'GOOGLE_BUYERS_ONLY',
+        message:
+          'Google sign-in is for buyer accounts. Sign in with your email and password.',
+      });
+    }
+    if (found) {
+      const { suspendedReason, institution, googleId, ...user } = found;
+      this.assertCanSignIn({ ...user, suspendedReason });
+      if (blockedByInstitution({ role: user.role, institution })) {
+        throw institutionInactive();
+      }
+      if (googleId !== profile.sub || !user.emailVerifiedAt) {
+        found = await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            googleId: profile.sub,
+            emailVerifiedAt: user.emailVerifiedAt ?? new Date(),
+            ...(user.schoolEmail === user.email &&
+              !user.schoolEmailVerifiedAt && {
+                schoolEmailVerifiedAt: new Date(),
+              }),
+          },
+          select,
+        });
+      }
+    } else {
+      // Another account may use it as its school email (G2)
+      const taken = await this.prisma.user.count({
+        where: { schoolEmail: profile.email },
+      });
+      if (taken) {
+        throw new ConflictException({
+          code: 'EMAIL_TAKEN',
+          message: 'Another account already uses this email',
+        });
+      }
+      const institution = await this.institutions.findForEmail(profile.email);
+      if (institution && !institution.isActive) throw institutionInactive();
+      const now = new Date();
+      found = await this.prisma.user.create({
+        data: {
+          email: profile.email,
+          googleId: profile.sub,
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          role: UserRole.BUYER,
+          emailVerifiedAt: now,
+          ...(institution && {
+            institutionId: institution.id,
+            schoolEmail: profile.email,
+            schoolEmailVerifiedAt: now,
+          }),
+        },
+        select,
+      });
+    }
+
+    const {
+      suspendedReason: _reason,
+      institution: _institution,
+      googleId: _googleId,
+      ...user
+    } = found;
+    const session = await this.sessions.create(user.id, meta);
+    return {
+      user,
+      tokens: this.tokens(user, session.sessionId, session.refreshToken),
+    };
   }
 
   // ── Password reset ────────────────────────────────────────────────────────

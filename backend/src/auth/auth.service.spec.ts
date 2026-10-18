@@ -23,6 +23,7 @@ describe('AuthService', () => {
     user: {
       findUnique: jest.fn(),
       findFirst: jest.fn(),
+      count: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
     },
@@ -398,6 +399,65 @@ describe('AuthService', () => {
         {},
       );
       expect(result.user).not.toHaveProperty('password');
+    });
+  });
+
+  describe('googleSignIn (T1, G3, C4)', () => {
+    const profile = {
+      sub: 'g1',
+      email: 'ada@gmail.com',
+      firstName: 'Ada',
+      lastName: null,
+    };
+
+    it('makes a new buyer with a confirmed email and no school', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      (prisma.user as unknown as { count: jest.Mock }).count = jest
+        .fn()
+        .mockResolvedValue(0);
+      institutions.findForEmail.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue({
+        ...user,
+        email: 'ada@gmail.com',
+        googleId: 'g1',
+      });
+      await service.googleSignIn(profile, {});
+      const { data } = prisma.user.create.mock.calls[0][0];
+      expect(data).toMatchObject({
+        email: 'ada@gmail.com',
+        googleId: 'g1',
+        role: UserRole.BUYER,
+        emailVerifiedAt: expect.any(Date),
+      });
+      expect(data.password).toBeUndefined();
+      expect(sessions.create).toHaveBeenCalled();
+    });
+
+    it.each([UserRole.SELLER, UserRole.ADMIN, UserRole.DISPATCH])(
+      'refuses a %s account',
+      async (role) => {
+        prisma.user.findUnique
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({ ...user, role });
+        const error = await service
+          .googleSignIn(profile, {})
+          .catch((e: unknown) => e);
+        expect(responseCode(error)).toBe('GOOGLE_BUYERS_ONLY');
+        expect(sessions.create).not.toHaveBeenCalled();
+      },
+    );
+
+    it('links an existing buyer found by email', async () => {
+      prisma.user.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ ...user, googleId: null });
+      prisma.user.update.mockResolvedValue({ ...user, googleId: 'g1' });
+      await service.googleSignIn(profile, {});
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ googleId: 'g1' }),
+        }),
+      );
     });
   });
 

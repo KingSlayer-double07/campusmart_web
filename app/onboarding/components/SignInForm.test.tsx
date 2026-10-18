@@ -4,12 +4,16 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }));
 const login = vi.hoisted(() => vi.fn());
+const nav = vi.hoisted(() => ({ params: new URLSearchParams() }));
+const providers = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
   useRouter: () => router,
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => nav.params,
 }));
-vi.mock("@/lib/api/auth", () => ({ authApi: { login, refresh: vi.fn(), me: vi.fn() } }));
+vi.mock("@/lib/api/auth", () => ({
+  authApi: { login, refresh: vi.fn(() => Promise.reject(new Error("no session"))), me: vi.fn(), providers },
+}));
 
 import { ApiError } from "@/lib/api/client";
 import { useAuthStore } from "@/app/store/useAuthStore";
@@ -35,6 +39,8 @@ describe("SignInForm", () => {
   beforeEach(() => {
     router.replace.mockReset();
     login.mockReset();
+    nav.params = new URLSearchParams();
+    providers.mockResolvedValue({ google: false });
     useAuthStore.setState({ user: null });
   });
   afterEach(cleanup);
@@ -108,5 +114,25 @@ describe("SignInForm", () => {
     expect((await screen.findByRole("alert")).textContent).toContain("Sold fake phones");
     expect(screen.queryByPlaceholderText("6-digit code")).toBeNull();
     expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it("offers Google to buyers once it's set up, keeping where they were going (T1, G3)", async () => {
+    providers.mockResolvedValue({ google: true });
+    nav.params = new URLSearchParams("next=/orders");
+    renderForm();
+    const google = await screen.findByRole("link", { name: "Continue with Google" });
+    expect(google.getAttribute("href")).toBe("/api/auth/google?next=%2Forders");
+  });
+
+  it("hides Google until it's set up", async () => {
+    renderForm();
+    await waitFor(() => expect(providers).toHaveBeenCalled());
+    expect(screen.queryByRole("link", { name: "Continue with Google" })).toBeNull();
+  });
+
+  it("explains why Google sent the buyer back", () => {
+    nav.params = new URLSearchParams("error=GOOGLE_BUYERS_ONLY");
+    renderForm();
+    expect(screen.getByRole("alert").textContent).toMatch(/Google sign-in is for buyer accounts/);
   });
 });
