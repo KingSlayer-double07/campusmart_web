@@ -274,7 +274,7 @@ describe('Phase 10 notifications, profile, support and deletion (e2e)', () => {
       const seller = await createSeller(ctx.prisma, school.id);
       const buyer = await createUser(ctx.prisma, { institutionId: school.id });
       const order = await createUnpaidOrder(ctx.prisma, buyer, [
-        { seller, method: DeliveryMethod.PICKUP },
+        { seller, method: DeliveryMethod.SELLER_PICKUP },
       ]);
       // A finished, released order
       await ctx.prisma.order.update({
