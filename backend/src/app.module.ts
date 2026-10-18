@@ -31,6 +31,7 @@ import { WishlistModule } from './wishlist/wishlist.module';
 import { DispatchModule } from './dispatch/dispatch.module';
 import { PaystackModule } from './paystack/paystack.module';
 import { SettingsModule } from './settings/settings.module';
+import { ModerationModule } from './moderation/moderation.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { SettingsModule } from './settings/settings.module';
     ReviewsModule,
     StoresModule,
     TrustModule,
+    ModerationModule,
   ],
   controllers: [AppController],
   providers: [

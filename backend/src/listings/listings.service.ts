@@ -216,17 +216,31 @@ export class ListingsService {
       status: true,
       title: true,
       description: true,
+      isFlagged: true,
+      heldAt: true,
       images: { select: { url: true, publicId: true } },
       variants: { select: { id: true, label: true } },
     });
+    const title = dto.title ?? current.title;
     // Decision M4c: a live listing edited to use a banned word goes back for review
     const held =
       isLive(current.status) && (dto.title || dto.description)
         ? await this.bannedWords.findIn(
-            dto.title ?? current.title,
+            title,
             dto.description ?? current.description,
           )
         : [];
+    // A listing an admin rejected goes back to the review queue once the seller edits it
+    const resubmitted =
+      current.status === ListingStatus.FLAGGED &&
+      !current.isFlagged &&
+      !current.heldAt;
+    const resubmittedWords = resubmitted
+      ? await this.bannedWords.findIn(
+          title,
+          dto.description ?? current.description,
+        )
+      : [];
     if (dto.images) this.assertImages(user.id, dto.images);
     if (dto.variants) this.assertVariants(dto.variants);
 
@@ -288,20 +302,28 @@ export class ListingsService {
         await tx.listing.update({ where: { id }, data: { stock: dto.stock } });
       }
       await recalculateListingStock(tx, id);
-      if (held.length) {
+      if (held.length || resubmitted) {
         await tx.listing.update({
           where: { id },
           data: {
             status: ListingStatus.FLAGGED,
             heldAt: new Date(),
-            heldWords: held,
+            heldWords: resubmitted ? resubmittedWords : held,
           },
         });
       }
     });
 
     if (removedImages.length) void this.deleteImages(removedImages);
-    if (held.length) await this.alertHeld(dto.title ?? current.title, held);
+    if (held.length) await this.alertHeld(title, held);
+    if (resubmitted) {
+      await this.notifications.alertAdmins({
+        type: 'LISTING_RESUBMITTED',
+        title: 'A rejected listing was edited',
+        body: `"${title}" was changed by its seller and is waiting for review again`,
+        link: '/admin/listings',
+      });
+    }
     return this.ownerView(id);
   }
 

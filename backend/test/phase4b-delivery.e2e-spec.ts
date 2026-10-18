@@ -343,7 +343,7 @@ describe('Phase 4b delivery checkout (e2e)', () => {
 
       const blocked = await agent
         .post('/api/listings')
-        .send({ ...body, status: 'ACTIVE' })
+        .send({ ...body, status: 'ACTIVE', confirmNotProhibited: true })
         .expect(403);
       expect(blocked.body.code).toBe('SELLER_PROFILE_INCOMPLETE');
       const draft = (
@@ -373,7 +373,7 @@ describe('Phase 4b delivery checkout (e2e)', () => {
       });
       await agent
         .patch(`/api/listings/${draft.id}/status`)
-        .send({ status: 'ACTIVE' })
+        .send({ status: 'ACTIVE', confirmNotProhibited: true })
         .expect(200);
 
       await agent

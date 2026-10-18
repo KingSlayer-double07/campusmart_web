@@ -211,9 +211,29 @@ describe('AuthService', () => {
         isSuspended: true,
         password: await hash('Campus2026', 4),
       });
-      await expect(
-        service.login({ email: user.email, password: 'Campus2026' }, {}),
-      ).rejects.toBeInstanceOf(UnauthorizedException);
+      const error = await service
+        .login({ email: user.email, password: 'Campus2026' }, {})
+        .catch((e: unknown) => e);
+      expect(error).toBeInstanceOf(UnauthorizedException);
+      expect(responseCode(error)).toBe('ACCOUNT_SUSPENDED');
+    });
+
+    it('tells a suspended user the admin’s reason (M6)', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...user,
+        isSuspended: true,
+        suspendedReason: 'Sold fake phones',
+        password: await hash('Campus2026', 4),
+      });
+      const error = await service
+        .login({ email: user.email, password: 'Campus2026' }, {})
+        .catch((e: unknown) => e);
+      expect((error as HttpException).getResponse()).toMatchObject({
+        code: 'ACCOUNT_SUSPENDED',
+        message: expect.stringContaining('Sold fake phones'),
+        details: { reason: 'Sold fake phones' },
+      });
+      expect(sessions.create).not.toHaveBeenCalled();
     });
 
     it.each([UserRole.BUYER, UserRole.SELLER, UserRole.PICKUP_AGENT])(
@@ -242,11 +262,95 @@ describe('AuthService', () => {
         password: await hash('Campus2026', 4),
       });
       const result = await service.login(
-        { email: user.email, password: 'Campus2026' },
+        { email: user.email, password: 'Campus2026', code: '123456' },
         {},
       );
       expect(result.user.role).toBe(UserRole.ADMIN);
       expect(result.user).not.toHaveProperty('institution');
+    });
+
+    describe('admin sign-in code (M7)', () => {
+      const admin = async () => {
+        prisma.user.findUnique.mockResolvedValue({
+          ...user,
+          role: UserRole.ADMIN,
+          password: await hash('Campus2026', 4),
+        });
+      };
+
+      it('emails a code after the right password and asks for it, with no session', async () => {
+        await admin();
+        emailCodes.canSend.mockResolvedValue(true);
+        const error = await service
+          .login({ email: user.email, password: 'Campus2026' }, {})
+          .catch((e: unknown) => e);
+        expect((error as HttpException).getStatus()).toBe(401);
+        expect((error as HttpException).getResponse()).toMatchObject({
+          code: 'ADMIN_CODE_REQUIRED',
+          details: { codeSent: true },
+        });
+        expect(emailCodes.issue).toHaveBeenCalledWith(
+          'u1',
+          EmailCodePurpose.ADMIN_SIGN_IN,
+        );
+        expect(mail.send).toHaveBeenCalledWith(user.email, 'admin-sign-in', {
+          code: '123456',
+          minutes: 10,
+        });
+        expect(sessions.create).not.toHaveBeenCalled();
+      });
+
+      it('doesn’t send another code within the sending limits', async () => {
+        await admin();
+        emailCodes.canSend.mockResolvedValue(false);
+        const error = await service
+          .login({ email: user.email, password: 'Campus2026' }, {})
+          .catch((e: unknown) => e);
+        expect((error as HttpException).getResponse()).toMatchObject({
+          code: 'ADMIN_CODE_REQUIRED',
+          details: { codeSent: false },
+        });
+        expect(emailCodes.issue).not.toHaveBeenCalled();
+      });
+
+      it('signs in with the right code, and answers a wrong one with 401 and its reason', async () => {
+        await admin();
+        await expect(
+          service.login(
+            { email: user.email, password: 'Campus2026', code: '123456' },
+            {},
+          ),
+        ).resolves.toMatchObject({ user: { role: UserRole.ADMIN } });
+        expect(emailCodes.consume).toHaveBeenCalledWith(
+          'u1',
+          EmailCodePurpose.ADMIN_SIGN_IN,
+          '123456',
+        );
+
+        emailCodes.consume.mockRejectedValue(
+          new EmailCodeError({ code: 'INVALID_CODE', message: 'Wrong' }),
+        );
+        const error = await service
+          .login(
+            { email: user.email, password: 'Campus2026', code: '000000' },
+            {},
+          )
+          .catch((e: unknown) => e);
+        expect((error as HttpException).getStatus()).toBe(401);
+        expect(responseCode(error)).toBe('INVALID_CODE');
+        expect(sessions.create).toHaveBeenCalledTimes(1);
+      });
+
+      it('never checks a code before the password', async () => {
+        await admin();
+        await expect(
+          service.login(
+            { email: user.email, password: 'Wrong2026x', code: '123456' },
+            {},
+          ),
+        ).rejects.toBeInstanceOf(UnauthorizedException);
+        expect(emailCodes.consume).not.toHaveBeenCalled();
+      });
     });
 
     it('checks the password before the institution, so status is not probed', async () => {

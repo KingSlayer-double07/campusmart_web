@@ -13,7 +13,7 @@ import {
   UserRole,
 } from '../src/generated/prisma/enums';
 import {
-  client,
+  signIn,
   createTestApp,
   createUser,
   resetRateLimits,
@@ -79,21 +79,18 @@ describe('Phase 2 commerce schema (e2e)', () => {
       expect(places.map((p) => p.name)).toEqual([...SEED_CAMPUS_PLACES].sort());
       expect(institutions[0].deliveryFeeKobo).toBeNull();
 
-      const agent = client(ctx.app);
-      const login = await agent
-        .post('/api/auth/login')
-        .send({
-          email: 'admin@campusmart.test',
-          password: env.SEED_ADMIN_PASSWORD,
-        })
-        .expect(200);
-      expect(login.body.data).toMatchObject({
+      // signIn finishes the admin's emailed code (M7)
+      const agent = await signIn(
+        ctx.app,
+        'admin@campusmart.test',
+        env.SEED_ADMIN_PASSWORD,
+      );
+      const me = await agent.get('/api/auth/me').expect(200);
+      expect(me.body.data).toMatchObject({
         email: 'admin@campusmart.test',
         role: 'ADMIN',
       });
-      expect(login.body.data.emailVerifiedAt).not.toBeNull();
-      const me = await agent.get('/api/auth/me').expect(200);
-      expect(me.body.data.role).toBe('ADMIN');
+      expect(me.body.data.emailVerifiedAt).not.toBeNull();
     });
 
     it('can run again without duplicating rows or changing the admin password', async () => {
@@ -109,13 +106,7 @@ describe('Phase 2 commerce schema (e2e)', () => {
         SEED_CAMPUS_PLACES.length,
       );
       await expect(ctx.prisma.user.count()).resolves.toBe(1);
-      await client(ctx.app)
-        .post('/api/auth/login')
-        .send({
-          email: 'admin@campusmart.test',
-          password: env.SEED_ADMIN_PASSWORD,
-        })
-        .expect(200);
+      await signIn(ctx.app, 'admin@campusmart.test', env.SEED_ADMIN_PASSWORD);
     });
 
     it('puts the admin in the seeded institution when the email is on its domain', async () => {

@@ -277,19 +277,32 @@ export class ReportReceiptDto {
 }
 
 export const REPORT_STATUSES = ['OPEN', 'CLOSED'] as const;
+// LISTING comes from the report button on a listing; the rest from the support form (Phase 10)
+export const REPORT_TYPES = [
+  'LISTING',
+  'BUG',
+  'ORDER',
+  'PAYMENT',
+  'OTHER',
+] as const;
 
 export class AdminReportsQueryDto extends CursorQueryDto {
   @ApiPropertyOptional({ enum: REPORT_STATUSES, default: 'OPEN' })
   @IsOptional()
   @IsIn(REPORT_STATUSES)
   status: (typeof REPORT_STATUSES)[number] = 'OPEN';
+
+  @ApiPropertyOptional({ enum: REPORT_TYPES })
+  @IsOptional()
+  @IsIn(REPORT_TYPES)
+  type?: (typeof REPORT_TYPES)[number];
 }
 
 export class AdminReportDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
-  @ApiProperty({ description: "LISTING, or a support report's type" })
+  @ApiProperty({ enum: REPORT_TYPES })
   type!: string;
 
   @ApiProperty({ type: String, nullable: true })

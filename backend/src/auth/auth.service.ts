@@ -134,6 +134,7 @@ export class AuthService {
       select: {
         ...safeUserSelect,
         password: true,
+        suspendedReason: true,
         institution: { select: { isActive: true } },
       },
     });
@@ -145,11 +146,17 @@ export class AuthService {
     if (!found || !found.password || !passwordMatches) {
       throw new UnauthorizedException('Invalid email or password');
     }
-    const { password: _password, institution, ...user } = found;
-    this.assertCanSignIn(user);
+    const {
+      password: _password,
+      institution,
+      suspendedReason,
+      ...user
+    } = found;
+    this.assertCanSignIn({ ...user, suspendedReason });
     if (blockedByInstitution({ role: user.role, institution })) {
       throw institutionInactive();
     }
+    if (user.role === UserRole.ADMIN) await this.adminCode(user, dto.code);
 
     const session = await this.sessions.create(user.id, meta);
     return {
@@ -167,14 +174,16 @@ export class AuthService {
       where: { id: rotated.userId },
       select: {
         ...safeUserSelect,
+        suspendedReason: true,
         institution: { select: { isActive: true } },
       },
     });
     if (!found || found.isSuspended || !found.isActive) {
       await this.sessions.revokeAll(rotated.userId);
+      if (found?.isSuspended) throw accountSuspended(found.suspendedReason);
       throw new UnauthorizedException('Your session has ended. Sign in again.');
     }
-    const { institution, ...user } = found;
+    const { institution, suspendedReason: _reason, ...user } = found;
     // A switched-off institution cuts its users off here, within one access-token lifetime
     if (blockedByInstitution({ role: user.role, institution })) {
       await this.sessions.revokeAll(user.id);
@@ -310,10 +319,46 @@ export class AuthService {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  private assertCanSignIn(user: { isSuspended: boolean; isActive: boolean }) {
-    if (user.isSuspended) {
-      throw new UnauthorizedException('This account has been suspended');
+  // Decision M7: an admin's right password emails a code; the sign-in finishes with it
+  private async adminCode(user: { id: string; email: string }, code?: string) {
+    if (code) {
+      try {
+        await this.emailCodes.consume(
+          user.id,
+          EmailCodePurpose.ADMIN_SIGN_IN,
+          code,
+        );
+        return;
+      } catch (error) {
+        // Wrong, expired or locked: a 401 like a wrong password, with the code's reason
+        if (error instanceof EmailCodeError) {
+          throw new UnauthorizedException(error.getResponse());
+        }
+        throw error;
+      }
     }
+    const sent = await this.emailCodes.canSend(
+      user.id,
+      EmailCodePurpose.ADMIN_SIGN_IN,
+    );
+    if (sent) {
+      await this.sendCode(user.id, user.email, EmailCodePurpose.ADMIN_SIGN_IN);
+    }
+    throw new UnauthorizedException({
+      code: 'ADMIN_CODE_REQUIRED',
+      message: sent
+        ? `We emailed you a 6-digit code. Enter it to finish signing in. It expires in ${CODE_TTL_MINUTES} minutes.`
+        : 'We sent you a code a moment ago. Enter the latest one from your email.',
+      details: { codeSent: sent },
+    });
+  }
+
+  private assertCanSignIn(user: {
+    isSuspended: boolean;
+    isActive: boolean;
+    suspendedReason?: string | null;
+  }) {
+    if (user.isSuspended) throw accountSuspended(user.suspendedReason ?? null);
     if (!user.isActive) {
       throw new UnauthorizedException('This account is inactive');
     }
@@ -339,13 +384,10 @@ export class AuthService {
   ) {
     try {
       const code = await this.emailCodes.issue(userId, purpose);
-      await this.mail.send(
-        email,
-        purpose === EmailCodePurpose.VERIFY_EMAIL
-          ? 'verify-email'
-          : 'reset-password',
-        { code, minutes: CODE_TTL_MINUTES },
-      );
+      await this.mail.send(email, CODE_TEMPLATES[purpose], {
+        code,
+        minutes: CODE_TTL_MINUTES,
+      });
     } catch (error) {
       this.logger.error(
         `Could not send ${purpose} code to user ${userId}`,
@@ -353,6 +395,23 @@ export class AuthService {
       );
     }
   }
+}
+
+const CODE_TEMPLATES = {
+  VERIFY_EMAIL: 'verify-email',
+  RESET_PASSWORD: 'reset-password',
+  ADMIN_SIGN_IN: 'admin-sign-in',
+} as const satisfies Record<EmailCodePurpose, string>;
+
+// Decision M6: a suspended user sees the admin's reason
+export function accountSuspended(reason: string | null) {
+  return new UnauthorizedException({
+    code: 'ACCOUNT_SUSPENDED',
+    message: reason
+      ? `Your account is suspended: ${reason}. Contact CampusMart support if you think this is a mistake.`
+      : 'Your account is suspended. Contact CampusMart support if you think this is a mistake.',
+    details: { reason },
+  });
 }
 
 const invalidInvite = {

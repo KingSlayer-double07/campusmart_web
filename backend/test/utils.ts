@@ -6,7 +6,12 @@ import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/app.setup';
-import { UserRole, VerificationStatus } from '../src/generated/prisma/enums';
+import { EmailCodesService } from '../src/auth/email-codes.service';
+import {
+  EmailCodePurpose,
+  UserRole,
+  VerificationStatus,
+} from '../src/generated/prisma/enums';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 export interface TestContext {
@@ -121,6 +126,19 @@ export async function signIn(
   password = TEST_PASSWORD,
 ) {
   const agent = client(app);
-  await agent.post('/api/auth/login').send({ email, password }).expect(200);
+  const first = await agent.post('/api/auth/login').send({ email, password });
+  if (first.status === 200) return agent;
+  // Admins finish with the emailed code (M7). The test issues a fresh one it can read.
+  expect(first.body).toMatchObject({ code: 'ADMIN_CODE_REQUIRED' });
+  const user = await app
+    .get(PrismaService)
+    .user.findUniqueOrThrow({ where: { email }, select: { id: true } });
+  const code = await app
+    .get(EmailCodesService)
+    .issue(user.id, EmailCodePurpose.ADMIN_SIGN_IN);
+  await agent
+    .post('/api/auth/login')
+    .send({ email, password, code })
+    .expect(200);
   return agent;
 }

@@ -91,7 +91,7 @@ describe('Seller verification (e2e)', () => {
 
     const publish = await agent
       .patch(`/api/listings/${draft.body.data.id}/status`)
-      .send({ status: 'ACTIVE' })
+      .send({ status: 'ACTIVE', confirmNotProhibited: true })
       .expect(403);
     expect(publish.body.code).toBe('SELLER_NOT_VERIFIED');
     // Editing a draft is fine
@@ -219,7 +219,7 @@ describe('Seller verification (e2e)', () => {
     });
     await s
       .patch(`/api/listings/${draft.body.data.id}/status`)
-      .send({ status: 'ACTIVE' })
+      .send({ status: 'ACTIVE', confirmNotProhibited: true })
       .expect(403);
 
     // Deciding twice is refused
@@ -257,7 +257,7 @@ describe('Seller verification (e2e)', () => {
     expect(me.body.data.verificationStatus).toBe('VERIFIED');
     const live = await s
       .patch(`/api/listings/${draft.body.data.id}/status`)
-      .send({ status: 'ACTIVE' })
+      .send({ status: 'ACTIVE', confirmNotProhibited: true })
       .expect(200);
     expect(live.body.data.status).toBe('ACTIVE');
     expect(live.body.data.seller.verified).toBe(true);

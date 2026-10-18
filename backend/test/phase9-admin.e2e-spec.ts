@@ -72,7 +72,19 @@ describe('Phase 9 admin: institutions and pickup stations (e2e)', () => {
 
     it('lists the admin routes it checks', () => {
       const routes = adminRoutes().map((r) => `${r.method} ${r.path}`);
-      expect(routes.length).toBeGreaterThanOrEqual(6);
+      // Slices A to C: institutions, stations, places, verification, payouts, riders, deliveries,
+      // disputes, reviews, settings, users, listings, reports, the audit log and the overview
+      expect(routes.length).toBeGreaterThanOrEqual(40);
+      expect(routes).toEqual(
+        expect.arrayContaining([
+          'get /api/admin/overview',
+          'get /api/admin/users',
+          'get /api/admin/audit-log',
+          'get /api/admin/support-reports',
+          'get /api/admin/listings',
+          'put /api/admin/settings/banned-words',
+        ]),
+      );
     });
 
     it('every /api/admin/* route returns 401 when signed out', async () => {
@@ -84,7 +96,12 @@ describe('Phase 9 admin: institutions and pickup stations (e2e)', () => {
       }
     });
 
-    it.each([UserRole.SELLER, UserRole.BUYER, UserRole.PICKUP_AGENT])(
+    it.each([
+      UserRole.SELLER,
+      UserRole.BUYER,
+      UserRole.PICKUP_AGENT,
+      UserRole.DISPATCH,
+    ])(
       'every /api/admin/* route returns 403 for a %s',
       async (role) => {
         const user = await createUser(ctx.prisma, { role });

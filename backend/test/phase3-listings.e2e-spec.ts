@@ -32,6 +32,7 @@ const listingBody = (sellerId: string, overrides: object = {}) => ({
     { label: 'L', stock: 1, priceKobo: 1_500_000 },
   ],
   status: 'ACTIVE',
+  confirmNotProhibited: true,
   ...overrides,
 });
 
@@ -371,7 +372,7 @@ describe('Phase 3 listings (e2e)', () => {
 
       await agent
         .patch(`/api/listings/${listing.id}/status`)
-        .send({ status: 'ACTIVE' })
+        .send({ status: 'ACTIVE', confirmNotProhibited: true })
         .expect(200);
       await buyer.get(`/api/listings/${listing.id}`).expect(200);
       await agent
@@ -390,7 +391,7 @@ describe('Phase 3 listings (e2e)', () => {
       });
       const flagged = await agent
         .patch(`/api/listings/${listing.id}/status`)
-        .send({ status: 'ACTIVE' })
+        .send({ status: 'ACTIVE', confirmNotProhibited: true })
         .expect(409);
       expect(flagged.body.code).toBe('LISTING_UNDER_REVIEW');
     });

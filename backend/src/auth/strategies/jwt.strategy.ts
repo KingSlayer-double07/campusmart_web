@@ -47,8 +47,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!session) {
       throw new UnauthorizedException('Your session has ended. Sign in again.');
     }
+    // The reason comes with the refresh or the next sign-in (M6)
     if (session.user.isSuspended) {
-      throw new UnauthorizedException('This account has been suspended');
+      throw new UnauthorizedException({
+        code: 'ACCOUNT_SUSPENDED',
+        message: 'This account has been suspended',
+      });
     }
     if (!session.user.isActive) {
       throw new UnauthorizedException('This account is inactive');

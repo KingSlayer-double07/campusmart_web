@@ -76,6 +76,11 @@ export async function createListing(
       priceKobo: options.priceKobo ?? 450_000,
       stock,
       status: options.status ?? ListingStatus.ACTIVE,
+      // Buyers could see it (decision M4f), as the moderation migration backfills
+      wentLiveAt:
+        (options.status ?? ListingStatus.ACTIVE) === ListingStatus.ACTIVE
+          ? new Date()
+          : null,
       category: ListingCategory.TECH,
       condition: ProductCondition.USED_GOOD,
       sellerId: seller.id,

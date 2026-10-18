@@ -1,6 +1,8 @@
 export interface MailTemplates {
   'verify-email': { code: string; minutes: number };
   'reset-password': { code: string; minutes: number };
+  // Decision M7: a code at every admin sign-in
+  'admin-sign-in': { code: string; minutes: number };
   // Order, payment and admin alerts (decisions T7, P10): the in-app notification, by email
   notification: { title: string; body: string; link: string | null };
   // Decision DX1: an admin invites a rider; the link sets their password
@@ -58,6 +60,17 @@ export const renderers: {
       'Your CampusMart password reset code is:',
       code,
       `It expires in ${minutes} minutes. If you didn't ask to reset your password, you can ignore this email.`,
+    ),
+  }),
+  'admin-sign-in': ({ code, minutes }) => ({
+    subject: 'Your CampusMart admin sign-in code',
+    text:
+      `Your CampusMart admin sign-in code is ${code}.\n\n` +
+      `It expires in ${minutes} minutes. If you didn't just sign in, change your password now: someone else knows it.`,
+    html: codeHtml(
+      'Your CampusMart admin sign-in code is:',
+      code,
+      `It expires in ${minutes} minutes. If you didn't just sign in, change your password now: someone else knows it.`,
     ),
   }),
   'rider-invite': ({ firstName, institution, link, days }) => {
