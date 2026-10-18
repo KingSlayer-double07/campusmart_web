@@ -950,6 +950,10 @@ describe('Phase 5 payments, escrow and refunds (e2e)', () => {
         platformFeeBps: 0,
         pickupDeadlineDays: 3,
         lowStockThreshold: 5,
+        trustWeightRating: 50,
+        trustWeightCompleted: 30,
+        trustWeightVerified: 20,
+        trustPenaltySellerFault: 10,
       });
       await a
         .patch('/api/admin/settings')

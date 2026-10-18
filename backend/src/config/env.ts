@@ -63,6 +63,15 @@ export const envSchema = z
       .nonnegative()
       .default(48),
     LOW_STOCK_THRESHOLD: z.coerce.number().int().nonnegative().default(5), // A1
+    // Trust-score weights (guide 8.4, decision R1); admins can change them in settings
+    TRUST_WEIGHT_RATING: z.coerce.number().int().nonnegative().default(50),
+    TRUST_WEIGHT_COMPLETED: z.coerce.number().int().nonnegative().default(30),
+    TRUST_WEIGHT_VERIFIED: z.coerce.number().int().nonnegative().default(20),
+    TRUST_PENALTY_SELLER_FAULT: z.coerce
+      .number()
+      .int()
+      .nonnegative()
+      .default(10),
 
     // Seed only (prisma/seed.ts, Phase 2); the API itself never reads them
     SEED_ADMIN_EMAIL: z.email().optional(),

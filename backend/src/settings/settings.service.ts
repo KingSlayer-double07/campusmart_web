@@ -5,8 +5,8 @@ import type { Env } from '../config/env';
 import { PrismaService } from '../prisma/prisma.service';
 
 // Decision R1a: numbers an admin can change without a deploy. Each starts from its environment
-// variable until an admin saves a value; later phases add the trust-score weights and report
-// threshold.
+// variable until an admin saves a value; Phase 9 adds the report threshold. Trust weights apply
+// at the next nightly recalculation (R1b).
 export const SETTINGS = {
   platformFeeBps: {
     env: 'PLATFORM_FEE_BPS',
@@ -26,6 +26,32 @@ export const SETTINGS = {
     min: 0,
     max: 100,
     label: 'Sellers are alerted when an item has this many left or fewer',
+  },
+  trustWeightRating: {
+    env: 'TRUST_WEIGHT_RATING',
+    min: 0,
+    max: 100,
+    label: 'Trust score: points for a 5-star average rating',
+  },
+  trustWeightCompleted: {
+    env: 'TRUST_WEIGHT_COMPLETED',
+    min: 0,
+    max: 100,
+    label:
+      'Trust score: points when all of the last 50 orders were handed over',
+  },
+  trustWeightVerified: {
+    env: 'TRUST_WEIGHT_VERIFIED',
+    min: 0,
+    max: 100,
+    label: 'Trust score: points for a verified seller',
+  },
+  trustPenaltySellerFault: {
+    env: 'TRUST_PENALTY_SELLER_FAULT',
+    min: 0,
+    max: 100,
+    label:
+      'Trust score: points taken off per cancellation or refund that was the seller’s fault in 90 days',
   },
 } as const satisfies Record<
   string,

@@ -148,6 +148,7 @@ describe('OrdersService', () => {
         },
       },
       items: [],
+      reviews: [],
     });
     const order = (
       paidAt: Date | null,

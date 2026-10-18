@@ -16,6 +16,12 @@ export class ListingCardSellerDto {
 
   @ApiProperty({ description: 'Seller ID check approved (Phase 9)' })
   verified!: boolean;
+
+  @ApiProperty({
+    description:
+      'A "Trusted seller": trust score 80 or more, recalculated nightly (R2)',
+  })
+  trusted!: boolean;
 }
 
 export class ListingCardDto {

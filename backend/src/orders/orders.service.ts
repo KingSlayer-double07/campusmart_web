@@ -27,6 +27,7 @@ import {
   PickupStationDto,
   SellerPickupDto,
 } from './dto/order.dto';
+import { REVIEWABLE } from '../reviews/review-rules';
 import { closeUnpaidOrder } from './order-lifecycle';
 
 const stationSelect = {
@@ -96,6 +97,7 @@ const orderSelect = {
       handoverLockedAt: true,
       seller: { select: sellerSelect },
       items: { select: itemSelect, orderBy: { id: 'asc' } },
+      reviews: { select: { listingId: true, rating: true } },
     },
   },
 } satisfies Prisma.OrderSelect;
@@ -183,6 +185,7 @@ export function toOrderDto(row: OrderRow): OrderDto {
       collectedAt: so.collectedAt,
       cancelledAt: so.cancelledAt,
       cancelReason: so.cancelReason,
+      canReview: REVIEWABLE.includes(so.fulfillmentStatus),
       items: so.items.map((i) => ({
         id: i.id,
         listingId: i.listingId,
@@ -192,6 +195,8 @@ export function toOrderDto(row: OrderRow): OrderDto {
         imageUrl: i.imageUrl,
         unitPriceKobo: i.unitPriceKobo,
         quantity: i.quantity,
+        myRating:
+          so.reviews.find((r) => r.listingId === i.listingId)?.rating ?? null,
       })),
     })),
   };

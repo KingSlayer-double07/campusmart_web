@@ -6,12 +6,14 @@ import {
   priceRange,
   sellerDisplayName,
 } from './listing-rules';
+import { isTrusted } from '../trust/trust-rules';
 
 const sellerSelect = {
   id: true,
   username: true,
   firstName: true,
   verificationStatus: true,
+  trustScore: true,
   sellerProfile: {
     select: {
       storeName: true,
@@ -70,6 +72,7 @@ const cardSeller = (seller: CardRow['seller']) => ({
   id: seller.id,
   displayName: sellerDisplayName(seller),
   verified: seller.verificationStatus === VerificationStatus.VERIFIED,
+  trusted: isTrusted(seller.trustScore),
 });
 
 export function toCard(row: CardRow): ListingCardDto {

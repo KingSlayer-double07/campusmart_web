@@ -24,6 +24,10 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PaymentsModule } from './payments/payments.module';
 import { RidersModule } from './riders/riders.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { ReviewsModule } from './reviews/reviews.module';
+import { StoresModule } from './stores/stores.module';
+import { TrustModule } from './trust/trust.module';
+import { WishlistModule } from './wishlist/wishlist.module';
 import { DispatchModule } from './dispatch/dispatch.module';
 import { PaystackModule } from './paystack/paystack.module';
 import { SettingsModule } from './settings/settings.module';
@@ -56,6 +60,10 @@ import { SettingsModule } from './settings/settings.module';
     RidersModule,
     DispatchModule,
     AnalyticsModule,
+    WishlistModule,
+    ReviewsModule,
+    StoresModule,
+    TrustModule,
   ],
   controllers: [AppController],
   providers: [

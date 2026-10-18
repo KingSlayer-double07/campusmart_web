@@ -53,6 +53,7 @@ const listingRow = (
     username: null,
     firstName: null,
     verificationStatus: VerificationStatus.VERIFIED,
+    trustScore: 0,
     sellerProfile: {
       storeName: `Store ${sellerId}`,
       logoUrl: null,

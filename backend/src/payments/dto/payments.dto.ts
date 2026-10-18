@@ -151,6 +151,24 @@ export class SettingsDto {
 
   @ApiProperty({ description: SETTINGS.lowStockThreshold.label, example: 5 })
   lowStockThreshold!: number;
+
+  @ApiProperty({ description: SETTINGS.trustWeightRating.label, example: 50 })
+  trustWeightRating!: number;
+
+  @ApiProperty({
+    description: SETTINGS.trustWeightCompleted.label,
+    example: 30,
+  })
+  trustWeightCompleted!: number;
+
+  @ApiProperty({ description: SETTINGS.trustWeightVerified.label, example: 20 })
+  trustWeightVerified!: number;
+
+  @ApiProperty({
+    description: SETTINGS.trustPenaltySellerFault.label,
+    example: 10,
+  })
+  trustPenaltySellerFault!: number;
 }
 
 export class UpdateSettingsDto {
@@ -188,4 +206,48 @@ export class UpdateSettingsDto {
   @Min(SETTINGS.lowStockThreshold.min)
   @Max(SETTINGS.lowStockThreshold.max)
   lowStockThreshold?: number;
+
+  @ApiPropertyOptional({
+    minimum: SETTINGS.trustWeightRating.min,
+    maximum: SETTINGS.trustWeightRating.max,
+    description: SETTINGS.trustWeightRating.label,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(SETTINGS.trustWeightRating.min)
+  @Max(SETTINGS.trustWeightRating.max)
+  trustWeightRating?: number;
+
+  @ApiPropertyOptional({
+    minimum: SETTINGS.trustWeightCompleted.min,
+    maximum: SETTINGS.trustWeightCompleted.max,
+    description: SETTINGS.trustWeightCompleted.label,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(SETTINGS.trustWeightCompleted.min)
+  @Max(SETTINGS.trustWeightCompleted.max)
+  trustWeightCompleted?: number;
+
+  @ApiPropertyOptional({
+    minimum: SETTINGS.trustWeightVerified.min,
+    maximum: SETTINGS.trustWeightVerified.max,
+    description: SETTINGS.trustWeightVerified.label,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(SETTINGS.trustWeightVerified.min)
+  @Max(SETTINGS.trustWeightVerified.max)
+  trustWeightVerified?: number;
+
+  @ApiPropertyOptional({
+    minimum: SETTINGS.trustPenaltySellerFault.min,
+    maximum: SETTINGS.trustPenaltySellerFault.max,
+    description: SETTINGS.trustPenaltySellerFault.label,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(SETTINGS.trustPenaltySellerFault.min)
+  @Max(SETTINGS.trustPenaltySellerFault.max)
+  trustPenaltySellerFault?: number;
 }

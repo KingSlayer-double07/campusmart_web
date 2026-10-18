@@ -311,6 +311,7 @@ model SellerOrder {
   droppedOffAt       DateTime?
   collectedAt        DateTime? // handover to the buyer: by the rider (DELIVERED) or the seller (COLLECTED)
   releaseAt          DateTime? // collectedAt + dispute window
+  reviewReminderAt   DateTime? // the buyer was asked to rate it, 24 hours after handover (guide 8.4)
   cancelledAt        DateTime?
   cancelReason       String?
   createdAt          DateTime          @default(now())
@@ -495,6 +496,10 @@ model Review {
   listingId     String
   sellerOrderId String
   createdAt     DateTime    @default(now())
+  // Decision R4: an admin hides an abusive review with a reason; hidden ones don't count or show
+  hiddenAt      DateTime?
+  hiddenById    String?
+  hiddenReason  String?
   sellerOrder   SellerOrder @relation(fields: [sellerOrderId], references: [id])
   reviewer      User        @relation("Reviewer", fields: [reviewerId], references: [id])
   reviewee      User        @relation("Reviewee", fields: [revieweeId], references: [id])

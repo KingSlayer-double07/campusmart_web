@@ -236,6 +236,14 @@ export class OrderItemDto {
 
   @ApiProperty()
   quantity!: number;
+
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description:
+      'Your rating of this item (1 to 5), or null if you haven’t rated it',
+  })
+  myRating!: number | null;
 }
 
 export class SellerOrderSummaryDto {
@@ -324,6 +332,12 @@ export class SellerOrderDto extends SellerOrderSummaryDto {
     description: 'Set when you collect from the seller (SELLER_PICKUP)',
   })
   pickupFrom!: SellerPickupDto | null;
+
+  @ApiProperty({
+    description:
+      'You can rate its items: it was delivered to you or you collected it (guide 8.4)',
+  })
+  canReview!: boolean;
 
   @ApiProperty({ type: [OrderItemDto] })
   items!: OrderItemDto[];

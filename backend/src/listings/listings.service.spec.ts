@@ -52,6 +52,7 @@ const fullRow = {
     username: null,
     firstName: 'Ada',
     verificationStatus: 'UNVERIFIED',
+    trustScore: 0,
     sellerProfile: {
       storeName: 'Ada Wears',
       logoUrl: null,
