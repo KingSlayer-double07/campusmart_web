@@ -1097,6 +1097,30 @@ export interface paths {
         patch: operations["AdminSettingsController_update"];
         trace?: never;
     };
+    "/api/admin/settings/banned-words": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The banned-word list
+         * @description A listing using one of these words or phrases waits for an admin before going live (M4a, M4c).
+         */
+        get: operations["AdminSettingsController_getBannedWords"];
+        /**
+         * Replace the banned-word list
+         * @description Words are lower-cased and de-duplicated. Audited with what was added and removed. Applies to listings published from now on.
+         */
+        put: operations["AdminSettingsController_setBannedWords"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/riders": {
         parameters: {
             query?: never;
@@ -1972,6 +1996,226 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Users, newest first
+         * @description Search by email or name; filter by role, school or suspended.
+         */
+        get: operations["AdminUsersController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{id}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change a user’s role
+         * @description BUYER, SELLER or ADMIN; the only way to grant ADMIN (M1). Not your own role, and not a rider’s. The user is signed out. A seller who stops selling has their live listings archived. Audited.
+         */
+        patch: operations["AdminUsersController_setRole"];
+        trace?: never;
+    };
+    "/api/admin/users/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend a user
+         * @description Signs them out everywhere at once and archives their live listings; open orders stay for admins. They see the reason when they try to sign in (M6). Not yourself or another admin. Audited.
+         */
+        post: operations["AdminUsersController_suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{id}/unsuspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lift a suspension
+         * @description They can sign in again. Archived listings stay archived. Audited.
+         */
+        post: operations["AdminUsersController_unsuspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/listings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listings to moderate
+         * @description REVIEW (default, oldest first): held by a banned word, flagged by reports or an admin, or edited after being rejected. HIDDEN: rejected. ALL: everything not deleted.
+         */
+        get: operations["AdminListingsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/listings/{id}/moderate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve, reject, flag or unflag a listing
+         * @description APPROVE puts it live (again) and closes its reports. REJECT hides it with an M3 reason the seller sees, and closes its reports; a prohibited item that buyers could see suspends the seller (M4d-M4f). FLAG and UNFLAG move it in or out of the review queue while it stays visible. Audited.
+         */
+        post: operations["AdminListingsController_moderate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/support-reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reports from users
+         * @description OPEN (default) oldest first, or CLOSED latest first. Listing reports close themselves when an admin moderates the listing.
+         */
+        get: operations["AdminReportsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/support-reports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Close or reopen a report
+         * @description Closing needs a note saying what was done. Audited.
+         */
+        patch: operations["AdminReportsController_update"];
+        trace?: never;
+    };
+    "/api/admin/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Platform numbers and what’s waiting for an admin
+         * @description Paid orders and GMV count orders by when they were paid; GMV includes delivery fees.
+         */
+        get: operations["AdminInsightsController_getOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Audit log, newest first
+         * @description Every admin change and money movement: who (null for a system job), what and when.
+         */
+        get: operations["AdminInsightsController_auditLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/listings/{id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report a listing
+         * @description Once per user per listing. Five different users’ reports send it to the admins; a prohibited-item report hides it at once until an admin reviews it (M4, M4b).
+         */
+        post: operations["ListingReportsController_report"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2092,6 +2336,11 @@ export interface components {
             email: string;
             /** @example Campus2026 */
             password: string;
+            /**
+             * @description Admins only (M7): the 6-digit code emailed after the first try, sent again with the same email and password
+             * @example 048213
+             */
+            code?: string;
         };
         InviteInfoDto: {
             /** Format: email */
@@ -2473,6 +2722,10 @@ export interface components {
             variants: components["schemas"]["ListingVariantDto"][];
             /** @description True when the signed-in user is the seller */
             isOwner: boolean;
+            /** @description Owner only: it waits for an admin before going live, because it uses a banned word (M4c) or was edited after being taken down */
+            heldForReview: boolean;
+            /** @description Owner only: why CampusMart hid it (M3), or that it was reported as prohibited */
+            moderationReason: string | null;
             /** Format: date-time */
             updatedAt: string;
         };
@@ -2503,6 +2756,8 @@ export interface components {
             variants?: components["schemas"]["ListingVariantInputDto"][];
             /** @enum {string} */
             status: "DRAFT" | "ACTIVE";
+            /** @description The seller confirms the item isn’t on the prohibited list (M4a). Needed to publish, once per listing. */
+            confirmNotProhibited?: boolean;
         };
         UpdateListingDto: {
             /** @example UrbanFlex cargo pants */
@@ -2516,10 +2771,14 @@ export interface components {
             condition?: components["schemas"]["ProductCondition"];
             images?: components["schemas"]["ListingImageInputDto"][];
             variants?: components["schemas"]["ListingVariantInputDto"][];
+            /** @description The seller confirms the item isn’t on the prohibited list (M4a). Needed to publish, once per listing. */
+            confirmNotProhibited?: boolean;
         };
         ListingStatusDto: {
             /** @enum {string} */
             status: "DRAFT" | "ACTIVE" | "ARCHIVED";
+            /** @description The seller confirms the item isn’t on the prohibited list (M4a). Needed to publish, once per listing. */
+            confirmNotProhibited?: boolean;
         };
         SellerProfileDto: {
             storeName: string | null;
@@ -3051,6 +3310,16 @@ export interface components {
             trustWeightVerified?: number;
             /** @description Trust score: points taken off per cancellation or refund that was the seller’s fault in 90 days */
             trustPenaltySellerFault?: number;
+        };
+        BannedWordsDto: {
+            /**
+             * @description Whole words or phrases, any case. A listing using one waits for an admin before going live (M4a, M4c).
+             * @example [
+             *       "gun",
+             *       "fake id"
+             *     ]
+             */
+            words: string[];
         };
         AdminRiderDto: {
             /** Format: uuid */
@@ -3721,6 +3990,167 @@ export interface components {
              * @description On CampusMart since
              */
             joinedAt: string;
+        };
+        AdminUserDto: {
+            /** Format: uuid */
+            id: string;
+            email: string;
+            name: string | null;
+            role: components["schemas"]["UserRole"];
+            institutionName: string | null;
+            verificationStatus: components["schemas"]["VerificationStatus"];
+            emailVerified: boolean;
+            isSuspended: boolean;
+            suspendedReason: string | null;
+            /** Format: date-time */
+            suspendedAt: string | null;
+            /** @description Riders switched off are inactive */
+            isActive: boolean;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AdminUserPageDto: {
+            items: components["schemas"]["AdminUserDto"][];
+            nextCursor: string | null;
+        };
+        SetRoleDto: {
+            /**
+             * @description Other admins sign up first, then an admin gives them ADMIN here (M1). Riders are invited on the riders screen.
+             * @enum {string}
+             */
+            role: "BUYER" | "SELLER" | "ADMIN";
+        };
+        ReasonDto: {
+            /** @description Kept in the audit log; a suspended user sees it (M6) */
+            reason: string;
+        };
+        AdminListingDto: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            description: string;
+            imageUrl: string | null;
+            priceKobo: number;
+            status: components["schemas"]["ListingStatus"];
+            /** @description Waiting for a decision; still shown unless FLAGGED */
+            isFlagged: boolean;
+            /** Format: date-time */
+            heldAt: string | null;
+            /** @description The banned words it used */
+            heldWords: string[];
+            /** @description Buyers have seen it. A prohibited item confirmed on a listing that went live suspends the seller (M4d, M4f). */
+            wentLive: boolean;
+            moderationReason: string | null;
+            /** @description Open reports from different users */
+            openReports: number;
+            /** @description Reasons given in the open reports */
+            reportReasons: string[];
+            /** Format: uuid */
+            sellerId: string;
+            storeName: string;
+            sellerSuspended: boolean;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AdminListingPageDto: {
+            items: components["schemas"]["AdminListingDto"][];
+            nextCursor: string | null;
+        };
+        /**
+         * @description Needed to REJECT (M3). PROHIBITED_ITEM on a listing that went live suspends the seller (M4d, M4e).
+         * @enum {string}
+         */
+        RejectReason: "PROHIBITED_ITEM" | "MISLEADING" | "POOR_PHOTOS" | "COUNTERFEIT" | "DUPLICATE" | "OTHER";
+        ModerateListingDto: {
+            /**
+             * @description APPROVE: live (again). REJECT: hidden, with a reason the seller sees. FLAG or UNFLAG: in or out of the review queue, still shown.
+             * @enum {string}
+             */
+            type: "APPROVE" | "REJECT" | "FLAG" | "UNFLAG";
+            /** @description Needed to REJECT (M3). PROHIBITED_ITEM on a listing that went live suspends the seller (M4d, M4e). */
+            reason?: components["schemas"]["RejectReason"];
+            /** @description Shown to the seller with the reason */
+            note?: string;
+        };
+        AdminReportDto: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            type: "LISTING" | "BUG" | "ORDER" | "PAYMENT" | "OTHER";
+            reason: string | null;
+            message: string;
+            /** Format: uuid */
+            listingId: string | null;
+            listingTitle: string | null;
+            /** @description Who reported it */
+            reporterEmail: string;
+            /** @enum {string} */
+            status: "OPEN" | "CLOSED";
+            resolutionNote: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AdminReportPageDto: {
+            items: components["schemas"]["AdminReportDto"][];
+            nextCursor: string | null;
+        };
+        UpdateReportDto: {
+            /** @enum {string} */
+            status: "OPEN" | "CLOSED";
+            /** @description What was done. Needed to close a report. */
+            note?: string;
+        };
+        AdminOverviewDto: {
+            /** @description All accounts */
+            users: number;
+            sellers: number;
+            /** @description Orders paid in the last 7 days */
+            paidOrders7d: number;
+            /** @description Orders paid in the last 30 days */
+            paidOrders30d: number;
+            /** @description Their totals in the last 30 days, in kobo */
+            gmv30dKobo: number;
+            /** @description Seller payouts held in escrow now, in kobo */
+            escrowHeldKobo: number;
+            openDisputes: number;
+            pendingVerifications: number;
+            failedPayouts: number;
+            /** @description Held or reported listings waiting for a decision */
+            listingsToReview: number;
+            openReports: number;
+            suspendedUsers: number;
+        };
+        AuditEntryDto: {
+            /** Format: uuid */
+            id: string;
+            action: string;
+            entityType: string;
+            entityId: string;
+            /** Format: uuid */
+            actorId: string | null;
+            /** @description The admin or user who did it; null for a system job */
+            actorEmail: string | null;
+            meta: {
+                [key: string]: unknown;
+            } | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AuditPageDto: {
+            items: components["schemas"]["AuditEntryDto"][];
+            nextCursor: string | null;
+        };
+        ReportReceiptDto: {
+            /** Format: uuid */
+            id: string;
+            /** @description True when the listing is now hidden pending review (a prohibited-item report: M4b) */
+            hidden: boolean;
+        };
+        /** @enum {string} */
+        ReportReason: "PROHIBITED_ITEM" | "MISLEADING" | "COUNTERFEIT" | "SCAM" | "OFFENSIVE" | "OTHER";
+        ReportListingDto: {
+            reason: components["schemas"]["ReportReason"];
+            details?: string;
         };
     };
     responses: never;
@@ -7523,6 +7953,112 @@ export interface operations {
             };
         };
     };
+    AdminSettingsController_getBannedWords: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["BannedWordsDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminSettingsController_setBannedWords: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BannedWordsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["BannedWordsDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
     AdminRidersController_list: {
         parameters: {
             query?: {
@@ -10711,6 +11247,767 @@ export interface operations {
                 };
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminUsersController_list: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+                /** @description Part of an email or name */
+                q?: string;
+                role?: components["schemas"]["UserRole"];
+                institutionId?: string;
+                /** @description Only suspended users */
+                suspended?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminUserPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminUsersController_setRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetRoleDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminUserDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description CANNOT_CHANGE_ROLE, NO_INSTITUTION or VALIDATION_FAILED */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminUsersController_suspend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminUserDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description CANNOT_SUSPEND or VALIDATION_FAILED */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description ALREADY_SUSPENDED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminUsersController_unsuspend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminUserDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description NOT_SUSPENDED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminListingsController_list: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+                /** @description REVIEW: held by a banned word, or reported. HIDDEN: rejected by an admin. ALL: everything not deleted. */
+                view?: "REVIEW" | "HIDDEN" | "ALL";
+                /** @description Part of the title */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminListingPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminListingsController_moderate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModerateListingDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminListingDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description SELLER_SUSPENDED or MODERATION_NOT_APPLICABLE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminReportsController_list: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+                status?: "OPEN" | "CLOSED";
+                type?: "LISTING" | "BUG" | "ORDER" | "PAYMENT" | "OTHER";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminReportPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminReportsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateReportDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminReportDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Already in that status */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminInsightsController_getOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminOverviewDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminInsightsController_auditLog: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+                entityType?: string;
+                entityId?: string;
+                actorId?: string;
+                action?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AuditPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ListingReportsController_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportListingDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["ReportReceiptDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description OWN_LISTING or VALIDATION_FAILED */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description EMAIL_NOT_VERIFIED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description ALREADY_REPORTED */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

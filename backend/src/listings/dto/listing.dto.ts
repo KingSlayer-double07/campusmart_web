@@ -158,7 +158,7 @@ export class ListingDto extends ListingCardDto {
 
   @ApiProperty({
     description:
-      'Owner only: it uses a banned word and waits for an admin before going live (M4c)',
+      'Owner only: it waits for an admin before going live, because it uses a banned word (M4c) or was edited after being taken down',
   })
   heldForReview!: boolean;
 

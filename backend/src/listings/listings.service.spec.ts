@@ -452,6 +452,58 @@ describe('ListingsService', () => {
       );
     });
 
+    it('an edited listing an admin rejected goes back to the review queue', async () => {
+      prisma.listing.findFirst.mockResolvedValue({
+        status: ListingStatus.FLAGGED,
+        title: 'Watch',
+        description: 'Gold colour',
+        isFlagged: false,
+        heldAt: null,
+        images: [],
+        variants: [],
+      });
+      prisma.listing.findUniqueOrThrow
+        .mockResolvedValueOnce({
+          stock: 3,
+          status: ListingStatus.FLAGGED,
+          variants: [],
+        })
+        .mockResolvedValueOnce(fullRow);
+      await service.update(seller, 'l1', { title: 'Wrist watch' });
+      expect(prisma.listing.update).toHaveBeenLastCalledWith({
+        where: { id: 'l1' },
+        data: {
+          status: ListingStatus.FLAGGED,
+          heldAt: expect.any(Date),
+          heldWords: [],
+        },
+      });
+      expect(notifications.alertAdmins).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'LISTING_RESUBMITTED' }),
+      );
+    });
+
+    it('an edit while already waiting for review doesn’t alert admins again', async () => {
+      prisma.listing.findFirst.mockResolvedValue({
+        status: ListingStatus.FLAGGED,
+        title: 'Watch',
+        description: 'Gold colour',
+        isFlagged: false,
+        heldAt: new Date(),
+        images: [],
+        variants: [],
+      });
+      prisma.listing.findUniqueOrThrow
+        .mockResolvedValueOnce({
+          stock: 3,
+          status: ListingStatus.FLAGGED,
+          variants: [],
+        })
+        .mockResolvedValueOnce(fullRow);
+      await service.update(seller, 'l1', { title: 'Wrist watch' });
+      expect(notifications.alertAdmins).not.toHaveBeenCalled();
+    });
+
     it('refuses to delete a listing in an unfinished order, with the count', async () => {
       prisma.listing.findFirst.mockResolvedValue({ id: 'l1' });
       prisma.sellerOrder.count.mockResolvedValue(2);

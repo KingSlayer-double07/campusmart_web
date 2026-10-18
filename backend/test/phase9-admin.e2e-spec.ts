@@ -101,20 +101,15 @@ describe('Phase 9 admin: institutions and pickup stations (e2e)', () => {
       UserRole.BUYER,
       UserRole.PICKUP_AGENT,
       UserRole.DISPATCH,
-    ])(
-      'every /api/admin/* route returns 403 for a %s',
-      async (role) => {
-        const user = await createUser(ctx.prisma, { role });
-        const agent = await signIn(ctx.app, user.email);
-        for (const { method, path } of adminRoutes()) {
-          const res = await agent[method](path).send({});
-          expect(`${method} ${path} ${res.status}`).toBe(
-            `${method} ${path} 403`,
-          );
-          expect(res.body.code).toBe('FORBIDDEN');
-        }
-      },
-    );
+    ])('every /api/admin/* route returns 403 for a %s', async (role) => {
+      const user = await createUser(ctx.prisma, { role });
+      const agent = await signIn(ctx.app, user.email);
+      for (const { method, path } of adminRoutes()) {
+        const res = await agent[method](path).send({});
+        expect(`${method} ${path} ${res.status}`).toBe(`${method} ${path} 403`);
+        expect(res.body.code).toBe('FORBIDDEN');
+      }
+    });
   });
 
   describe('institutions', () => {
