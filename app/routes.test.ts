@@ -46,7 +46,7 @@ function linksIn(files: string[]) {
 }
 
 const isSource = (f: string) => /\.(ts|tsx)$/.test(f) && !/\.(test|spec)\.tsx?$/.test(f);
-const frontend = [...walk(join(ROOT, "app"), isSource), ...walk(join(ROOT, "lib"), isSource), join(ROOT, "middleware.ts")];
+const frontend = [...walk(join(ROOT, "app"), isSource), ...walk(join(ROOT, "lib"), isSource), join(ROOT, "proxy.ts")];
 const backend = walk(join(ROOT, "backend", "src"), isSource);
 
 describe("internal links", () => {

@@ -2488,6 +2488,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Health check for the host and uptime monitoring
+         * @description Public. 200 when the API can reach the database, 503 UNHEALTHY when it can’t.
+         */
+        get: operations["HealthController_check"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4522,6 +4542,15 @@ export interface components {
             message: string;
             /** @description A screenshot uploaded with purpose SUPPORT (guide 3.1) */
             screenshotUrl?: string;
+        };
+        HealthChecksDto: {
+            /** @enum {string} */
+            database: "up";
+        };
+        HealthDto: {
+            /** @enum {string} */
+            status: "ok";
+            checks: components["schemas"]["HealthChecksDto"];
         };
     };
     responses: never;
@@ -13095,6 +13124,49 @@ export interface operations {
             };
             /** @description Internal Server Error */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    HealthController_check: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["HealthDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description UNHEALTHY: the database did not answer */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

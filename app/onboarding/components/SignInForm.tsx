@@ -56,7 +56,7 @@ export default function SignInForm({ roleType }: { roleType: "buyer" | "seller" 
   const [codeStep, setCodeStep] = useState<string | null>(null);
   const [code, setCode] = useState("");
 
-  // The middleware sent us here because no access cookie reached the page. The refresh cookie
+  // The proxy (proxy.ts) sent us here because no access cookie reached the page. The refresh cookie
   // only travels to /api/auth, so try a silent refresh before asking for the password.
   useEffect(() => {
     if (!next) return;

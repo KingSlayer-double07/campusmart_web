@@ -49,10 +49,7 @@ export default function PWAInstallPrompt() {
 
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
-    deferredPrompt.userChoice.then((choiceResult: any) => {
-      if (choiceResult.outcome === "accepted") {
-        console.log("User accepted the A2HS prompt");
-      }
+    deferredPrompt.userChoice.then(() => {
       setDeferredPrompt(null);
       setShowPrompt(false);
     });

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // UX redirect only (guide 1.6.7); the API enforces every rule. Either auth cookie counts.
+// Next.js 16 renamed middleware.ts to proxy.ts (guide Phase 10 clean-ups).
 // Note: the refresh cookie is scoped to /api/auth (D6), so page requests normally carry only the
 // access cookie. When it has expired, sign-in tries a silent refresh before asking for a password.
 // /dispatch/invite stays open: a rider sets their password there before they can sign in
@@ -10,7 +11,7 @@ export const PROTECTED_PREFIXES = ['/sellers', '/profile', '/admin', '/agent', '
 // Pages under a protected prefix that a signed-out visitor still needs
 const OPEN_PATHS = ['/dispatch/invite'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   if (OPEN_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return NextResponse.next();
   const signedIn = request.cookies.has('access_token') || request.cookies.has('refresh_token');

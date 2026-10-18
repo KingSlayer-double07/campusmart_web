@@ -1,15 +1,15 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
-import { config, middleware, PROTECTED_PREFIXES } from "./middleware";
+import { config, proxy, PROTECTED_PREFIXES } from "./proxy";
 
 function run(path: string, cookies: Record<string, string> = {}) {
   const request = new NextRequest(new URL(path, "http://localhost:3000"));
   for (const [name, value] of Object.entries(cookies)) request.cookies.set(name, value);
-  return middleware(request);
+  return proxy(request);
 }
 
-describe("middleware", () => {
+describe("proxy", () => {
   it.each(PROTECTED_PREFIXES)("sends a visitor without auth cookies on %s to sign-in", (prefix) => {
     const res = run(`${prefix}/x?tab=1`);
     expect(res.status).toBe(307);

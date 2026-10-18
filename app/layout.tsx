@@ -3,7 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
-import ServiceWorkerRegister from "./components/ServiceWorkerRegister";
+import ServiceWorkerCleanup from "./components/ServiceWorkerCleanup";
 import { Analytics } from "@vercel/analytics/next";
 import Providers from "./providers";
 import AuthProvider from "./components/AuthProvider";
@@ -72,7 +72,7 @@ export default function RootLayout({
       <body
         className={`${jost.variable} ${satoshi.variable} antialiased`}
       >
-        <ServiceWorkerRegister />
+        <ServiceWorkerCleanup />
         <PWAInstallPrompt />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AppFrame>
