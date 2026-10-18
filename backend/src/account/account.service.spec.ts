@@ -47,6 +47,7 @@ describe('AccountService', () => {
     notification: { deleteMany: jest.fn() },
     emailCode: { deleteMany: jest.fn() },
     listing: { updateMany: jest.fn() },
+    order: { updateMany: jest.fn() },
     $transaction: jest.fn(),
   };
   const audit = { record: jest.fn() };
@@ -290,6 +291,10 @@ describe('AccountService', () => {
       expect(prisma.listing.updateMany).toHaveBeenCalledWith({
         where: { sellerId: 'u1', isDeleted: false },
         data: { isDeleted: true },
+      });
+      expect(prisma.order.updateMany).toHaveBeenCalledWith({
+        where: { buyerId: 'u1' },
+        data: { deliveryAddress: null, buyerPhone: null },
       });
       expect(prisma.sellerProfile.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({

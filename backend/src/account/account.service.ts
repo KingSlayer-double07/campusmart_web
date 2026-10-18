@@ -276,6 +276,11 @@ export class AccountService {
         where: { sellerId: user.id, isDeleted: false },
         data: { isDeleted: true },
       });
+      // The orders stay, but the address and phone the buyer gave the rider are personal details
+      await tx.order.updateMany({
+        where: { buyerId: user.id },
+        data: { deliveryAddress: null, buyerPhone: null },
+      });
       await tx.sellerProfile.updateMany({
         where: { userId: user.id },
         data: {

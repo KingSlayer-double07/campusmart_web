@@ -276,10 +276,15 @@ describe('Phase 10 notifications, profile, support and deletion (e2e)', () => {
       const order = await createUnpaidOrder(ctx.prisma, buyer, [
         { seller, method: DeliveryMethod.SELLER_PICKUP },
       ]);
-      // A finished, released order
+      // A finished, released order, delivered to an address the buyer typed
       await ctx.prisma.order.update({
         where: { id: order.id },
-        data: { status: OrderStatus.PAID, paidAt: new Date() },
+        data: {
+          status: OrderStatus.PAID,
+          paidAt: new Date(),
+          deliveryAddress: '12 Akoka Road, Yaba',
+          buyerPhone: '+2348031234567',
+        },
       });
       await ctx.prisma.sellerOrder.updateMany({
         where: { orderId: order.id },
@@ -312,8 +317,13 @@ describe('Phase 10 notifications, profile, support and deletion (e2e)', () => {
       });
       expect(row.deletedAt).toBeInstanceOf(Date);
       await expect(
-        ctx.prisma.order.count({ where: { buyerId: buyer.id } }),
-      ).resolves.toBe(1);
+        ctx.prisma.order.findMany({
+          where: { buyerId: buyer.id },
+          select: { totalKobo: true, deliveryAddress: true, buyerPhone: true },
+        }),
+      ).resolves.toEqual([
+        { totalKobo: order.totalKobo, deliveryAddress: null, buyerPhone: null },
+      ]);
       await client(ctx.app)
         .post('/api/auth/login')
         .send({ email: buyer.email, password: TEST_PASSWORD })
