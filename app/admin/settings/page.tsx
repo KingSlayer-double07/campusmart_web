@@ -82,7 +82,10 @@ export default function AdminSettingsPage() {
             <PlatformSettingsForm
               settings={settings.data}
               onSaved={(saved) =>
-                toast.success("Settings saved", `Platform fee ${saved.platformFeeBps / 100}% · ${saved.pickupDeadlineDays} days to hand over`)
+                toast.success(
+                  "Settings saved",
+                  `Platform fee ${saved.platformFeeBps / 100}% · ${saved.pickupDeadlineDays} days to hand over · low stock at ${saved.lowStockThreshold}`,
+                )
               }
             />
           )}
