@@ -1,0 +1,15 @@
+import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
+const g = await ctx.newPage();
+await g.goto('http://localhost:3000/onboarding/buyers/sign-in');
+await g.getByPlaceholder(/^(School email|Email)$/).fill('tobi.buyer@students.unilag.edu.ng');
+await g.getByPlaceholder('Password').fill('Campus2026');
+await g.getByRole('button', { name: /sign in/i }).click();
+await g.waitForURL('http://localhost:3000/');
+const t0 = Date.now();
+g.on('framenavigated', (f) => { if (f === g.mainFrame()) console.log(Date.now() - t0, 'ms', new URL(f.url()).pathname); });
+await g.reload();
+await g.waitForTimeout(3500);
+console.log('final', new URL(g.url()).pathname);
+await browser.close();
