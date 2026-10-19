@@ -17,6 +17,7 @@ its checklist, changes, verification evidence, deviations and open asks.
 | 8 Wishlist, stores, reviews | DONE | `feat/phase-8-wishlist-stores-reviews` | 2026-10-18 |
 | 9 Admin UI and moderation | DONE pending manual checks (a look over the console on a phone and a laptop) | `feat/phase-9-admin-institutions-stations`, `feat/phase-3-seller-verification`, `feat/phase-9-admin-moderation` | 2026-10-18 |
 | 10 Remaining features | DONE pending manual checks (Google sign-in with a real account) and your approval of the Terms and Privacy draft | `feat/phase-10-remaining` | 2026-10-19 |
+| 10b First visit and browsing without an account | DONE pending your copy and drawings for the intro slides | `feat/phase-10b-guest-browsing` | 2026-10-19 |
 
 Status values: NOT STARTED / IN PROGRESS / BLOCKED / DONE / DONE pending manual checks.
 
@@ -59,6 +60,13 @@ Your decisions that change or extend the guide. Each phase file has the detail.
   - **Buyers may sign up without a school email** (T1). They pick their school during onboarding, and Google sign-in
     is for buyers only. Sellers still need a school email. This changes D7 for buyers.
 
+- **Browsing without an account (2026-10-19):**
+  - **First visit:** the splash, then intro slides, then Browse, Buy or Sell.
+  - **Browsing:** Browse needs no account, only a school picked on the phone. Guests see listings, search,
+    categories and reviews, but not store pages, and can fill and open a cart.
+  - **Sign-in:** at checkout, or to save a favourite. The school they browsed is pre-selected when they sign up.
+  - **What it replaces:** guide 3.1's "verified user" rule for listing reads, so D14 holds as written. See
+    Phase 10b.
 - **Terms and Privacy (2026-10-19, T5):** drafted from the decisions and shown in the app as "Draft, not yet in
   effect" until you approve the text and give an effective date. See Phase 10.
 
@@ -89,6 +97,7 @@ everything still open from Phases 0–4 and 9.
 - [Phase 9](phase-9-admin.md) (built in three slices; browser evidence in [`evidence/phase9-admin/`](evidence/phase9-admin/))
 - [Phase 10](phase-10-remaining.md) (browser, Sentry and service worker evidence in [`evidence/phase10-remaining/`](evidence/phase10-remaining/);
   the Terms and Privacy draft for review in [`docs/legal/terms-and-privacy.md`](../legal/terms-and-privacy.md))
+- [Phase 10b](phase-10b-guest-browsing.md) (first-visit walk and screenshots in [`evidence/phase10b-guest-browsing/`](evidence/phase10b-guest-browsing/))
 
 ## Working setup used for verification
 

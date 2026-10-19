@@ -139,8 +139,9 @@ Local Postgres 16; e2e on `campusmart_test`; browser walk on `campusmart_dev`.
       a problem" (D11's dispute window).
     - "See all" links open `/categories?sort=newest` until `/browse` exists (Phase 8).
     - The profile menu's Wishlist link pointed at `/cart`; it now opens `/favourites`.
-11. **Guest cart**: browsing needs a signed-in, verified account (guide 3.1) and `/cart` is behind sign-in, so a
-    guest cart only builds up after a session lapses. The merge is built as the guide says; guest lines now also
+11. **Guest cart** (superseded on 2026-10-19 by [Phase 10b](phase-10b-guest-browsing.md): guests now browse and fill
+    a cart, and sign in at checkout): browsing needs a signed-in, verified account (guide 3.1) and `/cart` is behind
+    sign-in, so a guest cart only builds up after a session lapses. The merge is built as the guide says; guest lines now also
     remember the store, so they group the same way.
 12. **Old mocks removed**: `useCartStore.checkout`, `ordersApi.createOrder` and the hard-coded stations. The seller's
     order mocks (`ordersApi.fetchOrders`, `updateOrderStatus`) stay until Phase 6.
