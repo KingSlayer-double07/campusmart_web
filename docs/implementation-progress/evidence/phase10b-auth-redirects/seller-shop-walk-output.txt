@@ -1,0 +1,7 @@
+PASS  The seller Profile page has "Shop on CampusMart"
+PASS  It opens the shop, with the school's listings
+PASS  The seller can put another store's item in the cart
+PASS  The shop's Profile tab leads back to the seller pages
+PASS  ...and back on the seller dashboard
+
+5/5 passed

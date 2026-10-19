@@ -17,6 +17,7 @@ import {
   Package,
   Settings,
   Shield,
+  ShoppingBag,
   Star,
   UserRound,
 } from "lucide-react";
@@ -232,6 +233,8 @@ export default function ProfilePage() {
     { icon: Grid, label: "Inventory", description: "Manage your products", href: "/sellers/products" },
     { icon: UserRound, label: "Personal details", description: "Your name, username and phone", href: "/profile/edit" },
     { icon: Shield, label: "Account Security", description: "Password and active sessions", href: "/profile/account_security" },
+    // D8: sellers can also buy. The shop's Profile tab has "Sellers page" to come back.
+    { icon: ShoppingBag, label: "Shop on CampusMart", description: "Buy from other stores at your school", href: "/" },
   ];
 
   const settingsItems = [
