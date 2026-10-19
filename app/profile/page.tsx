@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { LogOut, Edit2, School, Store } from "lucide-react";
@@ -64,7 +64,7 @@ export default function ProfilePage() {
 
         <div className="flex flex-col gap-6">
           {/* User card */}
-          <div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 p-6 flex flex-col gap-4 mt-6">
+          <div className="bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-500/10 dark:to-indigo-500/10 rounded-2xl border border-blue-200 dark:border-blue-500/30 p-6 flex flex-col gap-4 mt-6">
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
@@ -86,7 +86,7 @@ export default function ProfilePage() {
               <Link
                 href="/profile/edit"
                 aria-label="Edit profile"
-                className="p-2 bg-card rounded-full border border-blue-200 hover:bg-blue-50 transition"
+                className="p-2 bg-card rounded-full border border-blue-200 dark:border-blue-500/30 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition"
               >
                 <Edit2 size={18} className="text-blue-600" />
               </Link>
@@ -143,7 +143,7 @@ export default function ProfilePage() {
             {/* Footer */}
             <div className="pt-4 border-t border-border-default">
               <p className="text-xs text-foreground-muted text-center">
-                Campusmart v1.0.0 â€¢ {new Date().getFullYear()}
+                Campusmart v1.0.0 • {new Date().getFullYear()}
               </p>
             </div>
           </div>

@@ -12,7 +12,8 @@ export const RANGE_OPTIONS: { value: AnalyticsRange; label: string; since: strin
 export const rangeSince = (range: AnalyticsRange) => RANGE_OPTIONS.find((o) => o.value === range)!.since;
 
 const TONES = {
-  dark: { idle: "text-white/70", active: "bg-card text-seller-dark shadow", frame: "bg-card/10 border-white/20" },
+  // On the dashboard's navy header, in both themes
+  dark: { idle: "text-white/70", active: "bg-white text-seller-dark shadow", frame: "bg-white/10 border-white/20" },
   light: { idle: "text-foreground-muted", active: "bg-seller-main text-white shadow", frame: "bg-card border-border-default" },
 };
 

@@ -178,3 +178,39 @@ You also said the seller-to-buyer link on `master` was for testing; it isn't car
   - "Pay with peace of mind"
   - "Delivered on campus"
 - **Public listings:** confirm you're happy for listings to be readable without an account (deviation 2).
+
+## 6. After the gate: unreadable text in dark mode (2026-10-19)
+
+You reported the profile card on staging: name and email were near-white on a light blue card. The app follows the
+phone's theme by default (`defaultTheme="system"`), so every dark-mode phone saw it.
+
+**Cause:** colours fixed for light mode, under text that follows the theme:
+- light Tailwind tints (`from-blue-50`, `bg-orange-50`, `bg-red-50`) and the `--main-subtle` / `--main-pale` tokens;
+- the seller blue `--seller-main` (`#13368B`) used as text on dark surfaces;
+- the waitlist page's hard-coded `#1c1c1c` text;
+- `bg-card` (dark in dark mode) where white was meant, on the seller dashboard's navy header.
+
+**Fix (light mode unchanged, but for the waitlist's input fill: `#f5f5f5` instead of `#fafafa`):**
+- `globals.css`: the `dark:` variant now follows next-themes' `.dark` class (a theme picked in Settings wins over the
+  phone's), and dark mode gets its own `--main-pale`, `--main-subtle`, `--seller-main` (`#4169e1`; white text on it
+  is 4.9:1) and `--seller-hover`.
+- `dark:` tints on the two profile cards, `InfoBanner`, and the info boxes on Active sessions, Email verification and
+  Clear cache.
+- Seller dashboard: the period switch's selected pill is white on the header in both themes; Add Product and View
+  Orders use the theme's text in dark mode. The seller avatar's initial is lighter in dark mode.
+- Waitlist: theme text and inputs instead of fixed light ones.
+- The profile footer's "•" was saved mis-encoded and showed as `â€¢` in both themes; fixed, with the file's stray
+  byte-order mark.
+
+**Evidence:**
+- [`contrast-scan.mjs`](evidence/phase10b-dark-mode/contrast-scan.mjs) opens every page as a guest, buyer, seller
+  and admin, in dark and light mode, and lists text under 3:1 contrast with what's behind it.
+  - **Before:** 101 spots only in dark mode, on 18 pages ([`contrast-scan-before.txt`](evidence/phase10b-dark-mode/contrast-scan-before.txt)).
+  - **After:** 0 on the guest, buyer and seller pages ([`contrast-scan-after.txt`](evidence/phase10b-dark-mode/contrast-scan-after.txt)).
+    The admin pages had none before or after the main fix. The last run left them out because the admin account
+    had used its 5 sign-in codes for the hour.
+- Screenshots in both themes: `dark-*` and `light-*` in the same folder.
+- Vitest `app/profile/page.test.tsx` (new): the card's dark tint and the footer's bullet. It fails on the old page.
+
+**Not changed:** the brand orange as text on white is 2.9:1, just under 3:1, in light mode only. That's a brand
+colour choice, so it stays unless you want a darker orange for text.

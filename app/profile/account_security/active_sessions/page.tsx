@@ -144,7 +144,7 @@ export default function ActiveSessionsPage() {
           </section>
         )}
 
-        <div className="mt-8 flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-2xl px-4 py-4">
+        <div className="mt-8 flex items-start gap-3 bg-orange-50 border border-orange-200 dark:bg-orange-500/10 dark:border-orange-500/30 rounded-2xl px-4 py-4">
           <div className="size-5 rounded-full border-2 border-main flex items-center justify-center shrink-0 mt-0.5">
             <span className="text-main text-[10px] font-bold">!</span>
           </div>

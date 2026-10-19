@@ -133,7 +133,7 @@ export default function ClearCachePage() {
           })}
 
           {/* Info banner */}
-          <div className="mt-2 flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-2xl px-4 py-3">
+          <div className="mt-2 flex items-start gap-3 bg-orange-50 border border-orange-200 dark:bg-orange-500/10 dark:border-orange-500/30 rounded-2xl px-4 py-3">
             <AlertCircle size={16} className="text-main shrink-0 mt-0.5" />
             <p className="text-xs text-foreground-muted leading-relaxed">
               Clearing cache won&apos;t delete your account data, saved items, or personal information.

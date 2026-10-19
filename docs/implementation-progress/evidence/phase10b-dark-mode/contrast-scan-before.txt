@@ -1,0 +1,529 @@
+Scanned 75 page visits in dark and light mode. Text under 3:1 only in dark mode: 101.
+
+## guest /
+  BOTH       2.9:1  "Sign in"  <a class="shrink-0 rounded-full bg-main px-4 py-2 text-sm font-semibold text-white">
+  BOTH       2.9:1  "Home"  <p class="font-medium">
+  LIGHT ONLY 2.9:1  "Change"  <a class="ml-auto shrink-0 font-semibold text-main">
+  LIGHT ONLY 2.9:1  "See all"  <p class="">
+  LIGHT ONLY 2.9:1  "From ₦14,000"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦3,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "See all"  <p class="">
+  LIGHT ONLY 2.9:1  "₦3,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "From ₦14,000"  <p class="font-dmSans tracking-tight text-main font-semibold">
+
+## guest /browse -> /categories
+  BOTH       2.9:1  "Newest"  <button class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition border bg-main tex">
+  BOTH       2.9:1  "Categories"  <p class="font-medium">
+  LIGHT ONLY 2.9:1  "₦3,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "From ₦14,000"  <p class="font-dmSans tracking-tight text-main font-semibold">
+
+## guest /categories
+  BOTH       2.9:1  "Newest"  <button class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition border bg-main tex">
+  BOTH       2.9:1  "Categories"  <p class="font-medium">
+  LIGHT ONLY 2.9:1  "₦3,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "From ₦14,000"  <p class="font-dmSans tracking-tight text-main font-semibold">
+
+## guest /productItem/7a0c2b1e-5f3d-4e8a-9c61-0d2f4b7e9a10
+  BOTH       2.9:1  "Add to Cart"  <p class="font-medium text-sm text-white">
+  LIGHT ONLY 2.9:1  "₦3,500"  <p class="text-main text-xl font-bold">
+  LIGHT ONLY 2.9:1  "Only"  <p class="text-xs font-semibold text-main">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+
+## guest /cart
+  LIGHT ONLY 2.9:1  "Browse products"  <a class="text-sm font-semibold text-main">
+  LIGHT ONLY 2.9:1  "See all"  <p class="">
+  LIGHT ONLY 2.9:1  "₦3,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "From ₦14,000"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "See all"  <p class="">
+  LIGHT ONLY 2.9:1  "₦0"  <p class="text-main font-semibold text-lg">
+
+## guest /onboarding/intro
+  BOTH       2.9:1  "Next"  <div class="flex items-center justify-center rounded-full font-medium transition-all duration-150 acti">
+
+## guest /onboarding/guest-school
+  DARK ONLY  1.07:1  "University of Lagos"  <span class="flex-1 font-medium">
+  BOTH       2.9:1  "Start browsing"  <div class="flex items-center justify-center rounded-full font-medium transition-all duration-150 acti">
+  LIGHT ONLY 2.9:1  "Join the waitlist"  <a class="font-semibold text-main">
+  LIGHT ONLY 2.9:1  "Sign in"  <a class="font-semibold text-main">
+
+## guest /onboarding/buyers/sign-in
+  BOTH       2.9:1  "Sign in"  <div class="flex items-center justify-center rounded-full font-medium transition-all duration-150 acti">
+  LIGHT ONLY 1.36:1  "|"  <span class="text-neutral-300 mx-1 text-lg">
+  LIGHT ONLY 2.9:1  "Recover it here"  <a class="text-main hover:underline">
+  LIGHT ONLY 2.9:1  "Create one here"  <a class="text-main hover:underline">
+
+## guest /onboarding/buyers/sign-up
+  BOTH       2.9:1  "Create an Account"  <div class="flex items-center justify-center rounded-full font-medium transition-all duration-150 acti">
+  LIGHT ONLY 1.36:1  "|"  <span class="text-neutral-300 mx-1 text-lg">
+  LIGHT ONLY 1.36:1  "|"  <span class="text-neutral-300 mx-1 text-lg">
+  LIGHT ONLY 2.9:1  "Terms of Service"  <button class="text-main hover:underline font-medium">
+  LIGHT ONLY 2.9:1  "Privacy Policy"  <button class="text-main hover:underline font-medium">
+  LIGHT ONLY 2.9:1  "Login here"  <a class="text-main hover:underline">
+
+## guest /onboarding/sellers/sign-in
+  DARK ONLY  1.63:1  "Recover it here"  <a class="text-seller-main hover:underline">
+  DARK ONLY  1.63:1  "Create one here"  <a class="text-seller-main hover:underline">
+  LIGHT ONLY 1.36:1  "|"  <span class="text-neutral-300 mx-1 text-lg">
+
+## guest /onboarding/sellers/sign-up
+  DARK ONLY  1.63:1  "Terms of Service"  <button class="text-seller-main hover:underline font-medium">
+  DARK ONLY  1.63:1  "Privacy Policy"  <button class="text-seller-main hover:underline font-medium">
+  DARK ONLY  1.63:1  "Login here"  <a class="text-seller-main hover:underline">
+  LIGHT ONLY 1.36:1  "|"  <span class="text-neutral-300 mx-1 text-lg">
+  LIGHT ONLY 1.36:1  "|"  <span class="text-neutral-300 mx-1 text-lg">
+
+## guest /onboarding/forgot-password
+  BOTH       2.9:1  "Send code"  <div class="flex items-center justify-center rounded-full font-medium transition-all duration-150 acti">
+  LIGHT ONLY 2.9:1  "Back to sign in"  <a class="text-main hover:underline">
+
+## guest /waitlist
+  DARK ONLY  1.04:1  "Sell to your campus."  <h1 class="text-[32px] font-bold leading-[1.15] text-[#1c1c1c] mb-3">
+  DARK ONLY  1.04:1  "Early Access"  <p class="text-[14px] font-bold text-[#1c1c1c]">
+  DARK ONLY  1.04:1  "Zero Commission"  <p class="text-[14px] font-bold text-[#1c1c1c]">
+  DARK ONLY  1.04:1  "Priority Support"  <p class="text-[14px] font-bold text-[#1c1c1c]">
+  DARK ONLY  1.04:1  "Reserve your spot"  <h2 class="text-[18px] font-bold text-[#1c1c1c] mb-1">
+  BOTH       2.9:1  "Seller Waitlist"  <span class="text-[12px] font-semibold px-3 py-1.5 rounded-full text-white">
+  BOTH       2.73:1  "Coming soon to your campus"  <span class="text-[12px] font-semibold text-[#ff681f]">
+  BOTH       2.9:1  "Join the Seller Waitlist →"  <button class="w-full py-4 rounded-2xl text-white font-bold text-[15px] transition-all active:scale-[0.98">
+  LIGHT ONLY 2.9:1  "Start before anyone else."  <span class="">
+  LIGHT ONLY 2.9:1  "Sign in here"  <a class="text-[#ff681f] font-semibold hover:underline">
+
+## guest /splash
+  LIGHT ONLY 2.9:1  "CampusMart"  <p class="text-main text-[38px] font-bold tracking-tighter leading-none">
+  LIGHT ONLY 2.16:1  "Browse. Buy. Sell Items"  <p class="text-main/70 text-[15px] font-medium tracking-tight">
+
+## guest /~offline
+  BOTH       2.9:1  "Try Again"  <button class="w-full bg-main text-white py-3 rounded-full font-medium hover:brightness-105 active:scale-">
+  LIGHT ONLY 2.9:1  "View Offline Cart"  <a class="w-full text-main font-medium py-3 rounded-full hover:bg-surface-muted active:scale-[0.98] ">
+
+## buyer /
+  BOTH       2.9:1  "Home"  <p class="font-medium">
+  LIGHT ONLY 2.9:1  "See all"  <p class="">
+  LIGHT ONLY 2.9:1  "From ₦14,000"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦3,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "See all"  <p class="">
+  LIGHT ONLY 2.9:1  "₦3,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "From ₦14,000"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "See all"  <p class="">
+
+## buyer /browse -> /categories
+  BOTH       2.9:1  "Newest"  <button class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition border bg-main tex">
+  BOTH       2.9:1  "Categories"  <p class="font-medium">
+  LIGHT ONLY 2.9:1  "₦3,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "From ₦14,000"  <p class="font-dmSans tracking-tight text-main font-semibold">
+
+## buyer /categories
+  BOTH       2.9:1  "Newest"  <button class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition border bg-main tex">
+  BOTH       2.9:1  "Categories"  <p class="font-medium">
+  LIGHT ONLY 2.9:1  "₦3,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "From ₦14,000"  <p class="font-dmSans tracking-tight text-main font-semibold">
+
+## buyer /productItem/7a0c2b1e-5f3d-4e8a-9c61-0d2f4b7e9a10
+  BOTH       2.9:1  "Add to Cart"  <p class="font-medium text-sm text-white">
+  LIGHT ONLY 2.9:1  "₦3,500"  <p class="text-main text-xl font-bold">
+  LIGHT ONLY 2.9:1  "Only"  <p class="text-xs font-semibold text-main">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+
+## buyer /stores/cd0f66a1-6be3-4579-af72-c5d11e6cef82
+  BOTH       2.9:1  "Items (2)"  <button class="rounded-full px-4 py-1.5 text-sm font-semibold bg-main text-white">
+  LIGHT ONLY 2.9:1  "₦3,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+
+## buyer /cart
+  LIGHT ONLY 2.9:1  "Browse products"  <a class="text-sm font-semibold text-main">
+  LIGHT ONLY 2.9:1  "See all"  <p class="">
+  LIGHT ONLY 2.9:1  "₦3,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "From ₦14,000"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "See all"  <p class="">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "From ₦14,000"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦0"  <p class="text-main font-semibold text-lg">
+
+## buyer /checkout
+  LIGHT ONLY 2.9:1  "Browse products"  <a class="text-sm font-semibold text-main">
+
+## buyer /favourites
+  BOTH       2.9:1  "Favourites"  <p class="font-medium">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="text-lg font-bold text-main">
+  LIGHT ONLY 2.9:1  "From ₦14,000"  <p class="text-lg font-bold text-main">
+  LIGHT ONLY 2.9:1  "See all"  <p class="">
+  LIGHT ONLY 2.9:1  "₦3,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "₦4,500"  <p class="font-dmSans tracking-tight text-main font-semibold">
+  LIGHT ONLY 2.9:1  "From ₦14,000"  <p class="font-dmSans tracking-tight text-main font-semibold">
+
+## buyer /orders/90ea552c-8810-40d8-b575-97fd88ab228f
+  LIGHT ONLY 2.9:1  "+234 809 000 0000"  <a class="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold text-main">
+  LIGHT ONLY 2.9:1  "Report a problem"  <button class="self-start text-xs font-semibold text-main underline">
+  LIGHT ONLY 2.9:1  "Rate"  <button class="shrink-0 rounded-full border border-main px-3 py-1 text-xs font-semibold text-main">
+
+## buyer /profile
+  BOTH       2.9:1  "Account"  <p class="font-medium">
+
+## buyer /profile/edit
+  BOTH       2.9:1  "Save profile"  <button class="w-full rounded-full bg-main py-4 text-sm font-bold text-white disabled:opacity-50">
+
+## buyer /profile/school
+  DARK ONLY  1.07:1  "University of Lagos"  <span class="flex-1 font-medium">
+  LIGHT ONLY 2.9:1  "Join the waitlist"  <a class="font-semibold text-main">
+
+## buyer /profile/notifications
+  BOTH       2.9:1  "Account"  <p class="font-medium">
+  LIGHT ONLY 2.9:1  "Load more"  <button class="self-center text-sm font-semibold text-main">
+
+## buyer /profile/settings
+  BOTH       2.9:1  "Account"  <p class="font-medium">
+
+## buyer /profile/settings/language
+  BOTH       2.9:1  "Account"  <p class="font-medium">
+
+## buyer /profile/settings/clear_cache
+  DARK ONLY  2.41:1  "Clearing cache won't delete your account data, sav"  <p class="text-xs text-foreground-muted leading-relaxed">
+  LIGHT ONLY 2.9:1  "12.3"  <p class="text-sm font-semibold shrink-0 text-main">
+  LIGHT ONLY 2.9:1  "4.8"  <p class="text-sm font-semibold shrink-0 text-main">
+  LIGHT ONLY 2.9:1  "5.1"  <p class="text-sm font-semibold shrink-0 text-main">
+  LIGHT ONLY 2.9:1  "2.3"  <p class="text-sm font-semibold shrink-0 text-main">
+  LIGHT ONLY 2.9:1  "Clear All Cache (24.5 MB)"  <button class="w-full rounded-full py-3.5 font-semibold text-[15px] border-2 transition-all border-main t">
+
+## buyer /profile/account_security
+  BOTH       2.9:1  "Account"  <p class="font-medium">
+  LIGHT ONLY 2.22:1  "Confirmed"  <p class="text-xs font-medium text-green-500">
+
+## buyer /profile/account_security/active_sessions
+  DARK ONLY  1.02:1  "Don't recognize a session?"  <p class="text-[15px] font-semibold text-foreground mb-0.5">
+  DARK ONLY  2.41:1  "Revoke it immediately and change your password."  <p class="text-sm text-foreground-muted">
+  BOTH       2.93:1  "This device"  <span class="shrink-0 bg-green-100 text-green-600 text-[11px] font-semibold px-2.5 py-1 rounded-full">
+  BOTH       2.73:1  "!"  <span class="text-main text-[10px] font-bold">
+  BOTH       2.9:1  "Account"  <p class="font-medium">
+  LIGHT ONLY 2.22:1  "Active now"  <p class="text-[13px] mt-1.5 font-semibold text-green-500">
+
+## buyer /profile/account_security/change_password
+  LIGHT ONLY 1.36:1  "|"  <span class="text-neutral-300 mx-1 text-lg">
+  LIGHT ONLY 1.36:1  "|"  <span class="text-neutral-300 mx-1 text-lg">
+  LIGHT ONLY 1.36:1  "|"  <span class="text-neutral-300 mx-1 text-lg">
+  LIGHT ONLY 1.36:1  "✓"  <span class="text-sm font-bold text-neutral-300">
+  LIGHT ONLY 1.36:1  "✓"  <span class="text-sm font-bold text-neutral-300">
+  LIGHT ONLY 1.36:1  "✓"  <span class="text-sm font-bold text-neutral-300">
+
+## buyer /profile/account_security/delete
+  DARK ONLY  1.05:1  "This can't be undone"  <p class="text-[15px] font-semibold text-foreground mb-0.5">
+  DARK ONLY  2.34:1  "You'd need a new account to use CampusMart again."  <p class="text-sm text-foreground-muted leading-relaxed">
+  BOTH       2.9:1  "Account"  <p class="font-medium">
+  LIGHT ONLY 1.36:1  "|"  <span class="text-neutral-300 mx-1 text-lg">
+
+## buyer /profile/account_security/email_verification
+  DARK ONLY  1.02:1  "Why verify your email?"  <p class="text-sm font-semibold text-foreground mb-1">
+  DARK ONLY  2.41:1  "Your school email proves you're part of the campus"  <p class="text-xs text-foreground-muted leading-relaxed">
+  BOTH       2.9:1  "Account"  <p class="font-medium">
+  LIGHT ONLY 2.22:1  "● Verified on"  <p class="text-xs font-medium text-green-500">
+
+## buyer /profile/help
+  BOTH       2.9:1  "Account"  <p class="font-medium">
+
+## buyer /profile/help/faq
+  BOTH       2.9:1  "All"  <button class="shrink-0 px-4 py-1.5 rounded-full text-sm font-medium border transition-all bg-main text-w">
+  BOTH       2.37:1  "Still need help? Contact Support"  <button class="w-full rounded-full border-2 border-main py-3.5 font-semibold text-[15px] text-main hover:">
+  BOTH       2.9:1  "Account"  <p class="font-medium">
+  LIGHT ONLY 2.9:1  "Orders"  <button class="shrink-0 px-4 py-1.5 rounded-full text-sm font-medium border transition-all bg-card text-m">
+  LIGHT ONLY 2.9:1  "Payments"  <button class="shrink-0 px-4 py-1.5 rounded-full text-sm font-medium border transition-all bg-card text-m">
+  LIGHT ONLY 2.9:1  "Returns"  <button class="shrink-0 px-4 py-1.5 rounded-full text-sm font-medium border transition-all bg-card text-m">
+
+## buyer /profile/help/terms
+  BOTH       2.9:1  "Account"  <p class="font-medium">
+  LIGHT ONLY 2.9:1  "Terms of Service"  <button class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all bg-card text-main shadow-sm">
+  LIGHT ONLY 2.66:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.66:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.66:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.66:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.66:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+  LIGHT ONLY 2.9:1  "•"  <span class="text-main font-bold">
+
+## buyer /profile/help/call_us
+  BOTH       2.9:1  "Account"  <p class="font-medium">
+
+## buyer /profile/help/email_support
+  BOTH       2.9:1  "Send message"  <button class="flex w-full items-center justify-center gap-2 rounded-full bg-main py-4 text-[15px] font-s">
+  BOTH       2.9:1  "Account"  <p class="font-medium">
+  LIGHT ONLY 2.9:1  "Report a problem"  <a class="font-semibold text-main">
+
+## buyer /profile/help/report
+  BOTH       2.9:1  "Send report"  <button class="flex w-full items-center justify-center gap-2 rounded-full bg-main py-4 text-[15px] font-s">
+  BOTH       2.9:1  "Account"  <p class="font-medium">
+  LIGHT ONLY 2.9:1  "your orders"  <a class="font-semibold text-main">
+
+## seller /sellers
+  DARK ONLY  1.4:1  "7 days"  <button class="flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition bg-card text-seller-dark ">
+  DARK ONLY  1.4:1  "Add Product"  <a class="bg-card flex items-center justify-center gap-2 w-full py-3.5 rounded-full shadow-md text-s">
+  DARK ONLY  1.18:1  "View Orders"  <a class="flex items-center justify-center gap-2 w-full py-3.5 rounded-full border border-seller-dar">
+  LIGHT ONLY 2.89:1  "New"  <span class="text-xs font-medium text-white/50">
+  LIGHT ONLY 2.89:1  "New"  <span class="text-xs font-medium text-white/50">
+  LIGHT ONLY 2.89:1  "New"  <span class="text-xs font-medium text-white/50">
+  LIGHT ONLY 1.09:1  "Desk lamp"  <p class="text-white text-xs font-medium leading-snug line-clamp-2">
+  LIGHT ONLY 1.09:1  "9"  <p class="text-white font-bold text-sm">
+  LIGHT ONLY 2.66:1  "View Analytics"  <a class="text-main font-semibold text-sm shrink-0">
+
+## seller /sellers/products/7a0c2b1e-5f3d-4e8a-9c61-0d2f4b7e9a10
+  DARK ONLY  1.63:1  "₦3,500"  <p class="text-xl font-bold text-seller-main shrink-0">
+
+## seller /sellers/addProduct
+  DARK ONLY  1.37:1  "See the list"  <button class="mt-2 ml-7 flex items-center gap-1 text-xs font-semibold text-seller-main">
+
+## seller /sellers/orders
+  DARK ONLY  1.63:1  "₦4,500"  <span class="text-sm font-bold text-seller-main">
+  DARK ONLY  1.63:1  "₦4,500"  <span class="text-sm font-bold text-seller-main">
+  DARK ONLY  1.63:1  "₦4,500"  <span class="text-sm font-bold text-seller-main">
+  DARK ONLY  1.63:1  "₦4,500"  <span class="text-sm font-bold text-seller-main">
+  DARK ONLY  1.63:1  "₦4,500"  <span class="text-sm font-bold text-seller-main">
+  DARK ONLY  1.63:1  "₦4,500"  <span class="text-sm font-bold text-seller-main">
+  LIGHT ONLY 2.9:1  "Waiting for a rider"  <span class="whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10px] font-semibold border-orang">
+  LIGHT ONLY 2.9:1  "Waiting for a rider"  <span class="whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10px] font-semibold border-orang">
+  LIGHT ONLY 2.9:1  "Waiting for a rider"  <span class="whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10px] font-semibold border-orang">
+  LIGHT ONLY 2.9:1  "Waiting for a rider"  <span class="whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10px] font-semibold border-orang">
+  LIGHT ONLY 2.9:1  "Waiting for a rider"  <span class="whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10px] font-semibold border-orang">
+  LIGHT ONLY 2.9:1  "Waiting for a rider"  <span class="whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10px] font-semibold border-orang">
+
+## seller /sellers/orders/503cff70-634d-4ca2-9e9f-0e655ed0f5de
+  DARK ONLY  1.63:1  "₦4,500"  <span class="text-seller-main">
+
+## seller /sellers/analytics
+  DARK ONLY  1.63:1  "Restock"  <a class="shrink-0 rounded-full border border-seller-main px-3 py-1.5 text-xs font-semibold text-sel">
+  DARK ONLY  1.63:1  "See all"  <a class="text-xs font-semibold text-seller-main">
+  LIGHT ONLY 2.9:1  "1 left"  <p class="mt-0.5 text-xs font-semibold text-main">
+
+## seller /sellers/earnings
+  DARK ONLY  1.63:1  "Change"  <button class="flex shrink-0 items-center gap-1 rounded-full border border-border-default bg-card px-3 py">
+
+## seller /sellers/notifications
+  DARK ONLY  1.37:1  "Mark all as read"  <button class="flex items-center gap-1 text-xs font-semibold text-seller-main">
+  DARK ONLY  1.07:1  "Your listing was taken down"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  ""Toy gun for display" was taken down: Prohibited i"  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sun, 18 Oct, 20:43"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.07:1  "Your listing was taken down"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  ""Toy gun for display" was taken down: Prohibited i"  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sun, 18 Oct, 20:42"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.07:1  "Some items are running low"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  "1 item has 5 or fewer left. Restock so buyers can "  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sun, 18 Oct, 07:10"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.07:1  "Some items are running low"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  "1 item has 5 or fewer left. Restock so buyers can "  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sun, 18 Oct, 07:00"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.07:1  "Order CM-64TSP8 reached the buyer"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  "Your payout follows in 48 hours unless the buyer r"  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sat, 17 Oct, 23:09"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.07:1  "CM-64TSP8 picked up"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  "Musa Bello has collected it."  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sat, 17 Oct, 23:09"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.07:1  "A rider is coming for CM-64TSP8"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  "Musa Bello will collect it Sun, 18 Oct, 00:30 to 0"  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sat, 17 Oct, 23:09"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.07:1  "New order CM-64TSP8"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  "A CampusMart rider will collect it from you by Tue"  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sat, 17 Oct, 23:09"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.07:1  "Order CM-XVNYP6 reached the buyer"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  "Your payout follows in 48 hours unless the buyer r"  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sat, 17 Oct, 23:07"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.07:1  "CM-XVNYP6 picked up"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  "Musa Bello has collected it."  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sat, 17 Oct, 23:07"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.07:1  "A rider is coming for CM-XVNYP6"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  "Musa Bello will collect it Sun, 18 Oct, 00:30 to 0"  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sat, 17 Oct, 23:07"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.07:1  "New order CM-XVNYP6"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  "A CampusMart rider will collect it from you by Tue"  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sat, 17 Oct, 23:07"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.07:1  "Order CM-TAPCAR reached the buyer"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  "Your payout follows in 48 hours unless the buyer r"  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sat, 17 Oct, 23:05"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.07:1  "CM-TAPCAR picked up"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  "Musa Bello has collected it."  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sat, 17 Oct, 23:04"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.07:1  "A rider is coming for CM-TAPCAR"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  "Musa Bello will collect it Sun, 18 Oct, 00:30 to 0"  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sat, 17 Oct, 23:04"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.07:1  "New order CM-TAPCAR"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  "A CampusMart rider will collect it from you by Tue"  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sat, 17 Oct, 23:04"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.07:1  "New order CM-A9JWGQ"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  "A CampusMart rider will collect it from you by Tue"  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sat, 17 Oct, 23:04"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.07:1  "Your payout account was changed"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  "Payouts now go to Guaranty Trust Bank ••6789 (CHID"  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sat, 17 Oct, 18:56"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.07:1  "New order CM-D89CLM"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  "A CampusMart rider will collect it from you by Tue"  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sat, 17 Oct, 18:56"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.07:1  "Your payout account was changed"  <span class="block text-sm font-semibold text-foreground">
+  DARK ONLY  2.3:1  "Payouts now go to Guaranty Trust Bank ••6789 (CHID"  <span class="mt-0.5 block break-words text-sm text-foreground-muted">
+  DARK ONLY  2.3:1  "Sat, 17 Oct, 18:56"  <span class="mt-1 block text-xs text-foreground-muted">
+  DARK ONLY  1.37:1  "Load more"  <button class="self-center text-sm font-semibold text-seller-main">
+
+## seller /sellers/profile
+  DARK ONLY  1.04:1  "Chidi Gadgets"  <h2 class="text-lg font-semibold text-foreground truncate">
+  DARK ONLY  2.29:1  "chidi.store@students.unilag.edu.ng"  <p class="text-sm text-foreground-muted truncate">
+  DARK ONLY  2.29:1  "5.0 from 3 reviews"  <p class="mt-1 flex items-center gap-1 text-xs text-foreground-muted">
+  DARK ONLY  2.69:1  "Buyers see when you're around for riders and picku"  <p class="text-xs text-foreground-muted">
+  DARK ONLY  1.63:1  "Edit"  <button class="flex shrink-0 items-center gap-1 rounded-full border border-border-default bg-card px-3 py">
+
+## seller /profile
+  BOTH       2.9:1  "Account"  <p class="font-medium">
+
+## admin /admin
+  BOTH       2.6:1  "Admin"  <span class="rounded-full bg-main-subtle px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wid">
+  BOTH       2.9:1  "Overview"  <a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors bg-ma">
+
+## admin /admin/listings
+  BOTH       2.6:1  "Admin"  <span class="rounded-full bg-main-subtle px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wid">
+  BOTH       2.9:1  "Listings"  <a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors bg-ma">
+  BOTH       2.9:1  "To review"  <button class="shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition-all border-main ">
+
+## admin /admin/verifications
+  BOTH       2.6:1  "Admin"  <span class="rounded-full bg-main-subtle px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wid">
+  BOTH       2.9:1  "Verifications"  <a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors bg-ma">
+  BOTH       2.9:1  "Waiting"  <button class="shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition-all border-main ">
+
+## admin /admin/users
+  BOTH       2.6:1  "Admin"  <span class="rounded-full bg-main-subtle px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wid">
+  BOTH       2.9:1  "Users"  <a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors bg-ma">
+  BOTH       2.9:1  "Everyone"  <button class="shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition-all border-main ">
+
+## admin /admin/reports
+  BOTH       2.6:1  "Admin"  <span class="rounded-full bg-main-subtle px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wid">
+  BOTH       2.9:1  "Reports"  <a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors bg-ma">
+  BOTH       2.9:1  "Open"  <button class="shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition-all border-main ">
+
+## admin /admin/reviews
+  BOTH       2.6:1  "Admin"  <span class="rounded-full bg-main-subtle px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wid">
+  BOTH       2.9:1  "Reviews"  <a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors bg-ma">
+  BOTH       2.9:1  "Shown"  <button class="shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition-all border-main ">
+
+## admin /admin/payouts
+  BOTH       2.6:1  "Admin"  <span class="rounded-full bg-main-subtle px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wid">
+  BOTH       2.9:1  "Payouts"  <a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors bg-ma">
+  BOTH       2.9:1  "Failed"  <button class="shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition-all border-main ">
+
+## admin /admin/deliveries
+  BOTH       2.6:1  "Admin"  <span class="rounded-full bg-main-subtle px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wid">
+  BOTH       2.9:1  "Deliveries"  <a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors bg-ma">
+  BOTH       2.9:1  "Waiting for a rider"  <button class="shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition-all border-main ">
+  LIGHT ONLY 2.9:1  "Waiting over 5 hours"  <p class="mt-1 flex items-center gap-1 text-xs font-semibold text-main">
+  LIGHT ONLY 2.9:1  "Waiting over 5 hours"  <p class="mt-1 flex items-center gap-1 text-xs font-semibold text-main">
+  LIGHT ONLY 2.9:1  "Waiting over 5 hours"  <p class="mt-1 flex items-center gap-1 text-xs font-semibold text-main">
+  LIGHT ONLY 2.9:1  "Waiting over 5 hours"  <p class="mt-1 flex items-center gap-1 text-xs font-semibold text-main">
+  LIGHT ONLY 2.9:1  "Waiting over 5 hours"  <p class="mt-1 flex items-center gap-1 text-xs font-semibold text-main">
+  LIGHT ONLY 2.9:1  "Waiting over 5 hours"  <p class="mt-1 flex items-center gap-1 text-xs font-semibold text-main">
+
+## admin /admin/disputes
+  BOTH       2.6:1  "Admin"  <span class="rounded-full bg-main-subtle px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wid">
+  BOTH       2.9:1  "Disputes"  <a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors bg-ma">
+  BOTH       2.9:1  "Open disputes"  <button class="shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition-all border-main ">
+
+## admin /admin/disputes/5a3ff1f4-d690-40f0-b6ea-caf44f5c30a7
+  BOTH       2.6:1  "Admin"  <span class="rounded-full bg-main-subtle px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wid">
+  BOTH       2.9:1  "Disputes"  <a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors bg-ma">
+
+## admin /admin/riders
+  BOTH       2.6:1  "Admin"  <span class="rounded-full bg-main-subtle px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wid">
+  BOTH       2.9:1  "Riders"  <a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors bg-ma">
+  BOTH       2.9:1  "Invite rider"  <button class="flex items-center justify-center rounded-full font-medium transition-all duration-150 acti">
+  BOTH       2.9:1  "All"  <button class="shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition-all border-main ">
+
+## admin /admin/institutions
+  BOTH       2.6:1  "Admin"  <span class="rounded-full bg-main-subtle px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wid">
+  BOTH       2.9:1  "Institutions"  <a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors bg-ma">
+  BOTH       2.9:1  "Add institution"  <button class="flex items-center justify-center rounded-full font-medium transition-all duration-150 acti">
+  BOTH       2.9:1  "All"  <button class="shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition-all border-main ">
+  LIGHT ONLY 2.9:1  "0 stations"  <a class="font-semibold text-main hover:underline">
+  LIGHT ONLY 2.9:1  "0 stations"  <a class="font-semibold text-main hover:underline">
+  LIGHT ONLY 2.9:1  "0 stations"  <a class="font-semibold text-main hover:underline">
+  LIGHT ONLY 2.9:1  "0 stations"  <a class="font-semibold text-main hover:underline">
+  LIGHT ONLY 2.9:1  "5 stations"  <a class="font-semibold text-main hover:underline">
+  LIGHT ONLY 2.9:1  "0 stations"  <a class="font-semibold text-main hover:underline">
+
+## admin /admin/places
+  BOTH       2.6:1  "Admin"  <span class="rounded-full bg-main-subtle px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wid">
+  BOTH       2.9:1  "Campus places"  <a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors bg-ma">
+  BOTH       2.9:1  "Add place"  <button class="flex items-center justify-center rounded-full font-medium transition-all duration-150 acti">
+  BOTH       2.9:1  "All"  <button class="shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition-all border-main ">
+
+## admin /admin/stations
+  BOTH       2.6:1  "Admin"  <span class="rounded-full bg-main-subtle px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wid">
+  BOTH       2.9:1  "Pickup stations"  <a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors bg-ma">
+  BOTH       2.9:1  "Add station"  <button class="flex items-center justify-center rounded-full font-medium transition-all duration-150 acti">
+  BOTH       2.9:1  "All"  <button class="shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition-all border-main ">
+  LIGHT ONLY 2.9:1  "+234 802 555 0101"  <a class="mt-0.5 inline-flex items-center gap-1 whitespace-nowrap text-xs font-semibold text-main ho">
+  LIGHT ONLY 2.9:1  "+234 802 555 0101"  <a class="mt-0.5 inline-flex items-center gap-1 whitespace-nowrap text-xs font-semibold text-main ho">
+  LIGHT ONLY 2.9:1  "+234 802 555 0101"  <a class="mt-0.5 inline-flex items-center gap-1 whitespace-nowrap text-xs font-semibold text-main ho">
+  LIGHT ONLY 2.9:1  "+2348000000001"  <a class="mt-0.5 inline-flex items-center gap-1 whitespace-nowrap text-xs font-semibold text-main ho">
+  LIGHT ONLY 2.9:1  "+2348000000002"  <a class="mt-0.5 inline-flex items-center gap-1 whitespace-nowrap text-xs font-semibold text-main ho">
+
+## admin /admin/settings
+  BOTH       2.6:1  "Admin"  <span class="rounded-full bg-main-subtle px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wid">
+  BOTH       2.9:1  "Settings"  <a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors bg-ma">
+  BOTH       2.9:1  "Save settings"  <button class="flex items-center justify-center rounded-full font-medium transition-all duration-150 acti">
+  LIGHT ONLY 2.9:1  "Switched off"  <p class="mt-0.5 text-xs font-medium text-main">
+  LIGHT ONLY 2.9:1  "Add places"  <a class="font-semibold text-main hover:underline">
+  LIGHT ONLY 2.9:1  "Switched off"  <p class="mt-0.5 text-xs font-medium text-main">
+  LIGHT ONLY 2.9:1  "Add places"  <a class="font-semibold text-main hover:underline">
+  LIGHT ONLY 2.9:1  "Switched off"  <p class="mt-0.5 text-xs font-medium text-main">
+  LIGHT ONLY 2.9:1  "Add places"  <a class="font-semibold text-main hover:underline">
+  LIGHT ONLY 2.9:1  "Add places"  <a class="font-semibold text-main hover:underline">
+  LIGHT ONLY 2.9:1  "3"  <a class="font-semibold text-main hover:underline">
+  LIGHT ONLY 2.9:1  "Switched off"  <p class="mt-0.5 text-xs font-medium text-main">
+  LIGHT ONLY 2.9:1  "Add places"  <a class="font-semibold text-main hover:underline">
+
+## admin /admin/audit
+  BOTH       2.6:1  "Admin"  <span class="rounded-full bg-main-subtle px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wid">
+  BOTH       2.9:1  "Audit log"  <a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors bg-ma">

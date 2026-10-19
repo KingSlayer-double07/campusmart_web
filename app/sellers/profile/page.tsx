@@ -39,7 +39,7 @@ const inputClass =
 function StoreLogo({ profile, size = 56 }: { profile: SellerProfile; size?: number }) {
   return (
     <div
-      className="relative shrink-0 overflow-hidden rounded-full bg-seller-main/10 flex items-center justify-center text-seller-main font-bold"
+      className="relative shrink-0 overflow-hidden rounded-full bg-seller-main/10 flex items-center justify-center text-seller-main dark:text-blue-200 font-bold"
       style={{ width: size, height: size }}
     >
       {profile.logoUrl ? (
@@ -257,7 +257,7 @@ export default function ProfilePage() {
             </button>
           </div>
         ) : (
-          <div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200 p-5 flex flex-col gap-4">
+          <div className="bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-500/10 dark:to-indigo-500/10 rounded-lg border border-blue-200 dark:border-blue-500/30 p-5 flex flex-col gap-4">
             <div className="flex items-start gap-3">
               <StoreLogo profile={profile} />
               <div className="flex-1 min-w-0">

@@ -77,7 +77,7 @@ export default function EmailVerificationPage() {
                 </Link>
               )}
 
-              <div className="flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-2xl px-4 py-4">
+              <div className="flex items-start gap-3 bg-orange-50 border border-orange-200 dark:bg-orange-500/10 dark:border-orange-500/30 rounded-2xl px-4 py-4">
                 <AlertCircle size={18} className="text-main shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-semibold text-foreground mb-1">Why verify your email?</p>

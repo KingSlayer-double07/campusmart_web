@@ -170,14 +170,14 @@ export default function SellersPage() {
         <section className="flex flex-col gap-3 px-4 pt-2 pb-6 border-t border-border-default">
           <Link
             href="/sellers/addProduct"
-            className="bg-card flex items-center justify-center gap-2 w-full py-3.5 rounded-full shadow-md text-seller-dark font-semibold text-sm hover:bg-seller-dark/5 transition"
+            className="bg-card flex items-center justify-center gap-2 w-full py-3.5 rounded-full shadow-md text-seller-dark dark:text-foreground font-semibold text-sm hover:bg-seller-dark/5 dark:hover:bg-white/5 transition"
           >
             <Package size={18} />
             Add Product
           </Link>
           <Link
             href="/sellers/orders"
-            className="flex items-center justify-center gap-2 w-full py-3.5 rounded-full border border-seller-dark text-seller-dark font-semibold text-sm hover:bg-seller-dark/5 transition"
+            className="flex items-center justify-center gap-2 w-full py-3.5 rounded-full border border-seller-dark text-seller-dark dark:border-border-muted dark:text-foreground font-semibold text-sm hover:bg-seller-dark/5 dark:hover:bg-white/5 transition"
           >
             <ClipboardList size={18} />
             View Orders

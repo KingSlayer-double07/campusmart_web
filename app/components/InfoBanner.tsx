@@ -15,7 +15,9 @@ export default function InfoBanner({
   className = "",
 }: InfoBannerProps) {
   const isWarning = variant === "warning";
-  const bgClass = isWarning ? "bg-orange-50 border-orange-200" : "bg-red-50 border-red-200";
+  const bgClass = isWarning
+    ? "bg-orange-50 border-orange-200 dark:bg-orange-500/10 dark:border-orange-500/30"
+    : "bg-red-50 border-red-200 dark:bg-red-500/10 dark:border-red-500/30";
   const iconColor = isWarning ? "text-main border-main" : "text-red-500 border-red-500";
 
   return (

@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* dark: utilities follow the theme next-themes sets (the .dark class), so a theme picked in Settings wins
+   over the phone's own setting */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   /* Surfaces */
   --background: #ffffff;
@@ -53,6 +57,12 @@
   /* Borders */
   --border-default: #27272a;
   --border-muted: #3f3f46;
+
+  /* Tints and the seller blue: the light-mode values are unreadable under light text or on dark surfaces */
+  --main-pale: #3b2416;
+  --main-subtle: #2a1a10;
+  --seller-main: #4169e1;
+  --seller-hover: #3457c4;
 }
 
 @theme{

@@ -102,12 +102,12 @@ export default function WaitlistPage() {
         {status !== "success" && (
           <>
             <section className="mb-8">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-50 border border-orange-100 mb-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-50 border border-orange-100 dark:bg-orange-500/10 dark:border-orange-500/30 mb-4">
                 <span className="size-2 rounded-full bg-[#ff681f] animate-pulse" />
                 <span className="text-[12px] font-semibold text-[#ff681f]">Coming soon to your campus</span>
               </div>
 
-              <h1 className="text-[32px] font-bold leading-[1.15] text-[#1c1c1c] mb-3">
+              <h1 className="text-[32px] font-bold leading-[1.15] text-foreground mb-3">
                 Sell to your campus.<br />
                 <span style={{ color: "#ff681f" }}>Start before anyone else.</span>
               </h1>
@@ -132,7 +132,7 @@ export default function WaitlistPage() {
                     {b.icon}
                   </div>
                   <div>
-                    <p className="text-[14px] font-bold text-[#1c1c1c]">{b.title}</p>
+                    <p className="text-[14px] font-bold text-foreground">{b.title}</p>
                     <p className="text-[13px] text-foreground-muted font-medium mt-0.5">{b.desc}</p>
                   </div>
                 </div>
@@ -141,7 +141,7 @@ export default function WaitlistPage() {
 
             {/* ── Form ── */}
             <section className="bg-card rounded-3xl border border-border-default shadow-[0_4px_24px_-6px_rgba(0,0,0,0.08)] p-5">
-              <h2 className="text-[18px] font-bold text-[#1c1c1c] mb-1">Reserve your spot</h2>
+              <h2 className="text-[18px] font-bold text-foreground mb-1">Reserve your spot</h2>
               <p className="text-[13px] text-foreground-muted font-medium mb-5">
                 We&apos;ll notify you the moment doors open.
               </p>
@@ -159,7 +159,7 @@ export default function WaitlistPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                    className="w-full px-4 py-3.5 rounded-xl border border-border-default bg-[#fafafa] text-[14.5px] font-medium text-[#1c1c1c] placeholder:text-foreground-muted outline-none transition-all focus:border-[#ff681f] focus:ring-2 focus:ring-[#ff681f]/15"
+                    className="w-full px-4 py-3.5 rounded-xl border border-border-default bg-surface-muted text-[14.5px] font-medium text-foreground placeholder:text-foreground-muted outline-none transition-all focus:border-[#ff681f] focus:ring-2 focus:ring-[#ff681f]/15"
                   />
                 </div>
 
@@ -175,7 +175,7 @@ export default function WaitlistPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full px-4 py-3.5 rounded-xl border border-border-default bg-[#fafafa] text-[14.5px] font-medium text-[#1c1c1c] placeholder:text-foreground-muted outline-none transition-all focus:border-[#ff681f] focus:ring-2 focus:ring-[#ff681f]/15"
+                    className="w-full px-4 py-3.5 rounded-xl border border-border-default bg-surface-muted text-[14.5px] font-medium text-foreground placeholder:text-foreground-muted outline-none transition-all focus:border-[#ff681f] focus:ring-2 focus:ring-[#ff681f]/15"
                   />
                 </div>
 
@@ -190,7 +190,7 @@ export default function WaitlistPage() {
                     placeholder="e.g. University of Lagos"
                     value={school}
                     onChange={(e) => setSchool(e.target.value)}
-                    className="w-full px-4 py-3.5 rounded-xl border border-border-default bg-[#fafafa] text-[14.5px] font-medium text-[#1c1c1c] placeholder:text-foreground-muted outline-none transition-all focus:border-[#ff681f] focus:ring-2 focus:ring-[#ff681f]/15"
+                    className="w-full px-4 py-3.5 rounded-xl border border-border-default bg-surface-muted text-[14.5px] font-medium text-foreground placeholder:text-foreground-muted outline-none transition-all focus:border-[#ff681f] focus:ring-2 focus:ring-[#ff681f]/15"
                   />
                 </div>
 
@@ -203,7 +203,7 @@ export default function WaitlistPage() {
                     id="waitlist-category"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-4 py-3.5 rounded-xl border border-border-default bg-[#fafafa] text-[14.5px] font-medium text-[#1c1c1c] outline-none transition-all focus:border-[#ff681f] focus:ring-2 focus:ring-[#ff681f]/15 appearance-none"
+                    className="w-full px-4 py-3.5 rounded-xl border border-border-default bg-surface-muted text-[14.5px] font-medium text-foreground outline-none transition-all focus:border-[#ff681f] focus:ring-2 focus:ring-[#ff681f]/15 appearance-none"
                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 14px center" }}
                   >
                     <option value="" disabled>Select a category</option>
@@ -261,13 +261,13 @@ export default function WaitlistPage() {
               </svg>
             </div>
             <div>
-              <h2 className="text-[28px] font-bold text-[#1c1c1c] mb-2">You&apos;re on the list! 🎉</h2>
+              <h2 className="text-[28px] font-bold text-foreground mb-2">You&apos;re on the list! 🎉</h2>
               <p className="text-[15px] text-foreground-muted font-medium leading-relaxed">
-                We&apos;ve saved your spot, <strong className="text-[#1c1c1c]">{name.split(" ")[0]}</strong>.<br />
-                We&apos;ll email <strong className="text-[#1c1c1c]">{email}</strong> when we&apos;re ready to go live.
+                We&apos;ve saved your spot, <strong className="text-foreground">{name.split(" ")[0]}</strong>.<br />
+                We&apos;ll email <strong className="text-foreground">{email}</strong> when we&apos;re ready to go live.
               </p>
             </div>
-            <div className="w-full p-4 bg-orange-50 border border-orange-100 rounded-2xl text-[13.5px] text-[#ff681f] font-semibold">
+            <div className="w-full p-4 bg-orange-50 border border-orange-100 dark:bg-orange-500/10 dark:border-orange-500/30 rounded-2xl text-[13.5px] text-[#ff681f] font-semibold">
               Tell a friend — every seller you refer moves you up the queue
             </div>
             <Link
