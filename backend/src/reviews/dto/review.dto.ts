@@ -65,6 +65,18 @@ export class ReviewPageDto {
   nextCursor!: string | null;
 }
 
+// GET /listings/:id/reviews: a guest says which school they're browsing (decision 2026-10-19)
+export class ListingReviewsQueryDto extends CursorQueryDto {
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'Guests only: the school they picked to browse. Ignored when signed in.',
+  })
+  @IsOptional()
+  @IsUUID()
+  institutionId?: string;
+}
+
 export class AdminReviewsQueryDto extends CursorQueryDto {
   @ApiPropertyOptional({
     enum: ['SHOWN', 'HIDDEN'],

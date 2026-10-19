@@ -634,10 +634,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Browse listings at your institution
+         * Browse listings at your institution, or a guest’s chosen one
          * @description Active listings only. Search matches the title or description. Sorts: newest, price_asc, price_desc, popular (views in the last 7 days; first 200 results).
          */
-        get: operations["ListingsController_browse"];
+        get: operations["ListingsBrowseController_browse"];
         put?: never;
         /**
          * Create a listing (sellers)
@@ -659,9 +659,9 @@ export interface paths {
         };
         /**
          * One listing with photos, options and seller
-         * @description Records a view unless you're the seller. The seller also sees their own drafts here.
+         * @description Records a view for a signed-in buyer, not the seller or a guest. The seller also sees their own drafts here.
          */
-        get: operations["ListingsController_findOne"];
+        get: operations["ListingsBrowseController_findOne"];
         put?: never;
         post?: never;
         /** Delete your listing (soft delete) */
@@ -683,7 +683,7 @@ export interface paths {
             cookie?: never;
         };
         /** Up to 10 active listings in the same category */
-        get: operations["ListingsController_related"];
+        get: operations["ListingsBrowseController_related"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1966,6 +1966,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/listings/{id}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A listing’s reviews, newest first */
+        get: operations["ListingReviewsController_forListing"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/seller-orders/{id}/reviews": {
         parameters: {
             query?: never;
@@ -1980,23 +1997,6 @@ export interface paths {
          * @description The buyer only, once the store order is DELIVERED or COLLECTED; one review per item per store order. No edits (R4).
          */
         post: operations["ReviewsController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/listings/{id}/reviews": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** A listing’s reviews, newest first */
-        get: operations["ReviewsController_forListing"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4246,6 +4246,10 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        ReviewPageDto: {
+            items: components["schemas"]["ReviewDto"][];
+            nextCursor: string | null;
+        };
         CreateReviewDto: {
             /**
              * Format: uuid
@@ -4254,10 +4258,6 @@ export interface components {
             listingId: string;
             rating: number;
             comment?: string;
-        };
-        ReviewPageDto: {
-            items: components["schemas"]["ReviewDto"][];
-            nextCursor: string | null;
         };
         AdminReviewDto: {
             /** Format: uuid */
@@ -6323,12 +6323,14 @@ export interface operations {
             };
         };
     };
-    ListingsController_browse: {
+    ListingsBrowseController_browse: {
         parameters: {
             query?: {
                 /** @description nextCursor from the previous page */
                 cursor?: string;
                 limit?: number;
+                /** @description Guests only: the school they picked to browse. Ignored when signed in, where it is always your own school. */
+                institutionId?: string;
                 q?: string;
                 category?: components["schemas"]["ListingCategory"];
                 condition?: components["schemas"]["ProductCondition"];
@@ -6357,6 +6359,7 @@ export interface operations {
                     };
                 };
             };
+            /** @description UNAUTHENTICATED: a session that has ended, or a guest without institutionId */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -6365,8 +6368,17 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /** @description INSTITUTION_INACTIVE: the guest’s school is switched off */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Guests: no such school */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6449,9 +6461,12 @@ export interface operations {
             };
         };
     };
-    ListingsController_findOne: {
+    ListingsBrowseController_findOne: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Guests only: the school they picked to browse. Ignored when signed in, where it is always your own school. */
+                institutionId?: string;
+            };
             header?: never;
             path: {
                 id: string;
@@ -6474,6 +6489,7 @@ export interface operations {
                     };
                 };
             };
+            /** @description UNAUTHENTICATED: a session that has ended, or a guest without institutionId */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -6482,7 +6498,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /** @description INSTITUTION_INACTIVE: the guest’s school is switched off */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6491,7 +6507,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description Not in your institution, not active, deleted, or (owner routes) not yours */
+            /** @description Not at this school, not active, or deleted; or (guests) no such school */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -6545,7 +6561,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description Not in your institution, not active, deleted, or (owner routes) not yours */
+            /** @description Not in your institution, deleted, or not yours */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -6620,7 +6636,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description Not in your institution, not active, deleted, or (owner routes) not yours */
+            /** @description Not in your institution, deleted, or not yours */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -6640,9 +6656,12 @@ export interface operations {
             };
         };
     };
-    ListingsController_related: {
+    ListingsBrowseController_related: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Guests only: the school they picked to browse. Ignored when signed in, where it is always your own school. */
+                institutionId?: string;
+            };
             header?: never;
             path: {
                 id: string;
@@ -6665,6 +6684,7 @@ export interface operations {
                     };
                 };
             };
+            /** @description UNAUTHENTICATED: a session that has ended, or a guest without institutionId */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -6673,7 +6693,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description EMAIL_NOT_VERIFIED */
+            /** @description INSTITUTION_INACTIVE: the guest’s school is switched off */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6682,7 +6702,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description Not in your institution, not active, deleted, or (owner routes) not yours */
+            /** @description Not at this school, not active, or deleted; or (guests) no such school */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -6748,7 +6768,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description Not in your institution, not active, deleted, or (owner routes) not yours */
+            /** @description Not in your institution, deleted, or not yours */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -11349,6 +11369,74 @@ export interface operations {
             };
         };
     };
+    ListingReviewsController_forListing: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page */
+                cursor?: string;
+                limit?: number;
+                /** @description Guests only: the school they picked to browse. Ignored when signed in. */
+                institutionId?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["ReviewPageDto"];
+                        /** Format: date-time */
+                        timestamp: string;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED: a session that has ended, or a guest without institutionId */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description INSTITUTION_INACTIVE: the guest’s school is switched off */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
     ReviewsController_create: {
         parameters: {
             query?: never;
@@ -11421,71 +11509,6 @@ export interface operations {
             };
             /** @description ALREADY_REVIEWED */
             409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    ReviewsController_forListing: {
-        parameters: {
-            query?: {
-                /** @description nextCursor from the previous page */
-                cursor?: string;
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["ReviewPageDto"];
-                        /** Format: date-time */
-                        timestamp: string;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-            /** @description EMAIL_NOT_VERIFIED */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-            404: {
                 headers: {
                     [name: string]: unknown;
                 };

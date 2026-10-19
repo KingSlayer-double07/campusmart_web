@@ -6,6 +6,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Length,
   Max,
   MaxLength,
@@ -35,8 +36,27 @@ class PageQueryDto {
   limit: number = 20;
 }
 
+const GUEST_SCHOOL = {
+  format: 'uuid',
+  description:
+    'Guests only: the school they picked to browse. Ignored when signed in, where it is always your own school.',
+} as const;
+
+// GET /listings/:id and /related: a guest says which school they're browsing
+export class GuestSchoolQueryDto {
+  @ApiPropertyOptional(GUEST_SCHOOL)
+  @IsOptional()
+  @IsUUID()
+  institutionId?: string;
+}
+
 // GET /listings (guide 3.1)
 export class ListListingsQueryDto extends PageQueryDto {
+  @ApiPropertyOptional(GUEST_SCHOOL)
+  @IsOptional()
+  @IsUUID()
+  institutionId?: string;
+
   @ApiPropertyOptional({ maxLength: 100 })
   @IsOptional()
   @Trim()

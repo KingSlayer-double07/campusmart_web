@@ -91,6 +91,7 @@ describe('ListingsService', () => {
     sellerOrder: { count: jest.fn() },
     orderItem: { findMany: jest.fn() },
     sellerProfile: { findUnique: jest.fn() },
+    institution: { findUnique: jest.fn() },
     $transaction: jest.fn(),
     $executeRaw: jest.fn(),
     $queryRaw: jest.fn(),
@@ -298,6 +299,64 @@ describe('ListingsService', () => {
       const asOwner = await service.findOne(seller, 'l1');
       expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
       expect(asOwner.variants).toHaveLength(3);
+    });
+  });
+
+  describe('guests (decision 2026-10-19)', () => {
+    it('browse the school they picked, if it is switched on', async () => {
+      prisma.institution.findUnique.mockResolvedValue({ isActive: true });
+      prisma.listing.findMany.mockResolvedValue([]);
+      await service.browse(undefined, {
+        limit: 20,
+        sort: 'newest',
+        institutionId: 'school-b',
+      });
+      expect(prisma.listing.findMany.mock.calls[0][0].where).toMatchObject({
+        institutionId: 'school-b',
+        status: ListingStatus.ACTIVE,
+      });
+    });
+
+    it('need a school, which must exist and be switched on', async () => {
+      await expect(
+        service.browse(undefined, { limit: 20, sort: 'newest' }),
+      ).rejects.toMatchObject({ status: 401 });
+      prisma.institution.findUnique.mockResolvedValue(null);
+      await expect(
+        service.findOne(undefined, 'l1', 'school-x'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      prisma.institution.findUnique.mockResolvedValue({ isActive: false });
+      const off = await service
+        .related(undefined, 'l1', 'school-b')
+        .catch((e: unknown) => e);
+      expect(codeOf(off)).toBe('INSTITUTION_INACTIVE');
+      expect(prisma.listing.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('see active listings only, and their look isn’t counted as a view', async () => {
+      prisma.institution.findUnique.mockResolvedValue({ isActive: true });
+      prisma.listing.findFirst.mockResolvedValue(fullRow);
+      const asGuest = await service.findOne(undefined, 'l1', 'school-a');
+      expect(asGuest.isOwner).toBe(false);
+      expect(prisma.$executeRaw).not.toHaveBeenCalled();
+      expect(prisma.listing.findFirst.mock.calls[0][0].where).toEqual({
+        id: 'l1',
+        institutionId: 'school-a',
+        isDeleted: false,
+        OR: [{ status: ListingStatus.ACTIVE }],
+      });
+    });
+
+    it('a signed-in user always sees their own school, whatever school is asked for', async () => {
+      prisma.listing.findMany.mockResolvedValue([]);
+      await service.browse(
+        { ...seller, id: 'buyer' },
+        { limit: 20, sort: 'newest', institutionId: 'school-b' },
+      );
+      expect(prisma.institution.findUnique).not.toHaveBeenCalled();
+      expect(prisma.listing.findMany.mock.calls[0][0].where).toMatchObject({
+        institutionId: 'school-a',
+      });
     });
   });
 

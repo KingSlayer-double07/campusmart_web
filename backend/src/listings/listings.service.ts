@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { AuthUser } from '../auth/auth-user';
+import { resolveViewer, type Viewer } from '../common/viewer';
 import { openSellerOrdersWithListing } from '../common/open-seller-orders';
 import { Prisma } from '../generated/prisma/client';
 import { ListingStatus } from '../generated/prisma/enums';
@@ -60,20 +61,22 @@ export class ListingsService {
   ) {}
 
   // ── Buyer reads (guide 3.1 rule 1: own institution, not deleted, ACTIVE) ──
+  // Guests read too, at the school they picked (decision 2026-10-19; see common/viewer.ts)
 
   async browse(
-    user: AuthUser,
+    user: AuthUser | undefined,
     query: ListListingsQueryDto,
   ): Promise<ListingPageDto> {
+    const viewer = await resolveViewer(this.prisma, user, query.institutionId);
     // An account with no institution (e.g. an admin) sees nothing, never everything
-    if (!user.institutionId) return { items: [], nextCursor: null };
+    if (!viewer.institutionId) return { items: [], nextCursor: null };
     if (query.sort === 'popular') {
-      return this.browsePopular(user.institutionId, query);
+      return this.browsePopular(viewer.institutionId, query);
     }
 
     const sort = query.sort;
     const cursor = decodeCursor(query.cursor, sort);
-    const where = this.buyerWhere(user.institutionId, query);
+    const where = this.buyerWhere(viewer.institutionId, query);
     const rows = await this.prisma.listing.findMany({
       where:
         cursor && cursor.s !== 'popular'
@@ -93,15 +96,26 @@ export class ListingsService {
     };
   }
 
-  async findOne(user: AuthUser, id: string): Promise<ListingDto> {
-    const row = await this.visible(user, id, fullSelect);
-    const isOwner = row.sellerId === user.id;
-    if (!isOwner) this.recordView(id, user.id);
+  async findOne(
+    user: AuthUser | undefined,
+    id: string,
+    institutionId?: string,
+  ): Promise<ListingDto> {
+    const viewer = await resolveViewer(this.prisma, user, institutionId);
+    const row = await this.visible(viewer, id, fullSelect);
+    const isOwner = row.sellerId === viewer.id;
+    // Decision A2 counts signed-in viewers only; a guest's look isn't recorded
+    if (viewer.id && !isOwner) this.recordView(id, viewer.id);
     return toListingDto(row, isOwner);
   }
 
-  async related(user: AuthUser, id: string): Promise<ListingCardDto[]> {
-    const source = await this.visible(user, id, {
+  async related(
+    user: AuthUser | undefined,
+    id: string,
+    institutionId?: string,
+  ): Promise<ListingCardDto[]> {
+    const viewer = await resolveViewer(this.prisma, user, institutionId);
+    const source = await this.visible(viewer, id, {
       category: true,
       institutionId: true,
     });
@@ -506,17 +520,20 @@ export class ListingsService {
   // What GET /listings/:id may show: same institution and not deleted; buyers see ACTIVE only,
   // the owner sees every status. Anything else is a 404, so IDs can't be probed.
   private async visible<S extends Prisma.ListingSelect>(
-    user: AuthUser,
+    viewer: Viewer,
     id: string,
     select: S,
   ) {
-    if (!user.institutionId) throw listingNotFound();
+    if (!viewer.institutionId) throw listingNotFound();
     const row = await this.prisma.listing.findFirst({
       where: {
         id,
-        institutionId: user.institutionId,
+        institutionId: viewer.institutionId,
         isDeleted: false,
-        OR: [{ status: ListingStatus.ACTIVE }, { sellerId: user.id }],
+        OR: [
+          { status: ListingStatus.ACTIVE },
+          ...(viewer.id ? [{ sellerId: viewer.id }] : []),
+        ],
       },
       select,
     });

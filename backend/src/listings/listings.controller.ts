@@ -2,14 +2,12 @@ import {
   Body,
   Controller,
   Delete,
-  Get,
   HttpCode,
   HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
   Post,
-  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -32,65 +30,21 @@ import {
   ListingStatusDto,
   UpdateListingDto,
 } from './dto/listing-input.dto';
-import { ListListingsQueryDto } from './dto/listing-query.dto';
-import { ListingCardDto, ListingDto, ListingPageDto } from './dto/listing.dto';
+import { ListingDto } from './dto/listing.dto';
 import { ListingsService } from './listings.service';
 
 const NOT_FOUND = {
   status: 404,
   type: ErrorResponseDto,
-  description:
-    'Not in your institution, not active, deleted, or (owner routes) not yours',
+  description: 'Not in your institution, deleted, or not yours',
 } as const;
 
+// Sellers' writes. The reads guests may make too are in listings-browse.controller.ts.
 @ApiTags('Listings')
 @RequireVerifiedEmail()
 @Controller('listings')
 export class ListingsController {
   constructor(private readonly listings: ListingsService) {}
-
-  @ApiOperation({
-    summary: 'Browse listings at your institution',
-    description:
-      'Active listings only. Search matches the title or description. Sorts: newest, price_asc, ' +
-      'price_desc, popular (views in the last 7 days; first 200 results).',
-  })
-  @ApiOkEnvelope(ListingPageDto)
-  @Get()
-  browse(
-    @Query() query: ListListingsQueryDto,
-    @CurrentUser() user: AuthUser,
-  ): Promise<ListingPageDto> {
-    return this.listings.browse(user, query);
-  }
-
-  @ApiOperation({
-    summary: 'One listing with photos, options and seller',
-    description:
-      "Records a view unless you're the seller. The seller also sees their own drafts here.",
-  })
-  @ApiParam({ name: 'id', format: 'uuid' })
-  @ApiOkEnvelope(ListingDto)
-  @ApiResponse(NOT_FOUND)
-  @Get(':id')
-  findOne(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @CurrentUser() user: AuthUser,
-  ): Promise<ListingDto> {
-    return this.listings.findOne(user, id);
-  }
-
-  @ApiOperation({ summary: 'Up to 10 active listings in the same category' })
-  @ApiParam({ name: 'id', format: 'uuid' })
-  @ApiOkEnvelope([ListingCardDto])
-  @ApiResponse(NOT_FOUND)
-  @Get(':id/related')
-  related(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @CurrentUser() user: AuthUser,
-  ): Promise<ListingCardDto[]> {
-    return this.listings.related(user, id);
-  }
 
   @ApiOperation({
     summary: 'Create a listing (sellers)',

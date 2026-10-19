@@ -8,6 +8,7 @@ import {
 import { AuditService } from '../audit/audit.service';
 import type { AuthUser } from '../auth/auth-user';
 import { cursorArgs, CursorQueryDto, toPage } from '../common/pagination';
+import { resolveViewer } from '../common/viewer';
 import { buyerDisplayName } from '../dispatch/dispatch-rules';
 import { Prisma } from '../generated/prisma/client';
 import { ListingStatus } from '../generated/prisma/enums';
@@ -18,6 +19,7 @@ import {
   AdminReviewPageDto,
   AdminReviewsQueryDto,
   CreateReviewDto,
+  ListingReviewsQueryDto,
   ReviewDto,
   ReviewPageDto,
 } from './dto/review.dto';
@@ -141,23 +143,24 @@ export class ReviewsService {
     }
   }
 
-  // Reviews of a listing the user can see: at their school, not removed
+  // Reviews of a listing the viewer can see: at their school (a guest's chosen one), not removed
   async forListing(
-    user: AuthUser,
+    user: AuthUser | undefined,
     listingId: string,
-    query: CursorQueryDto,
+    query: ListingReviewsQueryDto,
   ): Promise<ReviewPageDto> {
-    const listing = user.institutionId
+    const viewer = await resolveViewer(this.prisma, user, query.institutionId);
+    const listing = viewer.institutionId
       ? await this.prisma.listing.findFirst({
           where: {
             id: listingId,
-            institutionId: user.institutionId,
+            institutionId: viewer.institutionId,
             isDeleted: false,
             OR: [
               {
                 status: { in: [ListingStatus.ACTIVE, ListingStatus.SOLDOUT] },
               },
-              { sellerId: user.id },
+              ...(viewer.id ? [{ sellerId: viewer.id }] : []),
             ],
           },
           select: { id: true },
