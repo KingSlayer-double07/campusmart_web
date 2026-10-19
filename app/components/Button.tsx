@@ -24,19 +24,19 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const variants = {
       primary: {
         buyer: "bg-main text-white hover:brightness-105",
-        seller: "bg-[#13368B] text-white hover:brightness-105",
+        seller: "bg-seller-main text-white hover:brightness-105",
       },
       secondary: {
-        buyer: "bg-white text-main border border-main hover:bg-neutral-50",
-        seller: "bg-white text-[#13368B] border border-[#13368B] hover:bg-neutral-50",
+        buyer: "bg-card text-main border border-main hover:bg-surface-muted",
+        seller: "bg-card text-seller-main border border-seller-main hover:bg-surface-muted",
       },
       outline: {
-        buyer: "bg-white text-neutral-700 border border-neutral-200 hover:bg-neutral-50",
-        seller: "bg-white text-neutral-700 border border-neutral-200 hover:bg-neutral-50",
+        buyer: "bg-card text-foreground border border-border-default hover:bg-surface-muted",
+        seller: "bg-card text-foreground border border-border-default hover:bg-surface-muted",
       },
       ghost: {
-        buyer: "bg-transparent text-neutral-600 hover:bg-neutral-100",
-        seller: "bg-transparent text-neutral-600 hover:bg-neutral-100",
+        buyer: "bg-transparent text-foreground-muted hover:bg-surface-muted",
+        seller: "bg-transparent text-foreground-muted hover:bg-surface-muted",
       },
       danger: {
         buyer: "bg-red-500 text-white hover:bg-red-600",
@@ -50,7 +50,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       lg: "py-3.5 px-8 text-[17px]",
     };
 
-    const baseStyles = "flex items-center justify-center rounded-full font-medium transition-all duration-200 disabled:opacity-40 disabled:pointer-events-none w-full";
+    const baseStyles = "flex items-center justify-center rounded-full font-medium transition-all duration-150 active:scale-95 active:opacity-80 disabled:opacity-40 disabled:pointer-events-none w-full";
     const variantStyles = variants[variant][roleType];
     const sizeStyles = sizes[size];
 
@@ -74,7 +74,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {!outerRing ? innerContent : (
-          <div className={cn("p-2 border border-neutral-200 rounded-full w-full", className)}>
+          <div className={cn("p-2 border border-border-default rounded-full w-full", className)}>
             <div className={cn(baseStyles, variantStyles, sizeStyles)}>
               {innerContent}
             </div>

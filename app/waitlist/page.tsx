@@ -65,7 +65,7 @@ export default function WaitlistPage() {
   }
 
   return (
-    <div className="relative flex justify-center max-w-dvw min-h-dvh bg-[#fafafa] text-black font-satoshi tracking-tight overflow-x-hidden">
+    <>
       {/* Decorative blobs */}
       <div
         aria-hidden
@@ -78,7 +78,7 @@ export default function WaitlistPage() {
         style={{ background: "radial-gradient(circle, #ff681f 0%, transparent 70%)" }}
       />
 
-      <main className="flex flex-col max-w-md w-full pb-16 px-5 pt-10">
+      <main className="flex flex-col pb-16 px-5 pt-10">
 
         {/* ── Logo / Brand ── */}
         <header className="flex items-center justify-between mb-10">
@@ -112,7 +112,7 @@ export default function WaitlistPage() {
                 <span style={{ color: "#ff681f" }}>Start before anyone else.</span>
               </h1>
 
-              <p className="text-[15px] text-neutral-500 leading-relaxed font-medium">
+              <p className="text-[15px] text-foreground-muted leading-relaxed font-medium">
                 CampusMart is the marketplace built for students, by students.
                 Join the seller waitlist and get exclusive early access when we launch.
               </p>
@@ -123,7 +123,7 @@ export default function WaitlistPage() {
               {BENEFITS.map((b) => (
                 <div
                   key={b.title}
-                  className="flex items-start gap-3.5 p-4 bg-white rounded-2xl border border-neutral-100 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)]"
+                  className="flex items-start gap-3.5 p-4 bg-card rounded-2xl border border-border-default shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)]"
                 >
                   <div
                     className="shrink-0 size-9 rounded-xl flex items-center justify-center text-white mt-0.5"
@@ -133,23 +133,23 @@ export default function WaitlistPage() {
                   </div>
                   <div>
                     <p className="text-[14px] font-bold text-[#1c1c1c]">{b.title}</p>
-                    <p className="text-[13px] text-neutral-500 font-medium mt-0.5">{b.desc}</p>
+                    <p className="text-[13px] text-foreground-muted font-medium mt-0.5">{b.desc}</p>
                   </div>
                 </div>
               ))}
             </section>
 
             {/* ── Form ── */}
-            <section className="bg-white rounded-3xl border border-neutral-100 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.08)] p-5">
+            <section className="bg-card rounded-3xl border border-border-default shadow-[0_4px_24px_-6px_rgba(0,0,0,0.08)] p-5">
               <h2 className="text-[18px] font-bold text-[#1c1c1c] mb-1">Reserve your spot</h2>
-              <p className="text-[13px] text-neutral-500 font-medium mb-5">
-                We'll notify you the moment doors open.
+              <p className="text-[13px] text-foreground-muted font-medium mb-5">
+                We&apos;ll notify you the moment doors open.
               </p>
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 {/* Name */}
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="waitlist-name" className="text-[12.5px] font-semibold text-neutral-600 uppercase tracking-wide">
+                  <label htmlFor="waitlist-name" className="text-[12.5px] font-semibold text-foreground-muted uppercase tracking-wide">
                     Full Name
                   </label>
                   <input
@@ -159,13 +159,13 @@ export default function WaitlistPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                    className="w-full px-4 py-3.5 rounded-xl border border-neutral-200 bg-[#fafafa] text-[14.5px] font-medium text-[#1c1c1c] placeholder:text-neutral-400 outline-none transition-all focus:border-[#ff681f] focus:ring-2 focus:ring-[#ff681f]/15"
+                    className="w-full px-4 py-3.5 rounded-xl border border-border-default bg-[#fafafa] text-[14.5px] font-medium text-[#1c1c1c] placeholder:text-foreground-muted outline-none transition-all focus:border-[#ff681f] focus:ring-2 focus:ring-[#ff681f]/15"
                   />
                 </div>
 
                 {/* Email */}
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="waitlist-email" className="text-[12.5px] font-semibold text-neutral-600 uppercase tracking-wide">
+                  <label htmlFor="waitlist-email" className="text-[12.5px] font-semibold text-foreground-muted uppercase tracking-wide">
                     Email Address
                   </label>
                   <input
@@ -175,13 +175,13 @@ export default function WaitlistPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full px-4 py-3.5 rounded-xl border border-neutral-200 bg-[#fafafa] text-[14.5px] font-medium text-[#1c1c1c] placeholder:text-neutral-400 outline-none transition-all focus:border-[#ff681f] focus:ring-2 focus:ring-[#ff681f]/15"
+                    className="w-full px-4 py-3.5 rounded-xl border border-border-default bg-[#fafafa] text-[14.5px] font-medium text-[#1c1c1c] placeholder:text-foreground-muted outline-none transition-all focus:border-[#ff681f] focus:ring-2 focus:ring-[#ff681f]/15"
                   />
                 </div>
 
                 {/* School */}
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="waitlist-school" className="text-[12.5px] font-semibold text-neutral-600 uppercase tracking-wide">
+                  <label htmlFor="waitlist-school" className="text-[12.5px] font-semibold text-foreground-muted uppercase tracking-wide">
                     School / University
                   </label>
                   <input
@@ -190,20 +190,20 @@ export default function WaitlistPage() {
                     placeholder="e.g. University of Lagos"
                     value={school}
                     onChange={(e) => setSchool(e.target.value)}
-                    className="w-full px-4 py-3.5 rounded-xl border border-neutral-200 bg-[#fafafa] text-[14.5px] font-medium text-[#1c1c1c] placeholder:text-neutral-400 outline-none transition-all focus:border-[#ff681f] focus:ring-2 focus:ring-[#ff681f]/15"
+                    className="w-full px-4 py-3.5 rounded-xl border border-border-default bg-[#fafafa] text-[14.5px] font-medium text-[#1c1c1c] placeholder:text-foreground-muted outline-none transition-all focus:border-[#ff681f] focus:ring-2 focus:ring-[#ff681f]/15"
                   />
                 </div>
 
                 {/* Category */}
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="waitlist-category" className="text-[12.5px] font-semibold text-neutral-600 uppercase tracking-wide">
+                  <label htmlFor="waitlist-category" className="text-[12.5px] font-semibold text-foreground-muted uppercase tracking-wide">
                     What will you sell?
                   </label>
                   <select
                     id="waitlist-category"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-4 py-3.5 rounded-xl border border-neutral-200 bg-[#fafafa] text-[14.5px] font-medium text-[#1c1c1c] outline-none transition-all focus:border-[#ff681f] focus:ring-2 focus:ring-[#ff681f]/15 appearance-none"
+                    className="w-full px-4 py-3.5 rounded-xl border border-border-default bg-[#fafafa] text-[14.5px] font-medium text-[#1c1c1c] outline-none transition-all focus:border-[#ff681f] focus:ring-2 focus:ring-[#ff681f]/15 appearance-none"
                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 14px center" }}
                   >
                     <option value="" disabled>Select a category</option>
@@ -241,7 +241,7 @@ export default function WaitlistPage() {
                   )}
                 </button>
 
-                <p className="text-center text-[12px] text-neutral-400 font-medium">
+                <p className="text-center text-[12px] text-foreground-muted font-medium">
                   No spam, ever. We pinky-promise. 🤙
                 </p>
               </form>
@@ -261,10 +261,10 @@ export default function WaitlistPage() {
               </svg>
             </div>
             <div>
-              <h2 className="text-[28px] font-bold text-[#1c1c1c] mb-2">You're on the list! 🎉</h2>
-              <p className="text-[15px] text-neutral-500 font-medium leading-relaxed">
-                We've saved your spot, <strong className="text-[#1c1c1c]">{name.split(" ")[0]}</strong>.<br />
-                We'll email <strong className="text-[#1c1c1c]">{email}</strong> when we're ready to go live.
+              <h2 className="text-[28px] font-bold text-[#1c1c1c] mb-2">You&apos;re on the list! 🎉</h2>
+              <p className="text-[15px] text-foreground-muted font-medium leading-relaxed">
+                We&apos;ve saved your spot, <strong className="text-[#1c1c1c]">{name.split(" ")[0]}</strong>.<br />
+                We&apos;ll email <strong className="text-[#1c1c1c]">{email}</strong> when we&apos;re ready to go live.
               </p>
             </div>
             <div className="w-full p-4 bg-orange-50 border border-orange-100 rounded-2xl text-[13.5px] text-[#ff681f] font-semibold">
@@ -272,7 +272,7 @@ export default function WaitlistPage() {
             </div>
             <Link
               href="/"
-              className="text-[14px] text-neutral-400 font-medium hover:text-neutral-600 transition-colors"
+              className="text-[14px] text-foreground-muted font-medium hover:text-foreground-muted transition-colors"
             >
               ← Back to home
             </Link>
@@ -281,10 +281,10 @@ export default function WaitlistPage() {
 
         {/* ── Footer ── */}
         <footer className="mt-10 flex flex-col items-center gap-1">
-          <p className="text-[12px] text-neutral-400 font-medium">
+          <p className="text-[12px] text-foreground-muted font-medium">
             © {new Date().getFullYear()} CampusMart. All rights reserved.
           </p>
-          <p className="text-[12px] text-neutral-400 font-medium">
+          <p className="text-[12px] text-foreground-muted font-medium">
             Already a seller?{" "}
             <Link href="/onboarding/sellers/sign-in" className="text-[#ff681f] font-semibold hover:underline">
               Sign in here
@@ -292,6 +292,6 @@ export default function WaitlistPage() {
           </p>
         </footer>
       </main>
-    </div>
+    </>
   );
 }

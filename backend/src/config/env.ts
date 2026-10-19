@@ -1,0 +1,127 @@
+import { z } from 'zod';
+
+const required = z.string().trim().min(1);
+const optional = required.optional();
+
+// Every variable from the guide's appendix. Validated at startup by ConfigModule.forRoot, so the
+// app refuses to boot on a missing or malformed variable instead of failing on first use.
+//
+// Variables whose feature lands in a later phase are optional until that phase, so local dev and
+// CI (which only sets the database, JWT and NODE_ENV) can boot. Mail is required in production.
+export const envSchema = z
+  .object({
+    NODE_ENV: z
+      .enum(['development', 'test', 'production'])
+      .default('development'),
+    PORT: z.coerce.number().int().positive().default(4000),
+    FRONTEND_URL: z.url().default('http://localhost:3000'), // CORS for Swagger and tools
+    APP_URL: z.url().default('http://localhost:3000'), // links in emails, Paystack callback
+
+    // Database (Neon Postgres): pooled for the app, direct for migrations
+    DATABASE_URL: z.url(),
+    DIRECT_URL: z.url(),
+
+    // Auth
+    JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
+
+    // Mail (SMTP, D18). In development emails print to the console instead.
+    MAIL_HOST: optional,
+    MAIL_PORT: z.coerce.number().int().positive().optional(),
+    MAIL_USER: optional,
+    MAIL_PASS: optional,
+    MAIL_FROM: optional,
+
+    // Cloudinary (image uploads), Phase 3. Required in production; without it in development,
+    // POST /uploads/signature answers 503 UPLOADS_NOT_CONFIGURED.
+    CLOUDINARY_CLOUD_NAME: optional,
+    CLOUDINARY_API_KEY: optional,
+    CLOUDINARY_API_SECRET: optional,
+
+    // Paystack (payments), Phase 5. Checkout returns no payment URL while PAYMENTS_ENABLED is false.
+    PAYSTACK_SECRET_KEY: optional,
+    PAYMENTS_ENABLED: z.stringbool().default(false),
+    // OPay and PalmPay stay hidden until Paystack confirms a channel for them (decision P5)
+    PAYSTACK_WALLET_CHANNELS: z.stringbool().default(false),
+    // Paystack's webhook source IPs, checked in production as a second layer (guide 5.2 step 3).
+    // Comma-separated; defaults to the addresses in Paystack's documentation.
+    PAYSTACK_WEBHOOK_IPS: z
+      .string()
+      .default('52.31.139.75,52.49.173.169,52.214.14.220'),
+
+    // Google sign-in for buyers (decisions T1, G3), Phase 10. Without both, the button stays hidden.
+    // The redirect URI registered with Google defaults to APP_URL/api/auth/google/callback.
+    GOOGLE_CLIENT_ID: optional,
+    GOOGLE_CLIENT_SECRET: optional,
+    GOOGLE_REDIRECT_URI: z.url().optional(),
+
+    // Support contacts on Help (decision T4); each one unset shows "coming soon"
+    SUPPORT_EMAIL: z.email().optional(),
+    SUPPORT_PHONE: optional,
+    SUPPORT_WHATSAPP: optional,
+
+    // Error reporting (decision T8). Unset means errors go to the logs only.
+    // Read by src/instrument.ts before Nest starts; validated here as well.
+    SENTRY_DSN: z.url().optional(),
+    SENTRY_ENVIRONMENT: optional, // defaults to NODE_ENV
+
+    // Marketplace rules
+    PLATFORM_FEE_BPS: z.coerce.number().int().nonnegative().default(0), // 100 bps = 1%
+    ORDER_PAYMENT_TTL_MINUTES: z.coerce.number().int().positive().default(30),
+    // Days after payment for the rider to collect from the seller (decision DL7b); admins can
+    // change it in settings
+    DROP_OFF_DEADLINE_DAYS: z.coerce.number().int().positive().default(3),
+    // Days a buyer has to collect from the seller (decision DL7c)
+    BUYER_COLLECT_DAYS: z.coerce.number().int().positive().default(5),
+    // 0 is allowed so the release cron can be tested without waiting (guide 5, checklist)
+    ESCROW_DISPUTE_WINDOW_HOURS: z.coerce
+      .number()
+      .int()
+      .nonnegative()
+      .default(48),
+    LOW_STOCK_THRESHOLD: z.coerce.number().int().nonnegative().default(5), // A1
+    // Trust-score weights (guide 8.4, decision R1); admins can change them in settings
+    TRUST_WEIGHT_RATING: z.coerce.number().int().nonnegative().default(50),
+    TRUST_WEIGHT_COMPLETED: z.coerce.number().int().nonnegative().default(30),
+    TRUST_WEIGHT_VERIFIED: z.coerce.number().int().nonnegative().default(20),
+    TRUST_PENALTY_SELLER_FAULT: z.coerce
+      .number()
+      .int()
+      .nonnegative()
+      .default(10),
+
+    // Seed only (prisma/seed.ts, Phase 2); the API itself never reads them
+    SEED_ADMIN_EMAIL: z.email().optional(),
+    SEED_ADMIN_PASSWORD: optional,
+  })
+  .superRefine((env, ctx) => {
+    if (env.NODE_ENV === 'production') {
+      // Mail sends verification codes; Cloudinary signs image uploads (Phase 3)
+      for (const key of [
+        'MAIL_HOST',
+        'MAIL_PORT',
+        'MAIL_USER',
+        'MAIL_PASS',
+        'MAIL_FROM',
+        'CLOUDINARY_CLOUD_NAME',
+        'CLOUDINARY_API_KEY',
+        'CLOUDINARY_API_SECRET',
+      ] as const) {
+        if (env[key] === undefined) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `${key} is required in production`,
+          });
+        }
+      }
+    }
+    if (env.PAYMENTS_ENABLED && !env.PAYSTACK_SECRET_KEY) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['PAYSTACK_SECRET_KEY'],
+        message: 'PAYSTACK_SECRET_KEY is required when PAYMENTS_ENABLED=true',
+      });
+    }
+  });
+
+export type Env = z.infer<typeof envSchema>;

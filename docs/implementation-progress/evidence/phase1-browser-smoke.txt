@@ -1,0 +1,30 @@
+Phase 1 browser smoke run: Chromium (playwright-core 1.56.1, /opt/pw-browsers/chromium) -> `next start` on :3000
+with API_ORIGIN=http://localhost:4000 -> NestJS on :4000 -> local Postgres (campusmart_dev, one institution with
+domain unilag.edu.ng). Codes are read from the API's dev mail log. Script: phase1-browser-smoke.mjs.
+
+# Run A (full script incl. code lock), 2026-10-08
+PASS  Sign-up with a non-school domain lands on /waitlist  (http://localhost:3000/waitlist)
+PASS  Sign-up with a school email reaches /onboarding/verify-email  (http://localhost:3000/onboarding/verify-email)
+PASS  Cookies: access_token path / and refresh_token path /api/auth, both httpOnly + Lax, host-only  ([{"name":"refresh_token","path":"/api/auth","httpOnly":true,"sameSite":"Lax","domain":"localhost"},{"name":"access_token","path":"/","httpOnly":true,"sameSite":"Lax","domain":"localhost"}])
+PASS  Wrong codes 1-4 report the tries left  (That code is incorrect. 4 tries left. | That code is incorrect. 3 tries left. | That code is incorrect. 2 tries left. | That code is incorrect. 1 try left.)
+PASS  The 5th wrong code locks the code  (Too many wrong attempts. Request a new code. Tap "Resend code" for a new one.)
+      waiting 61 s for the per-IP 5/min limit on code routes to pass...
+PASS  After the lock even the right code is refused  (Too many wrong attempts. Request a new code. Tap "Resend code" for a new one.)
+PASS  The right code verifies and a buyer lands on /  (http://localhost:3000/)
+PASS  With the access cookie expired, /profile restores the session silently  (http://localhost:3000/profile)
+FAIL  smoke run completed without errors  (TimeoutError: locator.click on 'Logout': the PWA install prompt
+      overlay intercepted the pointer. A script problem, not an app problem: the script now clicks the element
+      directly. Steps 5+ were re-run as Run B below.)
+
+8/9 checks passed
+
+# Run B (SKIP_LOCK=1, after the per-IP rate-limit window), 2026-10-08
+PASS  Sign-up with a non-school domain lands on /waitlist  (http://localhost:3000/waitlist)
+PASS  The right code verifies and a buyer lands on /  (http://localhost:3000/)
+PASS  With the access cookie expired, /profile restores the session silently  (http://localhost:3000/profile)
+PASS  Logout on phone A clears its cookies and local stores  (localStorage: campus-mart-auth)
+PASS  Phone B is still signed in after phone A logs out
+PASS  Active Sessions lists the other devices with Revoke buttons  (revoke buttons: 2)
+PASS  "Sign out other devices" signs phone B out  (http://localhost:3000/onboarding/buyers/sign-in)
+
+7/7 checks passed

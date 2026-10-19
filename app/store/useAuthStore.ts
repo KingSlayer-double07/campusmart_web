@@ -1,54 +1,33 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { authApi, type User } from "@/lib/api/auth";
 
-type User = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  password?: string;
-  role: "BUYER" | "SELLER";
-};
-
+// The httpOnly cookies are the truth (D6). This store only keeps the last known user so the
+// first paint is instant; AuthProvider refreshes it from GET /auth/me on every app start.
 type AuthStore = {
   user: User | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<User>;
+  setUser: (user: User) => void;
+  clearAuth: () => void;
 };
 
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set) => ({
       user: null,
-      token: null,
-      isAuthenticated: false,
 
       login: async (email, password) => {
-        // TODO: replace with real API call
-        // const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
-        //   method: "POST",
-        //   body: JSON.stringify({ email, password }),
-        // });
-        // const { user, token } = await res.json();
-
-        // Mock for now
-        const mockUser: User = {
-          id: "mock-uuid",
-          firstName: "John",
-          lastName: "Doe",
-          email,
-          password,
-          role: email.includes("seller") ? "SELLER" : "BUYER",
-        };
-        const mockToken = "mock-jwt-token";
-
-        set({ user: mockUser, token: mockToken, isAuthenticated: true });
+        const user = await authApi.login({ email, password });
+        set({ user });
+        return user;
       },
 
-      logout: () => set({ user: null, token: null, isAuthenticated: false }),
+      setUser: (user) => set({ user }),
+      clearAuth: () => set({ user: null }),
     }),
-    { name: "campus-mart-auth" }
+    {
+      name: "campus-mart-auth",
+      partialize: (state) => ({ user: state.user }),
+    }
   )
 );

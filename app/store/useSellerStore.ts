@@ -1,59 +1,14 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import type { AnalyticsRange } from "@/lib/api/analytics";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export type SellerStats = {
-  views: number;
-  viewsChange: number;
-  orders: number;
-  ordersChange: number;
-  totalSales: number;
-  totalSalesChange: number;
-};
-
+// UI state only: the range the seller picked, shared by the dashboard and analytics (guide 7.2).
+// The numbers come from the API (useSellerStats); the online switch lives on the server.
 export type SellerStore = {
-  // Online / Offline status
-  isOnline: boolean;
-  setIsOnline: (value: boolean) => void;
-
-  // Seller identity
-  sellerName: string;
-  setSellerName: (name: string) => void;
-  sellerEmail?: string;
-  sellerPhone?: string;
-
-  // Dashboard stats (would be fetched from API in production)
-  stats: SellerStats;
-  setStats: (stats: Partial<SellerStats>) => void;
+  range: AnalyticsRange;
+  setRange: (range: AnalyticsRange) => void;
 };
 
-// ─── Store ────────────────────────────────────────────────────────────────────
-
-export const useSellerStore = create<SellerStore>()(
-  persist(
-    (set) => ({
-      isOnline: false,
-      setIsOnline: (value) => set({ isOnline: value }),
-
-      sellerName: "Alexander",
-      setSellerName: (name) => set({ sellerName: name }),
-      sellerEmail: "alexander.seller@campusmart.com",
-      sellerPhone: "+234 701 234 5678",
-
-      stats: {
-        views: 1204,
-        viewsChange: 12,
-        orders: 15,
-        ordersChange: 5,
-        totalSales: 364500,
-        totalSalesChange: -2,
-      },
-      setStats: (partial) =>
-        set((state) => ({ stats: { ...state.stats, ...partial } })),
-    }),
-    {
-      name: "campus-mart-seller",
-    }
-  )
-);
+export const useSellerStore = create<SellerStore>()((set) => ({
+  range: "7d",
+  setRange: (range) => set({ range }),
+}));

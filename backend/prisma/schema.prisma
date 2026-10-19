@@ -1,38 +1,680 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client-js"
-  //output = "../generated/prisma"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
+enum EmailCodePurpose {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+  ADMIN_SIGN_IN // decision M7: a code at every admin sign-in
+  SCHOOL_EMAIL // decision G2: a buyer confirms a school email to become a seller
+}
+
+model User {
+  id                    String                @id @default(uuid())
+  email                 String                @unique
+  password              String?
+  googleId              String?               @unique
+  username              String?               @unique
+  firstName             String?
+  lastName              String?
+  phone                 String?
+  role                  UserRole
+  trustScore            Float                 @default(0)
+  verificationStatus    VerificationStatus    @default(UNVERIFIED)
+  isActive              Boolean               @default(true)
+  isSuspended           Boolean               @default(false)
+  // Decision M6: the suspended user sees the admin's reason
+  suspendedAt           DateTime?
+  suspendedReason       String?
+  suspendedById         String?
+  institutionId         String?
+  pickupStationId       String? // set only for PICKUP_AGENT
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  emailVerifiedAt       DateTime?
+  // Decisions T1 and G2: buyers may use any email; selling needs a confirmed school email. For an account
+  // made with a school email it's the same address.
+  schoolEmail           String?               @unique
+  schoolEmailVerifiedAt DateTime?
+  pendingSchoolEmail    String? // the school email a code was sent to, until it's confirmed
+  notificationPrefs     Json? // Guide 10: which notifications also go by email (T7)
+  deletedAt             DateTime? // Decision T6: personal details anonymised; orders kept 6 years
+  sessions              Session[]
+  emailCodes            EmailCode[]
+  listings              Listing[]             @relation("SellerListings")
+  moderationActions     ModerationAction[]
+  orders                Order[]               @relation("BuyerOrders")
+  sellerOrders          SellerOrder[]         @relation("SellerOrders")
+  sellerProfile         SellerProfile?
+  cartItems             CartItem[]
+  notifications         Notification[]
+  reviewsReceived       Review[]              @relation("Reviewee")
+  reviewsGiven          Review[]              @relation("Reviewer")
+  institution           Institution?          @relation(fields: [institutionId], references: [id])
+  pickupStation         PickupStation?        @relation("StationAgents", fields: [pickupStationId], references: [id])
+  verificationRequests  VerificationRequest[]
+  wishlist              Wishlist[]
+  deliveryJobs          DeliveryJob[]         @relation("RiderJobs")
+  invites               Invite[]
+}
+
+model Session {
+  id               String    @id @default(uuid())
+  userId           String
+  refreshTokenHash String
+  userAgent        String?
+  ipAddress        String?
+  lastUsedAt       DateTime  @default(now())
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+}
+
+model EmailCode {
+  id        String           @id @default(uuid())
+  userId    String
+  purpose   EmailCodePurpose
+  codeHash  String
+  attempts  Int              @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+}
+
+model Institution {
+  id              String          @id @default(uuid())
+  name            String          @unique
+  domains         String[]
+  isActive        Boolean         @default(true)
+  // The flat fee for dispatch to a campus place, once per order (decisions DF1, DF2). Null means
+  // on-campus dispatch isn't offered here yet (C10).
+  deliveryFeeKobo Int?
+  createdAt       DateTime        @default(now())
+  users           User[]
+  listings        Listing[]
+  pickupStations  PickupStation[]
+  campusPlaces    CampusPlace[]
+  orders          Order[]
+  deliveryJobs    DeliveryJob[]
+}
+
+// Halls, faculties and gates a buyer picks as the delivery destination (decision DF3)
+model CampusPlace {
+  id            String      @id @default(uuid())
+  institutionId String
+  name          String
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  orders        Order[]
+
+  @@index([institutionId, isActive])
+}
+
+model SellerProfile {
+  userId                 String    @id
+  storeName              String?
+  bio                    String?
+  logoUrl                String?
+  isOnline               Boolean   @default(false)
+  ratingAvg              Float     @default(0)
+  ratingCount            Int       @default(0)
+  payoutBankName         String?
+  payoutAccountLast4     String?
+  payoutAccountName      String?
+  paystackRecipientCode  String?
+  payoutBankCode         String?
+  // Payouts wait 24 hours after the account is set or changed, in case it was hijacked (P9)
+  payoutAccountChangedAt DateTime?
+  // Where riders collect, and buyers pick up when allowsPickup (decisions SA1-SA4, DL1). Buyers see
+  // the area before paying; the address and phone only after.
+  pickupArea             String?
+  pickupAddress          String?
+  contactPhone           String?
+  allowsPickup           Boolean   @default(false)
+  // Set when the seller was told their low-stock list is no longer empty; cleared once it empties (Phase 7)
+  lowStockAlertedAt      DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PickupStation {
+  id            String      @id @default(uuid())
+  institutionId String
+  name          String
+  address       String
+  contactName   String
+  contactPhone  String
+  openingHours  Json // [{ day: 'MON', open: '09:00', close: '17:00' }]
+  isActive      Boolean     @default(true)
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  agents        User[]      @relation("StationAgents")
+  orders        Order[]
+
+  @@index([institutionId, isActive])
+}
+
+model Listing {
+  id                    String             @id @default(uuid())
+  title                 String
+  description           String
+  priceKobo             Int // was the naira `price` column
+  stock                 Int // was quantity; sum of variants when present
+  category              ListingCategory
+  condition             ProductCondition
+  status                ListingStatus      @default(DRAFT)
+  sellerId              String
+  institutionId         String // now required
+  ratingAvg             Float              @default(0)
+  ratingCount           Int                @default(0)
+  isDeleted             Boolean            @default(false)
+  isPromoted            Boolean            @default(false)
+  isFlagged             Boolean            @default(false) // waiting for an admin's decision; still shown unless FLAGGED
+  // Phase 9 moderation (M2-M4): a banned word holds a listing for review before it goes live;
+  // a rejected one stays FLAGGED with the reason the seller sees
+  heldAt                DateTime?
+  heldWords             String[]           @default([])
+  wentLiveAt            DateTime? // first time buyers could see it; a hold before this means no suspension (M4f)
+  prohibitedConfirmedAt DateTime? // the seller confirmed it isn't on the prohibited list (M4a)
+  moderationReason      String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  variants              ListingVariant[]
+  dailyStats            ListingDailyStat[]
+  views                 ListingView[]
+  seller                User               @relation("SellerListings", fields: [sellerId], references: [id])
+  institution           Institution        @relation(fields: [institutionId], references: [id])
+  images                ListingImage[]
+  reviews               Review[]
+  wishlistedBy          Wishlist[]
+  moderationLogs        ModerationAction[]
+  orderItems            OrderItem[]
+  cartItems             CartItem[]
+
+  @@index([institutionId, status, isDeleted, createdAt])
+  @@index([sellerId, status])
+}
+
+model ListingImage {
+  id        String  @id @default(uuid())
+  url       String
+  publicId  String
+  position  Int
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
+
+model ListingVariant {
+  id        String  @id @default(uuid())
+  listingId String
+  label     String // e.g. 'M', 'Black / XL', '500 ml'
+  priceKobo Int? // null = listing price
+  stock     Int
+  isActive  Boolean @default(true)
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, label])
+}
+
+model ListingDailyStat {
+  listingId String
+  date      DateTime @db.Date
+  views     Int      @default(0)
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@id([listingId, date])
+}
+
+// Decision A2: a view counts once per viewer per listing per Lagos day. Rows older than a couple of
+// days are pruned; ListingDailyStat keeps the counts.
+model ListingView {
+  listingId String
+  viewerId  String
+  date      DateTime @db.Date
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@id([listingId, viewerId, date])
+  @@index([date])
+}
+
+model CartItem {
+  id            String   @id @default(uuid())
+  userId        String
+  listingId     String
+  variantKey    String   @default("") // variantId, or '' for none; keeps the unique index strict
+  variantId     String?
+  quantity      Int
+  // The price when the line was last set, so the cart can say it changed (decided 2026-10-09).
+  // Checkout always charges the current price from the listing.
+  unitPriceKobo Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing       Listing  @relation(fields: [listingId], references: [id])
+
+  @@unique([userId, listingId, variantKey])
+}
+
+model Order {
+  id              String          @id @default(uuid())
+  buyerId         String
+  institutionId   String
+  pickupStationId String? // the station flow is kept for later (decision DL9); new orders leave it empty
+  // One destination and one delivery fee per order (decisions DF2, DF6): a campus place, or an
+  // address typed by the buyer for off campus, where the fee is settled outside the app (DF4).
+  campusPlaceId   String?
+  deliveryAddress String?
+  buyerPhone      String? // for the rider; set when any store goes by dispatch (PH2, C9)
+  deliveryFeeKobo Int             @default(0)
+  status          OrderStatus     @default(PENDING_PAYMENT)
+  paymentMethod   PaymentMethod
+  subtotalKobo    Int
+  totalKobo       Int
+  idempotencyKey  String          @unique
+  expiresAt       DateTime // unpaid orders expire (Phase 4)
+  paidAt          DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  sellerOrders    SellerOrder[]
+  // One per attempt: a buyer can try again on the same order until it expires (decision P7)
+  payments        Payment[]
+  buyer           User            @relation("BuyerOrders", fields: [buyerId], references: [id])
+  institution     Institution     @relation(fields: [institutionId], references: [id])
+  pickupStation   PickupStation?  @relation(fields: [pickupStationId], references: [id])
+  campusPlace     CampusPlace?    @relation(fields: [campusPlaceId], references: [id])
+  // One delivery job per order, covering every store that goes by dispatch (DF7)
+  deliveryJob     DeliveryJob?
+  problemReports  ProblemReport[]
+
+  @@index([buyerId, createdAt])
+}
+
+model SellerOrder {
+  id                 String            @id @default(uuid())
+  orderId            String
+  sellerId           String
+  code               String            @unique // 'CM-7F3K2Q', printed on the parcel
+  collectionCode     String // the buyer's handover code: 3 digits from Phase 6 (DF10a), 6 on older orders
+  collectionAttempts Int               @default(0) // wrong handover codes; 5 lock it (F5)
+  handoverLockedAt   DateTime? // locked after 5 wrong codes, until an admin unlocks it with a reason (F5)
+  deliveryMethod     DeliveryMethod? // chosen per store (DM1); empty on orders placed through a pickup station
+  fulfillmentStatus  FulfillmentStatus @default(PENDING)
+  // Dispatch: the rider collects from the seller by then (DL7b). Pickup: the buyer collects by then (DL7c).
+  pickupDeadline     DateTime?
+  // Whose fault a cancellation or refund was (P6); seller faults lower the trust score (F10)
+  fault              Fault?
+  escrowStatus       EscrowStatus      @default(PENDING)
+  subtotalKobo       Int
+  platformFeeKobo    Int               @default(0)
+  sellerPayoutKobo   Int
+  // Dispatch (Phase 6): when the rider will come (DF8b), when they took the parcel (DX5), and
+  // whether they found the store not ready or the seller away (DF11, C11)
+  arrivalFrom        DateTime?
+  arrivalTo          DateTime?
+  pickedUpAt         DateTime?
+  notReadyAt         DateTime?
+  notReadyNote       String?
+  riderAlertAt       DateTime? // admins were told: 5 days with the rider and no buyer code (DL6b)
+  dropOffDeadline    DateTime?
+  droppedOffAt       DateTime?
+  collectedAt        DateTime? // handover to the buyer: by the rider (DELIVERED) or the seller (COLLECTED)
+  releaseAt          DateTime? // collectedAt + dispute window
+  reviewReminderAt   DateTime? // the buyer was asked to rate it, 24 hours after handover (guide 8.4)
+  cancelledAt        DateTime?
+  cancelReason       String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  order              Order             @relation(fields: [orderId], references: [id])
+  seller             User              @relation("SellerOrders", fields: [sellerId], references: [id])
+  items              OrderItem[]
+  payout             Payout?
+  refund             Refund?
+  dispute            Dispute?
+  reviews            Review[]
+
+  @@index([sellerId, fulfillmentStatus, createdAt])
+  @@index([fulfillmentStatus, escrowStatus, releaseAt])
+}
+
+model OrderItem {
+  id            String      @id @default(uuid())
+  sellerOrderId String
+  listingId     String
+  variantId     String?
+  titleSnapshot String
+  variantLabel  String?
+  imageUrl      String?
+  unitPriceKobo Int
+  quantity      Int
+  sellerOrder   SellerOrder @relation(fields: [sellerOrderId], references: [id])
+  listing       Listing     @relation(fields: [listingId], references: [id])
+}
+
+model Payment {
+  id               String        @id @default(uuid())
+  orderId          String
+  attempt          Int           @default(1) // reference is CM_<orderId>_<attempt>
+  provider         String        @default("PAYSTACK")
+  reference        String        @unique
+  amountKobo       Int
+  status           PaymentStatus @default(PENDING)
+  channel          String?
+  // Paystack's processing fee, from charge.success: a buyer-fault refund gives back the rest (P6)
+  feesKobo         Int?
+  failureReason    String?
+  // Paystack's payment page for this attempt, returned again when checkout is resent
+  authorizationUrl String?
+  paidAt           DateTime?
+  rawEvent         Json?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  order            Order         @relation(fields: [orderId], references: [id])
+  refunds          Refund[]
+
+  @@index([orderId])
+}
+
+// Money going back to a buyer through Paystack (guide 5.6). One per refunded seller order; a whole
+// payment refunded on its own (paid twice, or paid after the stock was gone) has no seller order.
+model Refund {
+  id               String       @id @default(uuid())
+  paymentId        String
+  sellerOrderId    String?      @unique
+  amountKobo       Int // what the buyer gets back
+  itemsKobo        Int
+  deliveryFeeKobo  Int          @default(0) // the order's fee, when nothing was picked up (DF5, DF9)
+  paystackFeeKobo  Int          @default(0) // kept back when it's the buyer's fault (P6)
+  fault            Fault
+  reason           String
+  status           RefundStatus @default(PENDING)
+  paystackRefundId String?      @unique
+  failureReason    String?
+  actorId          String? // null = system
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  payment          Payment      @relation(fields: [paymentId], references: [id])
+  sellerOrder      SellerOrder? @relation(fields: [sellerOrderId], references: [id])
+
+  @@index([status, createdAt])
+}
+
+// Platform settings an admin can change (decision R1a); the env value applies until one is saved
+model PlatformSetting {
+  key         String   @id
+  value       Json
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+}
+
+model Payout {
+  id            String       @id @default(uuid())
+  sellerOrderId String       @unique
+  sellerId      String
+  amountKobo    Int
+  status        PayoutStatus @default(PENDING)
+  attempt       Int          @default(1) // reference is PO_<sellerOrderId>_<attempt>; a retry gets a new one
+  reference     String       @unique
+  transferCode  String?
+  failureReason String?
+  paidAt        DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  sellerOrder   SellerOrder  @relation(fields: [sellerOrderId], references: [id])
+}
+
+model Dispute {
+  id             String        @id @default(uuid())
+  sellerOrderId  String        @unique
+  openedById     String
+  reason         String // 'NOT_AS_DESCRIBED', 'DAMAGED', 'WRONG_ITEM', 'MISSING_ITEMS', 'OTHER' (F6)
+  details        String?
+  evidenceUrls   String[] // up to 3 photos (F7)
+  status         DisputeStatus @default(OPEN)
+  fault          Fault? // set when an admin refunds (P6)
+  resolutionNote String?
+  resolvedById   String?
+  createdAt      DateTime      @default(now())
+  resolvedAt     DateTime?
+  sellerOrder    SellerOrder   @relation(fields: [sellerOrderId], references: [id])
+
+  @@index([status, createdAt])
+}
+
+// Phase 6 (DF7, DF8): one job per order for every store delivered by dispatch. It opens to the
+// campus's riders when the order is paid; one rider collects from each store, then delivers once.
+model DeliveryJob {
+  id                String            @id @default(uuid())
+  orderId           String            @unique
+  institutionId     String
+  status            DeliveryJobStatus @default(OPEN)
+  riderId           String?
+  acceptedAt        DateTime?
+  assignedById      String? // the admin who assigned or reassigned it (C5); null when the rider accepted
+  unacceptedAlertAt DateTime? // admins were told nobody accepted within 5 hours (DX2)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  order             Order             @relation(fields: [orderId], references: [id])
+  institution       Institution       @relation(fields: [institutionId], references: [id])
+  rider             User?             @relation("RiderJobs", fields: [riderId], references: [id])
+
+  @@index([institutionId, status, createdAt])
+  @@index([riderId, status])
+}
+
+// "Report a problem" before handover (C8), from the buyer (a late rider, a lost parcel) or the
+// rider (a buyer who didn't show, DL8). It alerts the admins and changes nothing on its own.
+model ProblemReport {
+  id             String        @id @default(uuid())
+  orderId        String
+  sellerOrderId  String? // the store, when the buyer reports one; empty for a rider's report on the job
+  reporterId     String
+  reporterRole   UserRole
+  reason         String // 'LATE', 'LOST', 'BUYER_NO_SHOW', 'OTHER'
+  details        String?
+  status         ProblemStatus @default(OPEN)
+  resolutionNote String?
+  resolvedById   String?
+  resolvedAt     DateTime?
+  createdAt      DateTime      @default(now())
+  order          Order         @relation(fields: [orderId], references: [id])
+
+  @@index([status, createdAt])
+}
+
+// A rider's invitation (DX1): the link sets their password and confirms their email
+model Invite {
+  id          String    @id @default(uuid())
+  userId      String
+  tokenHash   String    @unique // sha256 of the token in the link
+  invitedById String
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Review {
+  id            String      @id @default(uuid())
+  rating        Int // 1 to 5, checked in the DTO
+  comment       String?
+  reviewerId    String
+  revieweeId    String // the seller; no longer @unique
+  listingId     String
+  sellerOrderId String
+  createdAt     DateTime    @default(now())
+  // Decision R4: an admin hides an abusive review with a reason; hidden ones don't count or show
+  hiddenAt      DateTime?
+  hiddenById    String?
+  hiddenReason  String?
+  sellerOrder   SellerOrder @relation(fields: [sellerOrderId], references: [id])
+  reviewer      User        @relation("Reviewer", fields: [reviewerId], references: [id])
+  reviewee      User        @relation("Reviewee", fields: [revieweeId], references: [id])
+  listing       Listing     @relation(fields: [listingId], references: [id])
+
+  @@unique([sellerOrderId, listingId])
+  @@index([revieweeId])
+  @@index([listingId, createdAt])
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  type      String // 'ORDER_PAID', 'READY_FOR_PICKUP', ...
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+}
+
+model SupportReport {
+  id             String    @id @default(uuid())
+  userId         String
+  type           String // 'BUG', 'ORDER', 'PAYMENT', 'LISTING', 'OTHER'
+  reason         String? // for a listing report: PROHIBITED_ITEM, MISLEADING, COUNTERFEIT, SCAM, OFFENSIVE, OTHER
+  message        String
+  screenshotUrl  String?
+  listingId      String?
+  status         String    @default("OPEN") // OPEN, CLOSED
+  resolvedAt     DateTime?
+  resolvedById   String?
+  resolutionNote String?
+  createdAt      DateTime  @default(now())
+
+  // One report per user per listing
+  @@unique([userId, listingId])
+  @@index([status, createdAt])
+  @@index([listingId, status])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String? // null = system job
+  action     String // 'ESCROW_RELEASED', 'USER_SUSPENDED', ...
+  entityType String
+  entityId   String
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+}
+
+model Wishlist {
+  id        String   @id @default(uuid())
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+  listing   Listing  @relation(fields: [listingId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, listingId])
+}
+
+model VerificationRequest {
+  id           String             @id @default(uuid())
+  status       VerificationStatus @default(PENDING)
+  documentUrl  String // authenticated Cloudinary upload under campusmart/verification/<userId>/
+  reviewNote   String? // the admin's reason, shown to the seller (required when REJECTED)
+  reviewedAt   DateTime?
+  reviewedById String? // the admin; like AuditLog.actorId, no relation
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  userId       String
+  user         User               @relation(fields: [userId], references: [id])
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+}
+
+model ModerationAction {
+  id           String               @id @default(uuid())
+  type         ModerationActionType
+  reason       String?
+  createdAt    DateTime             @default(now())
+  listingId    String?
+  targetUserId String? // the user acted on, e.g. SUSPEND_USER
+  moderatorId  String
+  listing      Listing?             @relation(fields: [listingId], references: [id])
+  moderator    User                 @relation(fields: [moderatorId], references: [id])
+}
+
 enum UserRole {
   BUYER
   SELLER
   ADMIN
+  PICKUP_AGENT
+  DISPATCH // a rider, invited by an admin (DX1); can't buy or sell (DX7)
 }
 
 enum OrderStatus {
-  CART
-  AWAITING_PAYMENT
+  PENDING_PAYMENT
   PAID
-  DISPUTED
-  CANCELLED 
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  OPAY
+  PALMPAY
+}
+
+enum DeliveryMethod {
+  DISPATCH
+  SELLER_PICKUP
 }
 
 enum FulfillmentStatus {
+  PENDING
+  AWAITING_RIDER // paid, by dispatch: waiting for a rider to collect from the seller
+  RIDER_ASSIGNED // a rider accepted the order's delivery job and will come to the store
+  WITH_RIDER // the rider entered this store's CM- code at the seller (DX5)
+  DELIVERED // the rider entered the buyer's code for this store (DL5)
+  AWAITING_PICKUP // paid, pickup from the seller: waiting for the buyer
   AWAITING_DROPOFF
   DROPPED_OFF
   COLLECTED
   CANCELLED
   DISPUTED
+}
+
+enum EscrowStatus {
+  PENDING
+  HELD
+  RELEASED
+  REFUNDED
+}
+
+enum PayoutStatus {
+  AWAITING_ACCOUNT
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+}
+
+enum DisputeStatus {
+  OPEN
+  RESOLVED_REFUND
+  RESOLVED_RELEASE
 }
 
 enum ListingStatus {
@@ -57,6 +699,18 @@ enum VerificationStatus {
   REJECTED
 }
 
+enum Fault {
+  BUYER
+  SELLER
+  NONE
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
 enum PaymentStatus {
   PENDING
   COMPLETED
@@ -69,6 +723,8 @@ enum ModerationActionType {
   REJECT
   SUSPEND
   FLAG
+  UNFLAG
+  SUSPEND_USER
 }
 
 enum ListingCategory {
@@ -81,180 +737,14 @@ enum ListingCategory {
   OTHERS
 }
 
-model User {
-  id            String      @id @default(uuid())
-  email         String      @unique
-  password      String?     
-  googleId      String?     @unique
-  firstName     String
-  lastName      String
-  role          UserRole
-  trustScore     Float         @default(0)
-  verificationStatus VerificationStatus @default(UNVERIFIED)
-  isActive      Boolean     @default(true)
-  isSuspended     Boolean     @default(false)
-
-  institutionId  String?
-  institution    Institution?   @relation(fields: [institutionId], references: [id])
-
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  listings      Listing[]   @relation("SellerListings")
-  orders        Order[]     @relation("BuyerOrders")
-  wishlist      Wishlist[]
-  reviewsGiven   Review[]    @relation("Reviewer")
-  reviewsReceived Review[]    @relation("Reviewee")
-  verificationRequests VerificationRequest[]
-  moderationActions ModerationAction[]
+enum DeliveryJobStatus {
+  OPEN // every active rider at the campus sees it; the first to accept takes it (DX2)
+  ASSIGNED
+  DONE // every store delivered or cancelled
+  CANCELLED // nothing left to deliver: every dispatch store was cancelled
 }
 
-model Institution {
-  id            String      @id @default(uuid())
-  name          String      @unique
-  domain        String?
-  createdAt     DateTime    @default(now())
-
-  users         User[]
-  listings      Listing[]
-}
-
-model Listing {
-  id            String      @id @default(uuid())
-  title         String      
-  description   String
-  price         Decimal     @db.Decimal(10,2)
-  quantity      Int
-  category      ListingCategory
-  status        ListingStatus @default(DRAFT)
-  condition     ProductCondition
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  isDeleted     Boolean     @default(false)
-  isPromoted     Boolean     @default(false)
-  isFlagged     Boolean     @default(false)
-
-  sellerId      String
-  seller        User        @relation("SellerListings", fields: [sellerId], references: [id])
-
-  institutionId  String?
-  institution    Institution? @relation(fields: [institutionId], references: [id])
-
-  images        ListingImage[]
-  orderItems    OrderItem[]
-  wishlistedBy  Wishlist[]
-  reviews       Review[]
-  moderationLogs  ModerationAction[]
-
-  @@index([sellerId, status, institutionId])
-}
-
-model ListingImage {
-  id            String      @id @default(uuid())
-  url           String
-  listingId     String
-  listing       Listing     @relation(fields: [listingId], references: [id])
-}
-
-model Order {
-  id            String      @id @default(uuid())
-  status        OrderStatus @default(CART)
-  fulfillmentStatus FulfillmentStatus? // Only applicable when status is PAID
-  totalAmount   Decimal     @db.Decimal(10,2)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  buyerId       String
-  buyer         User        @relation("BuyerOrders", fields: [buyerId], references: [id])
-
-  items         OrderItem[]
-  payment       Payment?
-  review        Review?
-
-  @@index([buyerId, status])
-}
-
-model OrderItem {
-  id            String      @id @default(uuid())
-  quantity      Int
-  price         Decimal     @db.Decimal(10,2)
-
-  orderId       String
-  order         Order       @relation(fields: [orderId], references: [id])
-
-  listingId     String
-  listing       Listing     @relation(fields: [listingId], references: [id])
-
-  @@unique([orderId, listingId])
-}
-
-model Payment{
-  id            String      @id @default(uuid())
-  amount        Decimal     @db.Decimal(10,2)
-  status        PaymentStatus @default(PENDING)
-  provider      String?
-  reference     String?     @unique
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  orderId       String      @unique
-  order         Order       @relation(fields: [orderId], references: [id])
-}
-
-model Review {
-  id            String      @id @default(uuid())
-  rating        Int
-  comment       String?
-  createdAt     DateTime    @default(now())
-
-  reviewerId    String
-  reviewer      User        @relation("Reviewer", fields: [reviewerId], references: [id])
-
-  revieweeId    String      @unique
-  reviewee      User        @relation("Reviewee", fields: [revieweeId], references: [id])
-
-  listingId     String
-  listing       Listing     @relation(fields: [listingId], references: [id])
-
-  orderId       String      @unique
-  order         Order       @relation(fields: [orderId], references: [id])
-
-  @@index([revieweeId])
-}
-
-model Wishlist {
-  id            String      @id @default(uuid())
-  userId        String
-  listingId     String
-  createdAt     DateTime    @default(now())
-
-  user          User         @relation(fields: [userId], references: [id])
-  listing       Listing      @relation(fields: [listingId], references: [id])
-
-  @@unique([userId, listingId])
-  @@index([userId, listingId])
-}
-
-model VerificationRequest {
-  id            String      @id @default(uuid())
-  status        VerificationStatus @default(PENDING)
-  documentUrl   String
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  userId        String
-  user          User        @relation(fields: [userId], references: [id])
-}
-
-model ModerationAction {
-  id            String      @id @default(uuid())
-  type          ModerationActionType
-  reason        String?
-  createdAt     DateTime    @default(now())
-
-  listingId     String?
-  listing       Listing?     @relation(fields: [listingId], references: [id])
-
-  moderatorId   String
-  moderator     User        @relation(fields: [moderatorId], references: [id])
+enum ProblemStatus {
+  OPEN
+  CLOSED
 }

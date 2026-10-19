@@ -1,32 +1,38 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
-
-import {
-  LogOut,
-  Settings,
-  Heart,
-  Package,
-  MessageSquare,
-  Shield,
-  Bell,
-  HelpCircle,
-  ChevronRight,
-  Edit2,
-  Link2,
-} from "lucide-react";
-import Link from "next/link";
+import { LogOut, Edit2, School, Store } from "lucide-react";
 import Nav from "../components/nav";
-import AppShell from "../components/AppShell";
 import PageHeader from "../components/PageHeader";
-import { useCartStore } from "../store/useCartStore";
+import ActionListItem from "../components/ActionListItem";
+import { useCart } from "@/lib/api/hooks/useCart";
 import { useAuthStore } from "../store/useAuthStore";
+import { useLogout } from "@/lib/api/hooks/useLogout";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { profileMenuGroups } from "../lib/data";
+
+// A buyer starts selling here (G2) and changes school (G1); a seller goes to their seller pages
+function menuGroups(role: string | undefined) {
+  return profileMenuGroups.map((group) => ({
+    ...group,
+    items: group.items.flatMap((item) => {
+      if (item.href === "/sellers" && role !== "SELLER") {
+        return [{ icon: Store, label: "Sell on CampusMart", description: "Open a store with your school email", href: "/profile/sell" }];
+      }
+      if (item.href === "/profile/settings" && role === "BUYER") {
+        return [{ icon: School, label: "Your school", description: "Change the campus you shop at", href: "/profile/school" }, item];
+      }
+      return [item];
+    }),
+  }));
+}
 
 export default function ProfilePage() {
   const [mounted, setMounted] = useState(false);
-  const { cart } = useCartStore();
-  const { logout } = useAuthStore();
+  const cart = useCart();
+  const logout = useLogout();
+  const authUser = useAuthStore((s) => s.user);
   const router = useRouter();
 
   useEffect(() => {
@@ -40,198 +46,111 @@ export default function ProfilePage() {
     router.push("/onboarding/role-select");
   };
 
+  const fullName = [authUser?.firstName, authUser?.lastName].filter(Boolean).join(" ");
   const user = {
-    name: "John Doe",
-    email: "john.doe@campus.edu",
-    phone: "+234 701 234 5678",
-    verified: true,
-    joinedDate: "January 2024",
+    name: fullName || authUser?.username || authUser?.email?.split("@")[0] || "",
+    email: authUser?.email ?? "",
+    phone: authUser?.phone ?? "",
+    verified: !!authUser?.emailVerifiedAt,
+    joinedDate: authUser
+      ? new Date(authUser.createdAt).toLocaleDateString("en-NG", { month: "long", year: "numeric" })
+      : "",
   };
-
-  const menuItems = [
-    {
-      icon: Package,
-      label: "My Orders",
-      description: "Track and manage your purchases",
-      href: "/checkout",
-      badge: null,
-    },
-    {
-      icon: Heart,
-      label: "Wishlist",
-      description: "Your saved items",
-      href: "/cart",
-      badge: cart.length > 0 ? `${cart.length}` : null,
-    },
-    {
-      icon: Shield,
-      label: "Account Security",
-      description: "Manage passwords and verification",
-      href: "#",
-      badge: null,
-    },
-    {
-      icon: Link2,
-      label: "Sellers page",
-      description: "Go to sellers page",
-      href: "/sellers",
-      badge: null,
-    },
-  ];
-
-  const settingsItems = [
-    {
-      icon: Bell,
-      label: "Notifications",
-      description: "Manage notification preferences",
-      href: "#",
-    },
-    {
-      icon: Settings,
-      label: "Settings",
-      description: "General app settings",
-      href: "#",
-    },
-    {
-      icon: HelpCircle,
-      label: "Help & Support",
-      description: "FAQs and contact support",
-      href: "#",
-    },
-  ];
 
   return (
     <>
-      <AppShell>
-        <div className="px-6 pt-0 flex flex-col gap-6">
-          <PageHeader title="Profile" showBack={false} />
+      <main className="pb-28 pt-8 px-6">
+        <PageHeader title="Profile" showBack={false} />
 
-          {/* ── Two-column on lg+ ── */}
-          <div className="lg:grid lg:grid-cols-[1fr_2fr] lg:gap-8 lg:items-start">
-
-            {/* LEFT — User card (sticky on desktop) */}
-            <div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200 p-6 flex flex-col gap-4 lg:sticky lg:top-8">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h2 className="text-lg font-semibold text-neutral-800">
-                      {user.name}
-                    </h2>
-                    {user.verified && (
-                      <span className="bg-green-100 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full">
-                        Verified
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-neutral-700 mb-1">{user.email}</p>
-                  <p className="text-sm text-neutral-600">{user.phone}</p>
-                  <p className="text-xs text-neutral-500 mt-2">
-                    Member since {user.joinedDate}
-                  </p>
+        <div className="flex flex-col gap-6">
+          {/* User card */}
+          <div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 p-6 flex flex-col gap-4 mt-6">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {user.name}
+                  </h2>
+                  {user.verified && (
+                    <span className="bg-green-100 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                      Verified
+                    </span>
+                  )}
                 </div>
-                <button className="p-2 bg-white rounded-full border border-blue-200 hover:bg-blue-50 transition">
-                  <Edit2 size={18} className="text-blue-600" />
-                </button>
-              </div>
-            </div>
-
-            {/* RIGHT — Menu groups */}
-            <div className="flex flex-col gap-6 mt-6 lg:mt-0">
-
-              {/* Quick Access */}
-              <div className="flex flex-col gap-3">
-                <p className="text-sm font-medium text-neutral-700">Quick Access</p>
-                <div className="flex flex-col gap-2">
-                  {menuItems.map((item) => {
-                    const IconComponent = item.icon;
-                    return (
-                      <Link key={item.label} href={item.href}>
-                        <div className="flex items-center gap-3 p-3 rounded-lg border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 transition">
-                          <div className="p-2 bg-blue-100 rounded-lg">
-                            <IconComponent size={18} className="text-blue-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-neutral-800">
-                              {item.label}
-                            </p>
-                            <p className="text-xs text-neutral-600 truncate">
-                              {item.description}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {item.badge && (
-                              <span className="bg-main text-white text-xs font-semibold px-2 py-1 rounded-full">
-                                {item.badge}
-                              </span>
-                            )}
-                            <ChevronRight size={18} className="text-neutral-400" />
-                          </div>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="h-px bg-neutral-200" />
-
-              {/* Settings */}
-              <div className="flex flex-col gap-3">
-                <p className="text-sm font-medium text-neutral-700">Settings</p>
-                <div className="flex flex-col gap-2">
-                  {settingsItems.map((item) => {
-                    const IconComponent = item.icon;
-                    return (
-                      <Link key={item.label} href={item.href}>
-                        <div className="flex items-center gap-3 p-3 rounded-lg border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 transition">
-                          <div className="p-2 bg-gray-100 rounded-lg">
-                            <IconComponent size={18} className="text-gray-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-neutral-800">
-                              {item.label}
-                            </p>
-                            <p className="text-xs text-neutral-600 truncate">
-                              {item.description}
-                            </p>
-                          </div>
-                          <ChevronRight size={18} className="text-neutral-400" />
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Danger Zone */}
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 transition"
-                >
-                  <div className="p-2 bg-red-100 rounded-lg">
-                    <LogOut size={18} className="text-red-600" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <p className="text-sm font-medium text-red-700">Logout</p>
-                    <p className="text-xs text-red-600">Sign out of your account</p>
-                  </div>
-                  <ChevronRight size={18} className="text-red-400" />
-                </button>
-              </div>
-
-              {/* Footer */}
-              <div className="pt-4 border-t border-neutral-200">
-                <p className="text-xs text-neutral-500 text-center">
-                  Campusmart v1.0.0 • {new Date().getFullYear()}
+                <p className="text-sm text-foreground mb-1">{user.email}</p>
+                <p className="text-sm text-foreground-muted">{user.phone}</p>
+                <p className="text-xs text-foreground-muted mt-2">
+                  Member since {user.joinedDate}
                 </p>
               </div>
+              <Link
+                href="/profile/edit"
+                aria-label="Edit profile"
+                className="p-2 bg-card rounded-full border border-blue-200 hover:bg-blue-50 transition"
+              >
+                <Edit2 size={18} className="text-blue-600" />
+              </Link>
+            </div>
+          </div>
 
-            </div> {/* end RIGHT col */}
-          </div> {/* end 2-col grid */}
-        </div> {/* end px-6 wrapper */}
-      </AppShell>
+          {/* Menu groups */}
+          <div className="flex flex-col gap-6 mt-2">
+            {menuGroups(authUser?.role).map((group, groupIdx) => (
+              <div key={group.title} className="flex flex-col gap-3">
+                <p className="text-xs font-semibold tracking-widest text-foreground-muted uppercase">
+                  {group.title}
+                </p>
+                <div className="flex flex-col gap-2">
+                  {group.items.map((item) => {
+                    const badge = item.href === "/cart" && cart.lineCount > 0 ? (
+                      <span className="bg-main text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
+                        {cart.lineCount}
+                      </span>
+                    ) : undefined;
+                    
+                    return (
+                      <ActionListItem
+                        key={item.label}
+                        icon={item.icon}
+                        label={item.label}
+                        description={item.description}
+                        href={item.href}
+                        badge={badge}
+                      />
+                    );
+                  })}
+                </div>
+                {groupIdx < profileMenuGroups.length - 1 && <div className="h-px bg-neutral-200 mt-3" />}
+              </div>
+            ))}
+
+            {/* Danger Zone */}
+            <div className="flex flex-col gap-3">
+              <p className="text-xs font-semibold tracking-widest text-foreground-muted uppercase">
+                Danger Zone
+              </p>
+              <ActionListItem
+                icon={LogOut}
+                label="Logout"
+                description="Sign out of your account"
+                onClick={handleLogout}
+                iconBg="bg-red-50"
+                iconColor="text-red-500"
+                className="hover:bg-red-50"
+              />
+            </div>
+
+            {/* Footer */}
+            <div className="pt-4 border-t border-border-default">
+              <p className="text-xs text-foreground-muted text-center">
+                Campusmart v1.0.0 â€¢ {new Date().getFullYear()}
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
       <Nav />
     </>
   );
 }
+

@@ -19,6 +19,9 @@ interface FormInputProps {
   autoComplete?: string;
   required?: boolean;
   disabled?: boolean;
+  /** e.g. "numeric" for a code, so phones show the number pad */
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  autoFocus?: boolean;
 }
 
 export default function FormInput({
@@ -33,6 +36,8 @@ export default function FormInput({
   autoComplete,
   required,
   disabled,
+  inputMode,
+  autoFocus,
 }: FormInputProps) {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === "password";
@@ -40,9 +45,9 @@ export default function FormInput({
 
   return (
     <div
-      className={`relative flex items-center transition-all duration-200 bg-[#f5f5f5] border border-transparent rounded-[12px] px-4 py-3 focus-within:bg-white focus-within:border-[#344054] focus-within:border-opacity-40 focus-within:shadow-sm ${className}`}
+      className={`relative flex items-center transition-all duration-200 bg-surface-muted border border-transparent rounded-[12px] px-4 py-3 focus-within:bg-card focus-within:border-border-muted focus-within:border-opacity-40 focus-within:shadow-sm ${className}`}
     >
-      <Icon className="text-neutral-500 mr-3 shrink-0" size={20} />
+      <Icon className="text-foreground-muted mr-3 shrink-0" size={20} />
 
       {isPassword ? (
         <>
@@ -57,14 +62,14 @@ export default function FormInput({
               autoComplete={autoComplete}
               required={required}
               disabled={disabled}
-              className="bg-transparent border-none outline-none w-full text-[14px] font-medium text-neutral-800 placeholder-neutral-400"
+              className="bg-transparent border-none outline-none w-full text-[14px] font-medium text-foreground placeholder-neutral-400"
             />
             <span className="text-neutral-300 mx-1 text-lg">|</span>
           </div>
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
-            className="text-neutral-500 ml-2 hover:text-neutral-800 transition-colors shrink-0"
+            className="text-foreground-muted ml-2 hover:text-foreground transition-colors shrink-0"
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -81,7 +86,9 @@ export default function FormInput({
           autoComplete={autoComplete}
           required={required}
           disabled={disabled}
-          className="bg-transparent border-none outline-none w-full text-[14px] font-medium text-neutral-800 placeholder-neutral-400"
+          inputMode={inputMode}
+          autoFocus={autoFocus}
+          className="bg-transparent border-none outline-none w-full text-[14px] font-medium text-foreground placeholder-neutral-400"
         />
       )}
     </div>

@@ -1,41 +1,44 @@
+"use client";
+import BottomFloatingBar, { BottomFloatingBarContainer } from './BottomFloatingBar';
 import { useRouter } from "next/navigation";
-import { useCartStore } from "../store/useCartStore";
-import { useEffect, useState } from "react";
+import { formatNaira } from "@/lib/labels";
 
+// The cart's bottom bar: the total and the way to checkout
 export default function CheckoutNav({
   text,
   link,
+  totalKobo,
+  itemCount,
+  disabled = false,
+  hint,
 }: {
   text: string;
   link: string;
+  totalKobo: number;
+  itemCount: number;
+  disabled?: boolean;
+  /** Why the button is off, e.g. "Fix the items marked above first" */
+  hint?: string;
 }) {
   const router = useRouter();
-  const { cart } = useCartStore();
-  const totalPrice = useCartStore((state) => state.getTotalPrice());
-
-    const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
   return (
-    <main className="fixed bottom-0 left-0 lg:left-60 xl:left-64 right-0 flex justify-center pb-6 font-dmSans tracking-tight z-50">
-      <div className="backdrop-blur-xs flex justify-center items-center py-2 px-2 rounded-full border border-neutral-200 w-[80%] bg-white/30 max-w-sm gap-2">
-        <div className="w-full flex justify-center">
-          <p className="text-main font-semibold text-lg">N{totalPrice}</p>
+    <BottomFloatingBar zIndex={50}>
+      <BottomFloatingBarContainer className="gap-2">
+        <div className="w-full flex flex-col items-center">
+          <p className="text-main font-semibold text-lg">{formatNaira(totalKobo)}</p>
+          {hint && <p className="text-[11px] leading-tight text-foreground-muted text-center">{hint}</p>}
         </div>
         <button
-          className="w-full h-10 rounded-full border bg-main border-neutral-200 disabled:opacity-40 transition-all duration-300"
-          onClick={() => router.push("/"+link)}
-          disabled={cart.length <= 0}
+          type="button"
+          className="w-full h-10 rounded-full border bg-main border-border-default disabled:opacity-40 transition-all duration-300"
+          onClick={() => router.push("/" + link)}
+          disabled={disabled || itemCount <= 0}
         >
           <p className="font-medium text-sm text-white">
-            {text} ({cart.length})
+            {text} ({itemCount})
           </p>
         </button>
-      </div>
-    </main>
+      </BottomFloatingBarContainer>
+    </BottomFloatingBar>
   );
 }

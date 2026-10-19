@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import PrimaryButton from "@/app/components/PrimaryButton";
+import { useGuestStore } from "@/app/store/useGuestStore";
+import Button from "@/app/components/Button";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -36,14 +37,14 @@ function RoleCard({
         ${
           isSelected
             ? "border-main bg-orange-50/50 shadow-md"
-            : "border-neutral-200 bg-white hover:border-neutral-300"
+            : "border-border-default bg-card hover:border-border-default"
         }
       `}
     >
       {/* Text */}
       <div className="flex flex-col gap-0.5 flex-1">
-        <p className="font-bold text-[16px] text-neutral-900">{title}</p>
-        <p className="text-[13px] text-neutral-500 leading-4">{description}</p>
+        <p className="font-bold text-[16px] text-foreground">{title}</p>
+        <p className="text-[13px] text-foreground-muted leading-4">{description}</p>
       </div>
 
       {/* Illustration */}
@@ -96,49 +97,54 @@ export default function RoleSelectPage() {
   const router = useRouter();
   const [selected, setSelected] = useState<Role>(null);
 
+  const guestSchool = useGuestStore((s) => s.school);
+
+  // Browse needs no account, only a school (decision 2026-10-19); buying and selling sign in first
   const handleContinue = () => {
     if (!selected) return;
 
     if (selected === "sell") {
       router.push("/onboarding/sellers/welcome");
+    } else if (selected === "browse") {
+      router.push(guestSchool ? "/" : "/onboarding/guest-school");
     } else {
       router.push("/onboarding/buyers/welcome");
     }
   };
 
   return (
-    <div className="relative flex justify-center max-w-dvw min-h-dvh bg-white text-black font-satoshi tracking-tight">
-      <main className="flex flex-col max-w-md w-full min-h-dvh px-6 pt-16 pb-10">
+    <>
+      <div className="flex flex-col px-6 pt-16 md:pt-12 pb-10 flex-1">
 
-        {/* Heading */}
-        <h1 className="text-[28px] leading-[1.1] font-bold text-black mb-6">
-          How do you want to use
-          <br />
-          CampusMart?
-        </h1>
+          {/* Heading */}
+          <h1 className="text-[28px] leading-[1.1] font-bold text-foreground mb-6">
+            How do you want to use
+            <br />
+            CampusMart?
+          </h1>
 
-        {/* Role cards */}
-        <div className="flex flex-col gap-4 flex-1">
-          {ROLES.map(({ role, title, description, imageSrc }) => (
-            <RoleCard
-              key={role}
-              role={role}
-              title={title}
-              description={description}
-              imageSrc={imageSrc}
-              isSelected={selected === role}
-              onClick={() => setSelected(role)}
-            />
-          ))}
-        </div>
+          {/* Role cards */}
+          <div className="flex flex-col gap-4 flex-1">
+            {ROLES.map(({ role, title, description, imageSrc }) => (
+              <RoleCard
+                key={role}
+                role={role}
+                title={title}
+                description={description}
+                imageSrc={imageSrc}
+                isSelected={selected === role}
+                onClick={() => setSelected(role)}
+              />
+            ))}
+          </div>
 
-        {/* Continue CTA */}
-        <div className="mt-8">
-          <PrimaryButton onClick={handleContinue} disabled={!selected}>
-            Continue
-          </PrimaryButton>
-        </div>
-      </main>
-    </div>
+          {/* Continue CTA */}
+          <div className="mt-8">
+            <Button onClick={handleContinue} disabled={!selected} outerRing roleType="buyer">
+              Continue
+            </Button>
+          </div>
+      </div>
+    </>
   );
 }

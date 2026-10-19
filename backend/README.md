@@ -1,98 +1,140 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# CampusMart API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+NestJS 11 backend for CampusMart, using Prisma 7 with Neon Postgres. Browsers never call it directly: the
+Next.js app rewrites `/api/*` to this server (decision D1 in [the implementation guide](../docs/implementation-guide.md)).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Prerequisites
 
-## Description
+- Node.js 22
+- A Postgres database. The project uses Neon; any Postgres 15+ works for local development.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Setup
 
-## Project setup
+### 1. Install dependencies
 
 ```bash
-$ npm install
+cd backend
+pnpm install
 ```
 
-## Compile and run the project
+### 2. Configure the environment
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cp .env.example .env
 ```
 
-## Run tests
+Fill in `.env`. Every variable is validated at startup by the zod schema in [`src/config/env.ts`](src/config/env.ts);
+if one is missing or malformed the app stops before it starts and names each offending variable. Treat that file as
+the source of truth when this table and `.env.example` disagree.
+
+| Variable | Required | Default | Notes |
+| :--- | :---: | :--- | :--- |
+| `NODE_ENV` | | `development` | `development`, `test` or `production` |
+| `PORT` | | `4000` | |
+| `FRONTEND_URL` | | `http://localhost:3000` | CORS origin, for Swagger and local tools only |
+| `APP_URL` | | `http://localhost:3000` | Frontend URL used in emails and the Paystack callback |
+| `DATABASE_URL` | ✓ | | Pooled connection string, used by the app at runtime |
+| `DIRECT_URL` | ✓ | | Direct (unpooled) connection string, used by the Prisma CLI for migrations |
+| `JWT_SECRET` | ✓ | | At least 32 random characters |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS`, `MAIL_FROM` | production | | SMTP. In development emails print to the console |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | from Phase 3 | | Image uploads |
+| `PAYSTACK_SECRET_KEY` | when payments are enabled | | Use an `sk_test_…` key locally |
+| `PAYMENTS_ENABLED` | | `false` | Checkout returns no payment URL while `false` |
+| `PLATFORM_FEE_BPS` | | `0` | Basis points; 100 = 1% |
+| `ORDER_PAYMENT_TTL_MINUTES` | | `30` | |
+| `DROP_OFF_DEADLINE_DAYS` | | `3` | |
+| `ESCROW_DISPUTE_WINDOW_HOURS` | | `48` | `0` is allowed for testing |
+| `LOW_STOCK_THRESHOLD` | | `3` | |
+| `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | seed only | | Read by `prisma/seed.ts`, never by the API |
+
+### 3. Set up the database
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+pnpm exec prisma migrate dev
+pnpm exec prisma generate
 ```
 
-## Deployment
+`migrate dev` applies the migrations in `prisma/migrations` to the database named by `DIRECT_URL`. Prisma 7 no longer
+generates the client as part of `migrate dev`, so run `generate` afterwards. The client is written to
+`src/generated/prisma`, which is git-ignored; run `generate` again after every pull that touches `prisma/schema.prisma`.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+To change the schema, edit `prisma/schema.prisma` and run `pnpm exec prisma migrate dev --name <short_description>`.
+CI fails when the schema and the migrations disagree.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Then seed the database:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+pnpm exec prisma db seed
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+[`prisma/seed.ts`](prisma/seed.ts) creates one institution (sign-up only accepts emails on its domains), two pickup
+stations, and an admin from `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`. The password must meet the normal password
+policy. Running it again keeps existing rows and never changes an existing admin's password.
 
-## Resources
+To start a development database from scratch, `pnpm exec prisma migrate reset` drops everything and re-applies every
+migration. Prisma 7 no longer seeds as part of `reset`, so run `pnpm exec prisma db seed` after it. Never point either
+command at a shared or production database.
 
-Check out a few resources that may come in handy when working with NestJS:
+### 4. Start the server
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+```bash
+pnpm dev
+```
 
-## Support
+This starts the server in watch mode at `http://localhost:4000/api`. Every route is under the `/api` prefix.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## API docs
 
-## Stay in touch
+Swagger UI is served at **http://localhost:4000/api/docs**. The raw OpenAPI JSON is at
+`http://localhost:4000/api/docs-json`; the frontend generates its types from it. Swagger is not mounted when
+`NODE_ENV=production`. Authenticated routes use the `access_token` cookie, so sign in through
+`POST /api/auth/login` first and Swagger sends the cookie with later requests.
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## Responses and errors
 
-## License
+Success: `{ "success": true, "data": …, "timestamp": "…" }`. Errors:
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```json
+{
+  "statusCode": 409,
+  "code": "OUT_OF_STOCK",
+  "message": "Only 2 left",
+  "details": { "listingId": "…", "available": 2 },
+  "path": "/api/orders",
+  "timestamp": "2026-09-30T12:00:00.000Z"
+}
+```
+
+Branch on `code`, not `message`. The generic codes are `VALIDATION_FAILED`, `UNAUTHENTICATED`, `FORBIDDEN`,
+`NOT_FOUND`, `CONFLICT`, `INVALID_REFERENCE`, `RATE_LIMITED` and `INTERNAL`. Feature errors add their own:
+
+```ts
+throw new ConflictException({ code: 'OUT_OF_STOCK', message: 'Only 2 left', details });
+```
+
+## Tests
+
+```bash
+pnpm test            # unit tests, Prisma mocked
+pnpm test:e2e    # supertest against a real Postgres
+```
+
+The e2e suites truncate every table, so they refuse to run unless the database name in `DATABASE_URL` contains
+`test`. Point them at a throwaway database:
+
+```bash
+export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/campusmart_test
+export DIRECT_URL=$DATABASE_URL
+pnpm exec prisma migrate deploy
+pnpm test:e2e
+```
+
+## Scripts
+
+| Command | Purpose |
+| :--- | :--- |
+| `pnpm dev` | Run in watch mode |
+| `pnpm debug` | Watch mode with the Node inspector attached |
+| `pnpm build` / `pnpm prod` | Compile to `dist/` and run it |
+| `pnpm lint` | ESLint (checks only; `pnpm exec eslint --fix` to fix) |
+| `pnpm test` / `pnpm test:e2e` | Unit and end-to-end tests |

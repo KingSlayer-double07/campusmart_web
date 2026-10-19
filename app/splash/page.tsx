@@ -3,26 +3,34 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/app/store/useAuthStore";
+import { useGuestStore } from "@/app/store/useGuestStore";
+import { homeForRole } from "@/lib/auth/redirects";
 
 export default function SplashScreen() {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
 
+  const introSeen = useGuestStore((s) => s.introSeen);
+  const guestSchool = useGuestStore((s) => !!s.school);
+
+  // Signed in: home. A first visit: the intro slides, then the three choices. A guest who has
+  // already picked a school to browse goes straight back to it (decision 2026-10-19).
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (isAuthenticated && user) {
-        router.replace(user.role === "SELLER" ? "/sellers" : "/");
+      if (user) {
+        router.replace(user.emailVerifiedAt ? homeForRole(user.role) : "/onboarding/verify-email");
+      } else if (!introSeen) {
+        router.replace("/onboarding/intro");
       } else {
-        router.replace("/onboarding/role-select");
+        router.replace(guestSchool ? "/" : "/onboarding/role-select");
       }
     }, 2200);
     return () => clearTimeout(timer);
-  }, [isAuthenticated, user, router]);
+  }, [user, introSeen, guestSchool, router]);
 
   return (
-    <div className="relative flex justify-center max-w-dvw min-h-dvh bg-white text-black font-satoshi tracking-tight overflow-hidden">
-      <main className="flex flex-col max-w-md w-full items-center justify-center min-h-dvh px-6">
-
+    <>
+      <main className="flex flex-col items-center justify-center min-h-dvh px-6">
         {/* Logo mark */}
         <div className="flex flex-col items-center gap-3 animate-[fadeUp_0.6s_ease_forwards]">
           {/* 2×2 icon grid — mirrors the design */}
@@ -45,25 +53,12 @@ export default function SplashScreen() {
         </div>
 
         {/* Bottom tagline */}
-        <p className="absolute bottom-10 text-neutral-400 text-[13px] font-medium text-center leading-relaxed">
+        <p className="absolute bottom-10 text-foreground-muted text-[13px] font-medium text-center leading-relaxed">
           The marketplace
           <br />
           for everyone, by students.
         </p>
       </main>
-
-      <style jsx>{`
-        @keyframes fadeUp {
-          from {
-            opacity: 0;
-            transform: translateY(18px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
-    </div>
+    </>
   );
 }

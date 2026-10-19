@@ -21,7 +21,7 @@ export default function PageHeader({
       {showBack && (
         <button
           onClick={() => router.back()}
-          className="size-8 bg-white rounded-full border border-neutral-200 flex justify-center items-center shadow-lg hover:bg-neutral-50 transition shrink-0"
+          className="size-8 bg-card rounded-full border border-border-default flex justify-center items-center shadow-lg hover:bg-surface-muted transition shrink-0"
         >
           {/* <ChevronLeft size={18} /> */}
           

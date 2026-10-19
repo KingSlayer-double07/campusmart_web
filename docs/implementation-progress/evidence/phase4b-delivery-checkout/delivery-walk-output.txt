@@ -1,0 +1,17 @@
+PASS  The overview says a campus needs places and a fee (no pickup station step)
+PASS  An admin adds a campus place
+PASS  An admin sets the flat on-campus fee for UNILAG
+note: Chidi already had delivery details from an earlier walk
+PASS  A verified seller without delivery details is told publishing needs them
+PASS  The seller saves area, address and phone; riders only by default
+PASS  With the details saved, the publish notice is gone
+PASS  The cart says who offers pickup (area only) and carries the campus fee
+PASS  Chidi only sends by rider; Amaka offers pickup at Moremi Hall
+PASS  Both by rider: one ₦500 fee on top of the items  (₦19,000)
+PASS  The order has one destination, one fee, and a method per store  (₦19,000)
+PASS  Before payment, the pickup seller shows the area only
+PASS  The rider phone is shown, and saved to the account
+PASS  Off campus: the fee is agreed with the rider, not charged
+PASS  The off-campus order keeps the address and has no fee
+
+14/14 passed

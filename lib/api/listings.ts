@@ -1,0 +1,73 @@
+import { fetchApi } from './client';
+import type { components } from './schema';
+
+// Generated from the API's OpenAPI document (D5)
+type Schemas = components['schemas'];
+export type ListingCard = Schemas['ListingCardDto'];
+export type Listing = Schemas['ListingDto'];
+export type ListingPage = Schemas['ListingPageDto'];
+export type ListingImage = Schemas['ListingImageDto'];
+export type ListingVariant = Schemas['ListingVariantDto'];
+export type CreateListingBody = Schemas['CreateListingDto'];
+export type UpdateListingBody = Schemas['UpdateListingDto'];
+export type ListingSort = Schemas['ListingSort'];
+export type SellerProfile = Schemas['SellerProfileDto'];
+export type UpdateSellerProfileBody = Schemas['UpdateSellerProfileDto'];
+export type UploadPurpose = Schemas['UploadPurpose'];
+export type UploadSignature = Schemas['UploadSignatureDto'];
+export type MyVerification = Schemas['MyVerificationDto'];
+export type VerificationStatus = Schemas['VerificationStatus'];
+export type OwnerListingStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+
+export interface ListingFilters {
+  q?: string;
+  category?: Schemas['ListingCategory'];
+  condition?: Schemas['ProductCondition'];
+  minPriceKobo?: number;
+  maxPriceKobo?: number;
+  sort?: ListingSort;
+  limit?: number;
+}
+
+function params(values: object): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(values)
+      .filter(([, v]) => v !== undefined && v !== null && v !== '')
+      .map(([k, v]) => [k, String(v)]),
+  );
+}
+
+const json = (method: 'POST' | 'PATCH', body: unknown): RequestInit => ({
+  method,
+  body: JSON.stringify(body),
+});
+
+export const listingsApi = {
+  // institutionId: a guest's chosen school (decision 2026-10-19); left out when signed in
+  browse: (filters: ListingFilters & { cursor?: string; institutionId?: string }) =>
+    fetchApi<ListingPage>('/listings', { params: params(filters) }),
+  get: (id: string, institutionId?: string) =>
+    fetchApi<Listing>(`/listings/${id}`, { params: params({ institutionId }) }),
+  related: (id: string, institutionId?: string) =>
+    fetchApi<ListingCard[]>(`/listings/${id}/related`, { params: params({ institutionId }) }),
+  mine: (filters: { status?: Schemas['ListingStatus']; cursor?: string; limit?: number }) =>
+    fetchApi<ListingPage>('/sellers/me/listings', { params: params(filters) }),
+  create: (body: CreateListingBody) => fetchApi<Listing>('/listings', json('POST', body)),
+  update: (id: string, body: UpdateListingBody) => fetchApi<Listing>(`/listings/${id}`, json('PATCH', body)),
+  // Decision M4a: publishing confirms the item isn't on the prohibited list
+  setStatus: (id: string, status: OwnerListingStatus, confirmNotProhibited?: boolean) =>
+    fetchApi<Listing>(`/listings/${id}/status`, json('PATCH', { status, ...(confirmNotProhibited && { confirmNotProhibited }) })),
+  remove: (id: string) => fetchApi<void>(`/listings/${id}`, { method: 'DELETE' }),
+};
+
+export const sellersApi = {
+  me: () => fetchApi<SellerProfile>('/sellers/me'),
+  update: (body: UpdateSellerProfileBody) => fetchApi<SellerProfile>('/sellers/me', json('PATCH', body)),
+  verification: () => fetchApi<MyVerification>('/users/me/verification'),
+  submitVerification: (documentUrl: string) =>
+    fetchApi<MyVerification>('/users/me/verify', json('POST', { documentUrl })),
+};
+
+export const uploadsApi = {
+  signature: (purpose: UploadPurpose) => fetchApi<UploadSignature>('/uploads/signature', json('POST', { purpose })),
+};

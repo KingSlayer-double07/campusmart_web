@@ -1,0 +1,22 @@
+PASS  A first visit opens on the splash
+PASS  …which moves on to the intro slides after about 2 seconds  (2503 ms)
+PASS  Three slides, with Next and the dots
+PASS  The slides end on the three choices
+PASS  Browse, Buy and Sell are offered
+PASS  Browse asks which school to browse, not for an account
+PASS  The home page shows the school's listings to a guest  (8 cards)
+PASS  …with "Browsing University of Lagos", Change and Sign in
+PASS  …and no store pages or notification bell
+PASS  The home page fits a phone screen
+PASS  A guest can search
+PASS  A guest can open a product
+PASS  The heart asks a guest to sign in, and to come back to the item  (/onboarding/buyers/sign-in?next=%2FproductItem%2Fed3d603d-dfc8-4c38-8bc5-8e09d844a13d)
+PASS  A guest opens their cart without signing in
+PASS  Checkout asks the guest to sign in, keeping /checkout for after
+PASS  The school they browsed is chosen already
+PASS  They arrive at checkout with the cart they filled as a guest
+PASS  A guest opening a store page is asked to sign in
+PASS  A returning guest opens straight on the home page, no splash
+PASS  "Report this listing" asks a guest to sign in and come back
+
+20/20 checks passed

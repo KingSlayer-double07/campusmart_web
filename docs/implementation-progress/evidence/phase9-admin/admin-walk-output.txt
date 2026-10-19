@@ -1,0 +1,20 @@
+$ INST="Lagos City Polytechnic" DOMAIN="lcp.edu.ng" STATION="Hostel Gate Pickup Point" node admin-walk.mjs shots
+PASS  Admin lands on /admin overview after sign-in
+PASS  Institutions table lists the seeded school
+PASS  A bad domain is explained inline
+PASS  Saving adds the row (with the typed-but-not-added domain too)
+PASS  Switching off without a reason is refused
+PASS  The row shows Switched off
+PASS  Sign-up with a switched-off school shows the friendly message (not the waitlist)
+PASS  Status filter lives in the URL
+PASS  Stations table lists the seeded stations
+PASS  A day that closes before it opens is flagged
+PASS  The new station appears with its hours
+PASS  No sideways scrolling on a 390px phone (overview)  (scrollWidth=390)
+PASS  Institutions render as cards with no sideways scrolling  (scrollWidth=390)
+PASS  The admin pill nav is visible on phones
+PASS  The shopper 'Install Campusmart' prompt stays off the admin console
+PASS  Stations render as cards with no sideways scrolling  (scrollWidth=390)
+PASS  The station form opens as a bottom sheet on phones
+
+17/17 passed

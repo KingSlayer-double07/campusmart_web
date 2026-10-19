@@ -1,14 +1,58 @@
 @import "tailwindcss";
 
 :root {
+  /* Surfaces */
   --background: #ffffff;
+  --card: #ffffff;
+  --surface-muted: #f5f5f5;
+  --surface-elevated: rgba(255, 255, 255, 0.85);
+
+  /* Text & Icons */
   --foreground: #171717;
+  --foreground-muted: #737373;
+  --foreground-inverse: #ffffff;
+
+  /* Borders */
+  --border-default: #e5e5e5;
+  --border-muted: #344054;
+  
+  /* Buyer Theme (Main) */
   --main: #ff681f;
-  /* The dark blue for Featured Store */
-  /* --storeBlue: "#0F2868"; */
-  /* The pastel yellow for Featured Store */
-  /* --storeYellow: "#FDE69F";
-  --bgGray: "#F6F6F6"; */
+  --main-light: #ff8c52;
+  --main-pale: #FDE8D8;
+  --main-subtle: #fff0e6;
+  
+  /* Seller Theme (Accents) */
+  --seller-main: #13368B;
+  --seller-hover: #0f2a6e;
+  --seller-dark: #1a2e6e;
+  --seller-darker: #1a1a2e;
+  --seller-card: #1e2235;
+  --seller-icon: #2d3250;
+  
+  /* Featured Store Specific */
+  --store-blue: #0F2868;
+  --store-yellow: #FDE69F;
+  
+  /* Utility / Feedback */
+  --error: #ff3b30;
+}
+
+.dark {
+  /* Surfaces */
+  --background: #09090b; /* Sleek zinc-950 */
+  --card: #18181b; /* Zinc-900 */
+  --surface-muted: #27272a; /* Zinc-800 */
+  --surface-elevated: rgba(39, 39, 42, 0.85);
+
+  /* Text & Icons */
+  --foreground: #fafafa; /* Zinc-50 */
+  --foreground-muted: #a1a1aa; /* Zinc-400 */
+  --foreground-inverse: #09090b;
+
+  /* Borders */
+  --border-default: #27272a;
+  --border-muted: #3f3f46;
 }
 
 @theme{
@@ -17,28 +61,68 @@
 
 @theme inline {
   --color-background: var(--background);
+  --color-card: var(--card);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-elevated: var(--surface-elevated);
+  
   --color-foreground: var(--foreground);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-foreground-inverse: var(--foreground-inverse);
+  
+  --color-border-default: var(--border-default);
+  --color-border-muted: var(--border-muted);
+  
   --color-main: var(--main);
-  /* --color-storeBlue: var(--storeBlue);
-  --color-storeYellow: var(--storeYellow);
-  --color-bgGray: var(--bgGray); */
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-dmSans: var(--font-dm-sans);
+  --color-main-light: var(--main-light);
+  --color-main-pale: var(--main-pale);
+  --color-main-subtle: var(--main-subtle);
+  
+  --color-seller-main: var(--seller-main);
+  --color-seller-hover: var(--seller-hover);
+  --color-seller-dark: var(--seller-dark);
+  --color-seller-darker: var(--seller-darker);
+  --color-seller-card: var(--seller-card);
+  --color-seller-icon: var(--seller-icon);
+  
+  --color-store-blue: var(--store-blue);
+  --color-store-yellow: var(--store-yellow);
+  
+  --color-error: var(--error);
+
+  --font-jost: var(--font-jost);
+  --font-dmSans: var(--font-jost);
   --font-googleSans: var(--font-google-sans);
 }
-
-/* @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-} */
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-satoshi), Arial, Helvetica, sans-serif;
+  
+  /* Prevent long-press context menus on mobile */
+  -webkit-touch-callout: none;
+  /* Remove the tap highlight flash on mobile */
+  -webkit-tap-highlight-color: transparent;
+  /* Disable text selection globally for app feel */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Re-enable text selection for form inputs */
+input, textarea, [contenteditable="true"] {
+  -webkit-user-select: auto;
+  user-select: auto;
+}
+
+/* Hide scrollbar globally for Chrome, Safari and Opera */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar globally for IE, Edge and Firefox */
+* {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 
 @layer utilities {
@@ -50,5 +134,16 @@ body {
   .no-scrollbar {
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

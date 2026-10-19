@@ -1,0 +1,571 @@
+import {
+  ConflictException,
+  HttpException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { Test } from '@nestjs/testing';
+import { hash } from 'bcrypt';
+import { EmailCodePurpose, UserRole } from '../generated/prisma/enums';
+import { InstitutionsService } from '../institutions/institutions.service';
+import { MailService } from '../mail/mail.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { SessionsService } from '../sessions/sessions.service';
+import { AuthService } from './auth.service';
+import { EmailCodeError, EmailCodesService } from './email-codes.service';
+
+const responseCode = (error: unknown) =>
+  ((error as HttpException).getResponse() as { code?: string }).code;
+
+describe('AuthService', () => {
+  let service: AuthService;
+  const prisma = {
+    user: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      count: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    $transaction: jest.fn(),
+  };
+  const sessions = {
+    create: jest.fn(),
+    rotate: jest.fn(),
+    revokeAll: jest.fn(),
+    revokeByCookie: jest.fn(),
+  };
+  const emailCodes = {
+    issue: jest.fn(),
+    consume: jest.fn(),
+    assertCanSend: jest.fn(),
+    canSend: jest.fn(),
+  };
+  const mail = { send: jest.fn() };
+  const institutions = { findForEmail: jest.fn() };
+  const jwt = { sign: jest.fn() };
+
+  const user = {
+    id: 'u1',
+    email: 'ada@students.unilag.edu.ng',
+    role: UserRole.BUYER,
+    isSuspended: false,
+    isActive: true,
+    emailVerifiedAt: null,
+  };
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+    prisma.$transaction.mockImplementation((fn: (tx: unknown) => unknown) =>
+      fn(prisma),
+    );
+    sessions.create.mockResolvedValue({
+      sessionId: 's1',
+      refreshToken: 's1.token',
+    });
+    jwt.sign.mockReturnValue('jwt');
+    emailCodes.issue.mockResolvedValue('123456');
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        AuthService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: JwtService, useValue: jwt },
+        { provide: SessionsService, useValue: sessions },
+        { provide: EmailCodesService, useValue: emailCodes },
+        { provide: MailService, useValue: mail },
+        { provide: InstitutionsService, useValue: institutions },
+      ],
+    }).compile();
+    service = moduleRef.get(AuthService);
+  });
+
+  describe('register', () => {
+    const dto = {
+      email: 'ada@students.unilag.edu.ng',
+      password: 'Campus2026',
+      accountType: 'BUYER' as const,
+    };
+
+    it('returns 422 INSTITUTION_NOT_SUPPORTED for a seller without a school email (D7)', async () => {
+      institutions.findForEmail.mockResolvedValue(null);
+      const error = await service
+        .register({ ...dto, email: 'ada@gmail.com', accountType: 'SELLER' }, {})
+        .catch((e: unknown) => e);
+      expect((error as HttpException).getStatus()).toBe(422);
+      expect(responseCode(error)).toBe('INSTITUTION_NOT_SUPPORTED');
+      expect(prisma.user.create).not.toHaveBeenCalled();
+    });
+
+    it('lets a buyer sign up with any email and no school yet (T1)', async () => {
+      institutions.findForEmail.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue({ ...user, email: 'ada@gmail.com' });
+      await service.register({ ...dto, email: 'ada@gmail.com' }, {});
+      const { data } = prisma.user.create.mock.calls[0][0];
+      expect(data).toMatchObject({
+        email: 'ada@gmail.com',
+        role: UserRole.BUYER,
+      });
+      expect(data.institutionId).toBeUndefined();
+      expect(data.schoolEmail).toBeUndefined();
+    });
+
+    it('returns 403 INSTITUTION_INACTIVE when the school is switched off', async () => {
+      institutions.findForEmail.mockResolvedValue({
+        id: 'unilag',
+        isActive: false,
+      });
+      const error = await service.register(dto, {}).catch((e: unknown) => e);
+      expect((error as HttpException).getStatus()).toBe(403);
+      expect(responseCode(error)).toBe('INSTITUTION_INACTIVE');
+      expect(prisma.user.create).not.toHaveBeenCalled();
+    });
+
+    it('takes the institution from the email domain, never from the client', async () => {
+      institutions.findForEmail.mockResolvedValue({
+        id: 'unilag',
+        isActive: true,
+      });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue(user);
+
+      await service.register(dto, {});
+      const { data } = prisma.user.create.mock.calls[0][0];
+      expect(data.institutionId).toBe('unilag');
+      expect(data.schoolEmail).toBe(dto.email);
+      expect(data.role).toBe(UserRole.BUYER);
+      expect(data.password).toMatch(/^\$2[aby]\$/);
+      expect(data.sellerProfile).toBeUndefined();
+    });
+
+    it('gives a seller account the SELLER role and an empty SellerProfile', async () => {
+      institutions.findForEmail.mockResolvedValue({
+        id: 'unilag',
+        isActive: true,
+      });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue({ ...user, role: UserRole.SELLER });
+
+      await service.register({ ...dto, accountType: 'SELLER' }, {});
+      const { data } = prisma.user.create.mock.calls[0][0];
+      expect(data.role).toBe(UserRole.SELLER);
+      expect(data.sellerProfile).toEqual({ create: {} });
+    });
+
+    it('emails a verification code and issues a session with {sub, sid, role}', async () => {
+      institutions.findForEmail.mockResolvedValue({
+        id: 'unilag',
+        isActive: true,
+      });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue(user);
+
+      const { tokens } = await service.register(dto, {});
+      expect(emailCodes.issue).toHaveBeenCalledWith(
+        'u1',
+        EmailCodePurpose.VERIFY_EMAIL,
+      );
+      expect(mail.send).toHaveBeenCalledWith(user.email, 'verify-email', {
+        code: '123456',
+        minutes: 10,
+      });
+      expect(jwt.sign).toHaveBeenCalledWith({
+        sub: 'u1',
+        sid: 's1',
+        role: UserRole.BUYER,
+      });
+      expect(tokens).toEqual({ accessToken: 'jwt', refreshToken: 's1.token' });
+    });
+
+    it('still registers when the email fails to send', async () => {
+      institutions.findForEmail.mockResolvedValue({
+        id: 'unilag',
+        isActive: true,
+      });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue(user);
+      mail.send.mockRejectedValue(new Error('SMTP down'));
+      jest
+        .spyOn(service['logger'], 'error')
+        .mockImplementation(() => undefined);
+
+      await expect(service.register(dto, {})).resolves.toMatchObject({
+        user,
+      });
+    });
+
+    it('rejects an email already used as an account or school email with 409', async () => {
+      institutions.findForEmail.mockResolvedValue({
+        id: 'unilag',
+        isActive: true,
+      });
+      prisma.user.findFirst.mockResolvedValue({ id: 'existing' });
+      await expect(service.register(dto, {})).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      expect(prisma.user.findFirst).toHaveBeenCalledWith({
+        where: { OR: [{ email: dto.email }, { schoolEmail: dto.email }] },
+        select: { id: true },
+      });
+    });
+  });
+
+  describe('login', () => {
+    it('rejects an unknown email with 401', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      await expect(
+        service.login({ email: 'x@unilag.edu.ng', password: 'Campus2026' }, {}),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+
+    it('rejects a wrong password with 401', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...user,
+        password: await hash('Campus2026', 4),
+      });
+      await expect(
+        service.login({ email: user.email, password: 'Wrong2026x' }, {}),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(sessions.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects a suspended account', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...user,
+        isSuspended: true,
+        password: await hash('Campus2026', 4),
+      });
+      const error = await service
+        .login({ email: user.email, password: 'Campus2026' }, {})
+        .catch((e: unknown) => e);
+      expect(error).toBeInstanceOf(UnauthorizedException);
+      expect(responseCode(error)).toBe('ACCOUNT_SUSPENDED');
+    });
+
+    it('tells a suspended user the admin’s reason (M6)', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...user,
+        isSuspended: true,
+        suspendedReason: 'Sold fake phones',
+        password: await hash('Campus2026', 4),
+      });
+      const error = await service
+        .login({ email: user.email, password: 'Campus2026' }, {})
+        .catch((e: unknown) => e);
+      expect((error as HttpException).getResponse()).toMatchObject({
+        code: 'ACCOUNT_SUSPENDED',
+        message: expect.stringContaining('Sold fake phones'),
+        details: { reason: 'Sold fake phones' },
+      });
+      expect(sessions.create).not.toHaveBeenCalled();
+    });
+
+    it.each([UserRole.BUYER, UserRole.SELLER, UserRole.PICKUP_AGENT])(
+      'refuses a %s at a switched-off institution with 403 INSTITUTION_INACTIVE',
+      async (role) => {
+        prisma.user.findUnique.mockResolvedValue({
+          ...user,
+          role,
+          institution: { isActive: false },
+          password: await hash('Campus2026', 4),
+        });
+        const error = await service
+          .login({ email: user.email, password: 'Campus2026' }, {})
+          .catch((e: unknown) => e);
+        expect((error as HttpException).getStatus()).toBe(403);
+        expect(responseCode(error)).toBe('INSTITUTION_INACTIVE');
+        expect(sessions.create).not.toHaveBeenCalled();
+      },
+    );
+
+    it('lets an admin sign in at a switched-off institution', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...user,
+        role: UserRole.ADMIN,
+        institution: { isActive: false },
+        password: await hash('Campus2026', 4),
+      });
+      const result = await service.login(
+        { email: user.email, password: 'Campus2026', code: '123456' },
+        {},
+      );
+      expect(result.user.role).toBe(UserRole.ADMIN);
+      expect(result.user).not.toHaveProperty('institution');
+    });
+
+    describe('admin sign-in code (M7)', () => {
+      const admin = async () => {
+        prisma.user.findUnique.mockResolvedValue({
+          ...user,
+          role: UserRole.ADMIN,
+          password: await hash('Campus2026', 4),
+        });
+      };
+
+      it('emails a code after the right password and asks for it, with no session', async () => {
+        await admin();
+        emailCodes.canSend.mockResolvedValue(true);
+        const error = await service
+          .login({ email: user.email, password: 'Campus2026' }, {})
+          .catch((e: unknown) => e);
+        expect((error as HttpException).getStatus()).toBe(401);
+        expect((error as HttpException).getResponse()).toMatchObject({
+          code: 'ADMIN_CODE_REQUIRED',
+          details: { codeSent: true },
+        });
+        expect(emailCodes.issue).toHaveBeenCalledWith(
+          'u1',
+          EmailCodePurpose.ADMIN_SIGN_IN,
+        );
+        expect(mail.send).toHaveBeenCalledWith(user.email, 'admin-sign-in', {
+          code: '123456',
+          minutes: 10,
+        });
+        expect(sessions.create).not.toHaveBeenCalled();
+      });
+
+      it('doesn’t send another code within the sending limits', async () => {
+        await admin();
+        emailCodes.canSend.mockResolvedValue(false);
+        const error = await service
+          .login({ email: user.email, password: 'Campus2026' }, {})
+          .catch((e: unknown) => e);
+        expect((error as HttpException).getResponse()).toMatchObject({
+          code: 'ADMIN_CODE_REQUIRED',
+          details: { codeSent: false },
+        });
+        expect(emailCodes.issue).not.toHaveBeenCalled();
+      });
+
+      it('signs in with the right code, and answers a wrong one with 401 and its reason', async () => {
+        await admin();
+        await expect(
+          service.login(
+            { email: user.email, password: 'Campus2026', code: '123456' },
+            {},
+          ),
+        ).resolves.toMatchObject({ user: { role: UserRole.ADMIN } });
+        expect(emailCodes.consume).toHaveBeenCalledWith(
+          'u1',
+          EmailCodePurpose.ADMIN_SIGN_IN,
+          '123456',
+        );
+
+        emailCodes.consume.mockRejectedValue(
+          new EmailCodeError({ code: 'INVALID_CODE', message: 'Wrong' }),
+        );
+        const error = await service
+          .login(
+            { email: user.email, password: 'Campus2026', code: '000000' },
+            {},
+          )
+          .catch((e: unknown) => e);
+        expect((error as HttpException).getStatus()).toBe(401);
+        expect(responseCode(error)).toBe('INVALID_CODE');
+        expect(sessions.create).toHaveBeenCalledTimes(1);
+      });
+
+      it('never checks a code before the password', async () => {
+        await admin();
+        await expect(
+          service.login(
+            { email: user.email, password: 'Wrong2026x', code: '123456' },
+            {},
+          ),
+        ).rejects.toBeInstanceOf(UnauthorizedException);
+        expect(emailCodes.consume).not.toHaveBeenCalled();
+      });
+    });
+
+    it('checks the password before the institution, so status is not probed', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...user,
+        institution: { isActive: false },
+        password: await hash('Campus2026', 4),
+      });
+      await expect(
+        service.login({ email: user.email, password: 'Wrong2026x' }, {}),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+
+    it('never returns the password hash', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...user,
+        password: await hash('Campus2026', 4),
+      });
+      const result = await service.login(
+        { email: user.email, password: 'Campus2026' },
+        {},
+      );
+      expect(result.user).not.toHaveProperty('password');
+    });
+  });
+
+  describe('googleSignIn (T1, G3, C4)', () => {
+    const profile = {
+      sub: 'g1',
+      email: 'ada@gmail.com',
+      firstName: 'Ada',
+      lastName: null,
+    };
+
+    it('makes a new buyer with a confirmed email and no school', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      (prisma.user as unknown as { count: jest.Mock }).count = jest
+        .fn()
+        .mockResolvedValue(0);
+      institutions.findForEmail.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue({
+        ...user,
+        email: 'ada@gmail.com',
+        googleId: 'g1',
+      });
+      await service.googleSignIn(profile, {});
+      const { data } = prisma.user.create.mock.calls[0][0];
+      expect(data).toMatchObject({
+        email: 'ada@gmail.com',
+        googleId: 'g1',
+        role: UserRole.BUYER,
+        emailVerifiedAt: expect.any(Date),
+      });
+      expect(data.password).toBeUndefined();
+      expect(sessions.create).toHaveBeenCalled();
+    });
+
+    it.each([UserRole.SELLER, UserRole.ADMIN, UserRole.DISPATCH])(
+      'refuses a %s account',
+      async (role) => {
+        prisma.user.findUnique
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({ ...user, role });
+        const error = await service
+          .googleSignIn(profile, {})
+          .catch((e: unknown) => e);
+        expect(responseCode(error)).toBe('GOOGLE_BUYERS_ONLY');
+        expect(sessions.create).not.toHaveBeenCalled();
+      },
+    );
+
+    it('links an existing buyer found by email', async () => {
+      prisma.user.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ ...user, googleId: null });
+      prisma.user.update.mockResolvedValue({ ...user, googleId: 'g1' });
+      await service.googleSignIn(profile, {});
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ googleId: 'g1' }),
+        }),
+      );
+    });
+  });
+
+  describe('refresh', () => {
+    it('signs out a user suspended since the last refresh', async () => {
+      sessions.rotate.mockResolvedValue({
+        userId: 'u1',
+        sessionId: 's1',
+        refreshToken: 's1.new',
+      });
+      prisma.user.findUnique.mockResolvedValue({ ...user, isSuspended: true });
+      await expect(service.refresh('s1.old', {})).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+      expect(sessions.revokeAll).toHaveBeenCalledWith('u1');
+    });
+
+    it('cuts off a non-admin whose institution was switched off', async () => {
+      sessions.rotate.mockResolvedValue({
+        userId: 'u1',
+        sessionId: 's1',
+        refreshToken: 's1.new',
+      });
+      prisma.user.findUnique.mockResolvedValue({
+        ...user,
+        institution: { isActive: false },
+      });
+      const error = await service
+        .refresh('s1.old', {})
+        .catch((e: unknown) => e);
+      expect((error as HttpException).getStatus()).toBe(403);
+      expect(responseCode(error)).toBe('INSTITUTION_INACTIVE');
+      expect(sessions.revokeAll).toHaveBeenCalledWith('u1');
+    });
+
+    it('keeps an admin signed in when their institution is switched off', async () => {
+      sessions.rotate.mockResolvedValue({
+        userId: 'u1',
+        sessionId: 's1',
+        refreshToken: 's1.new',
+      });
+      prisma.user.findUnique.mockResolvedValue({
+        ...user,
+        role: UserRole.ADMIN,
+        institution: { isActive: false },
+      });
+      await expect(service.refresh('s1.old', {})).resolves.toEqual({
+        accessToken: 'jwt',
+        refreshToken: 's1.new',
+      });
+      expect(sessions.revokeAll).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('does nothing for an unknown email (and does not throw)', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      await expect(
+        service.forgotPassword('ghost@unilag.edu.ng'),
+      ).resolves.toBeUndefined();
+      expect(mail.send).not.toHaveBeenCalled();
+    });
+
+    it('emails a reset code to a known user', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'u1',
+        email: user.email,
+        isSuspended: false,
+      });
+      emailCodes.canSend.mockResolvedValue(true);
+      await service.forgotPassword(user.email);
+      expect(mail.send).toHaveBeenCalledWith(user.email, 'reset-password', {
+        code: '123456',
+        minutes: 10,
+      });
+    });
+  });
+
+  describe('resetPassword', () => {
+    const dto = {
+      email: user.email,
+      code: '123456',
+      newPassword: 'NewCampus2026',
+    };
+
+    it('answers an unknown email exactly like a wrong code', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      const unknown = await service.resetPassword(dto).catch((e) => e);
+
+      prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
+      emailCodes.consume.mockRejectedValue(
+        new EmailCodeError({ code: 'CODE_LOCKED', message: 'locked' }),
+      );
+      const wrong = await service.resetPassword(dto).catch((e) => e);
+
+      expect((unknown as HttpException).getResponse()).toEqual(
+        (wrong as HttpException).getResponse(),
+      );
+      expect(responseCode(unknown)).toBe('INVALID_CODE');
+    });
+
+    it('sets the new password and revokes every session', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
+      await service.resetPassword(dto);
+      expect(prisma.user.update.mock.calls[0][0].data.password).toMatch(
+        /^\$2[aby]\$/,
+      );
+      expect(sessions.revokeAll).toHaveBeenCalledWith('u1', prisma);
+    });
+  });
+});

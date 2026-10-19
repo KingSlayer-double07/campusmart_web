@@ -1,76 +1,103 @@
-import { Injectable, ConflictException } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { hash } from 'bcrypt';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
+import { hash, compare } from 'bcrypt';
+import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { SessionsService } from '../sessions/sessions.service';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { safeUserSelect } from './user.select';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly sessions: SessionsService,
+  ) {}
 
-  async create(dto: CreateUserDto) {
-    const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
     });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    // Only the fields sent change; null clears one
+    return this.prisma.user
+      .update({
+        where: { id: userId },
+        data: {
+          username: dto.username,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          phone: dto.phone,
+        },
+        select: safeUserSelect,
+      })
+      .catch((error: unknown) => {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          throw new ConflictException({
+            code: 'USERNAME_TAKEN',
+            message: 'That username is taken',
+          });
+        }
+        throw error;
+      });
+  }
 
-    if (existing) {
-      throw new ConflictException('An account with this email already exists');
+  // Needs the current password; on success every other session is signed out (guide 0.4, 1.4 rule 11)
+  async changePassword(
+    userId: string,
+    currentSessionId: string,
+    dto: ChangePasswordDto,
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { password: true },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (!user.password) {
+      throw new ConflictException('Password not set');
     }
 
-    const hashedPassword = await hash(dto.password, 12);
+    const isMatch = await compare(dto.currentPassword, user.password);
+    if (!isMatch) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
 
-    const user = await this.prisma.user.create({
-      data: {
-        email: dto.email,
-        password: hashedPassword,
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        role: dto.role,
-        institutionId: dto.institutionId ?? null,
-      },
-      // Never return the password hash to callers
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        verificationStatus: true,
-        trustScore: true,
-        institutionId: true,
-        createdAt: true,
-      },
-    });
+    if (dto.newPassword === dto.currentPassword) {
+      throw new BadRequestException(
+        'New password cannot be the same as the current password',
+      );
+    }
 
-    return user;
-  }
-
-  async findByEmail(email: string) {
-    return this.prisma.user.findUnique({
-      where: { email },
-      // Include password here so AuthService can compare hashes
-      select: {
-        id: true,
-        email: true,
-        password: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        verificationStatus: true,
-        trustScore: true,
-        institutionId: true,
-        createdAt: true,
-        isSuspended: true,
-        isActive: true,
-      },
+    const newHashedPassword = await hash(dto.newPassword, 12);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: { password: newHashedPassword },
+      });
+      await this.sessions.revokeOthers(userId, currentSessionId, tx);
     });
   }
 
-  async findById(id: string) {
-    return this.prisma.user.findUnique({
-      where: { id },
+  // Another user's public card: never the email
+  async getPublicProfile(userId: string) {
+    const publicProfile = await this.prisma.user.findUnique({
+      where: { id: userId },
       select: {
         id: true,
-        email: true,
         firstName: true,
         lastName: true,
         role: true,
@@ -78,9 +105,12 @@ export class UsersService {
         trustScore: true,
         institutionId: true,
         createdAt: true,
-        isSuspended: true,
-        isActive: true,
       },
     });
+
+    if (!publicProfile) {
+      throw new NotFoundException('User not found');
+    }
+    return publicProfile;
   }
 }
