@@ -16,7 +16,7 @@ its checklist, changes, verification evidence, deviations and open asks.
 | 7 Seller analytics | DONE | `feat/phase-7-analytics` | 2026-10-18 |
 | 8 Wishlist, stores, reviews | DONE | `feat/phase-8-wishlist-stores-reviews` | 2026-10-18 |
 | 9 Admin UI and moderation | DONE pending manual checks (a look over the console on a phone and a laptop) | `feat/phase-9-admin-institutions-stations`, `feat/phase-3-seller-verification`, `feat/phase-9-admin-moderation` | 2026-10-18 |
-| 10 Remaining features | NOT STARTED | | |
+| 10 Remaining features | DONE pending manual checks (Google sign-in with a real account) and your approval of the Terms and Privacy draft | `feat/phase-10-remaining` | 2026-10-19 |
 
 Status values: NOT STARTED / IN PROGRESS / BLOCKED / DONE / DONE pending manual checks.
 
@@ -59,6 +59,9 @@ Your decisions that change or extend the guide. Each phase file has the detail.
   - **Buyers may sign up without a school email** (T1). They pick their school during onboarding, and Google sign-in
     is for buyers only. Sellers still need a school email. This changes D7 for buyers.
 
+- **Terms and Privacy (2026-10-19, T5):** drafted from the decisions and shown in the app as "Draft, not yet in
+  effect" until you approve the text and give an effective date. See Phase 10.
+
 ## Plan and open questions
 
 - [execution-plan.md](execution-plan.md): what Phases 4b–10 build, in order, with each phase's gate checklist and
@@ -84,12 +87,16 @@ everything still open from Phases 0–4 and 9.
 - [Phase 7](phase-7-analytics.md) (browser evidence in [`evidence/phase7-analytics/`](evidence/phase7-analytics/))
 - [Phase 8](phase-8-wishlist-stores-reviews.md) (browser evidence in [`evidence/phase8-wishlist-stores-reviews/`](evidence/phase8-wishlist-stores-reviews/))
 - [Phase 9](phase-9-admin.md) (built in three slices; browser evidence in [`evidence/phase9-admin/`](evidence/phase9-admin/))
+- [Phase 10](phase-10-remaining.md) (browser, Sentry and service worker evidence in [`evidence/phase10-remaining/`](evidence/phase10-remaining/);
+  the Terms and Privacy draft for review in [`docs/legal/terms-and-privacy.md`](../legal/terms-and-privacy.md))
 
 ## Working setup used for verification
 
 - Local Postgres 16 (`campusmart_dev` for migrations and manual runs, `campusmart_test` for e2e), never Neon.
 - If the container restarted and Postgres is down: `su postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D /var/lib/postgresql/cm-data -l /var/lib/postgresql/cm-pg.log -o '-p 5432 -k /tmp' start"`.
 - `backend/.env` is local and git-ignored. Placeholder values only; no real credentials are committed.
+- Stop a server with a separate command whose own text doesn't contain the pattern (for example
+  `P="next st""art"; pgrep -f "$P" | xargs -r kill`); a pattern that matches the shell's own command line kills it.
 - Payments in a browser walk: start the API with `PAYMENTS_ENABLED=true PAYSTACK_SECRET_KEY=sk_test_walk_local_only node -r <repo>/docs/implementation-progress/evidence/phase5-payments/paystack-stub.cjs dist/main`. The stub answers every Paystack call locally.
 - Gate commands: backend `pnpm exec tsc --noEmit`, `pnpm run lint --max-warnings 0`, `pnpm test`,
   `pnpm run test:e2e`; frontend `pnpm run lint`, `pnpm exec tsc --noEmit`, `pnpm exec vitest run`, `pnpm run build`.

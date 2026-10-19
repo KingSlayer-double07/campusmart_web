@@ -91,13 +91,21 @@ All in [decisions-needed.md](decisions-needed.md): A1–A2 (analytics), R1–R5 
   - A Google Cloud project, an OAuth consent screen (app name, support email, logo, your domains), and a Web OAuth
     client.
   - Redirect URIs `https://<frontend>/api/auth/google/callback` and `http://localhost:3000/api/auth/google/callback`.
-  - Keys go in `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (new variables, not in the guide's list).
-- [ ] **Support contacts** (T4): a support email, phone and WhatsApp number, set in production as environment
-      variables. Each one left unset shows "coming soon".
-- [ ] **Terms and Privacy text**: I draft it (delivery and pickup, escrow, the 48-hour window, refunds and the fault
-      rules, prohibited items, NDPR); you (ideally with a lawyer) approve it.
-- [ ] **Monitoring** (T8): a Sentry project (`SENTRY_DSN`) and an uptime check on `/api/health` (UptimeRobot, Better
-      Stack).
+  - Keys go in `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (new variables, not in the guide's list), set in the
+    environment settings, never in chat. `GOOGLE_REDIRECT_URI` is optional (default `APP_URL/api/auth/google/callback`).
+  - Built in Phase 10; the button stays hidden until both keys are set. Then do the MANUAL check in
+    [Phase 10](phase-10-remaining.md#manual-google-sign-in-for-you-once-the-oauth-client-exists).
+- [ ] **Support contacts** (T4): a support email, phone and WhatsApp number, set in production as `SUPPORT_EMAIL`,
+      `SUPPORT_PHONE` and `SUPPORT_WHATSAPP`. Each one left unset shows "coming soon".
+- [ ] **Terms and Privacy text**: drafted in [`docs/legal/terms-and-privacy.md`](../legal/terms-and-privacy.md)
+      (delivery and pickup, escrow, the 48-hour window, refunds and the fault rules, prohibited items, NDPR). You
+      (ideally with a lawyer) fill in the `[brackets]`, confirm the clauses listed in Phase 10, deviation 12, and give
+      the effective date.
+- [ ] **Monitoring** (T8): a Sentry project (`SENTRY_DSN`, optionally `SENTRY_ENVIRONMENT`) and an uptime check on
+      `https://<api-host>/api/health` (UptimeRobot, Better Stack); it answers 503 when the database is unreachable.
+- [ ] **Service worker build** (found in Phase 10): `next build` uses Turbopack, which `@serwist/next` doesn't support,
+      so production has no service worker. Choose `next build --webpack` (recommended, tested), `@serwist/turbopack`,
+      or leaving it off.
 - Decided, nothing to set up: no web push (T2); phone verification stays off (T3).
 
 ## 5. Before launch (guide's deployment section and launch checklist)
@@ -149,9 +157,9 @@ Resolved since the earlier notes:
 | `APP_URL`, `FRONTEND_URL` | API | staging, launch |
 | `API_ORIGIN` | Vercel | staging, launch |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | API (seed) | staging, launch |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | API | Phase 10 |
-| `SENTRY_DSN` | API | Phase 10, launch |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` (optional) | API | Google sign-in (built in Phase 10) |
+| `SENTRY_DSN`, `SENTRY_ENVIRONMENT` (optional) | API | launch (Sentry, T8) |
 | `PAYSTACK_WALLET_CHANNELS` | API | once Paystack confirms OPay / PalmPay |
 | `PAYSTACK_WEBHOOK_IPS` | API | optional: defaults to Paystack's three published webhook IPs; checked in production only |
 | `DROP_OFF_DEADLINE_DAYS`, `BUYER_COLLECT_DAYS` | API | optional: defaults 3 and 5 (DL7b, DL7c); admins change the first in `/admin/settings` |
-| Support email, phone, WhatsApp (names set in Phase 10) | API | production |
+| `SUPPORT_EMAIL`, `SUPPORT_PHONE`, `SUPPORT_WHATSAPP` | API | production (T4) |
