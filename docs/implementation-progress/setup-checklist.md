@@ -42,7 +42,10 @@ real accounts are for checking each flow end to end on a real setup.
       Fly.io, in a region near Nigeria or your Neon region.
   - Connect the GitHub repo, root directory `backend`, deploy the `backend` branch.
   - Build: `pnpm install --frozen-lockfile && pnpm exec prisma generate && pnpm run build`.
-  - Release: `pnpm exec prisma migrate deploy`. Start: `node dist/main`.
+  - Start: `pnpm exec prisma migrate deploy && node dist/main` (migrations on every start; works on every plan).
+  - **Not Render's free instance type.** It sleeps after 15 minutes without traffic, so the background jobs stop, and
+    since September 2025 it blocks outbound SMTP (ports 25, 465 and 587), so no email can be sent: sign-up codes
+    time out. Starter, the lowest paid type, has neither limit. (Found on the first staging deploy, 2026-10-19.)
 - [ ] **Frontend**: a Vercel project from the repo root, `backend` branch, `API_ORIGIN=https://<staging-api>`.
 - [ ] **API variables**:
   - `APP_URL` and `FRONTEND_URL`: the Vercel URL (Paystack sends buyers back there).
@@ -103,9 +106,8 @@ All in [decisions-needed.md](decisions-needed.md): A1–A2 (analytics), R1–R5 
       the effective date.
 - [ ] **Monitoring** (T8): a Sentry project (`SENTRY_DSN`, optionally `SENTRY_ENVIRONMENT`) and an uptime check on
       `https://<api-host>/api/health` (UptimeRobot, Better Stack); it answers 503 when the database is unreachable.
-- [ ] **Service worker build** (found in Phase 10): `next build` uses Turbopack, which `@serwist/next` doesn't support,
-      so production has no service worker. Choose `next build --webpack` (recommended, tested), `@serwist/turbopack`,
-      or leaving it off.
+- [x] **Service worker build** (found in Phase 10). **Decided 2026-10-19: `next build --webpack`.** You set it on Vercel,
+      and the repo's `pnpm run build` uses it too, so CI builds the same way. Vercel's command override can go.
 - Decided, nothing to set up: no web push (T2); phone verification stays off (T3).
 
 ## 5. Before launch (guide's deployment section and launch checklist)

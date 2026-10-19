@@ -5,7 +5,8 @@ const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 import { useGuestStore } from "@/app/store/useGuestStore";
-import IntroPage, { INTRO_SLIDES } from "./page";
+import IntroPage from "./page";
+import { INTRO_SLIDES } from "./slides";
 
 describe("Intro slides (decision 2026-10-19)", () => {
   beforeEach(() => {

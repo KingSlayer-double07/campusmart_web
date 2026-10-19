@@ -396,11 +396,10 @@ Local Postgres 16. e2e ran on `campusmart_test`; the browser walk ran on `campus
   - Fill in the `[brackets]`: registered business name, address and courts.
   - Confirm or change the clauses in deviation 12.
   - Tell me the effective date; I'll set `LEGAL_EFFECTIVE_DATE` so the "Draft" label goes.
-- **Decision: the service worker build.** Today production has no service worker (section 2 finding). Options:
-  - **a.** `next build --webpack`: tested here, and it works with the current code. Builds are slower than Turbopack.
-    This is my recommendation.
-  - **b.** Move to `@serwist/turbopack`, which Serwist calls experimental.
-  - **c.** Leave the PWA's offline support off for now.
+- ~~**Decision: the service worker build.**~~ **Decided 2026-10-19: a, `next build --webpack`.** You set it on the
+  Vercel staging project; the repo's build script uses it too, so CI builds the same way. The first webpack build
+  found a page file exporting more than a page (`INTRO_SLIDES`), which only webpack's type check rejects; fixed by
+  moving the slides to `app/onboarding/intro/slides.ts`.
 - **Decision: Sentry for browser errors?** T8 named `SENTRY_DSN` for the API, so that's what's built. Reporting
   errors in the browser too would add `@sentry/nextjs` and a `NEXT_PUBLIC_SENTRY_DSN`. Say if you want it.
 - **Carried over:**
