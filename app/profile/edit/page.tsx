@@ -22,15 +22,19 @@ export default function EditProfilePage() {
   const [form, setForm] = useState({ username: "", firstName: "", lastName: "", phone: "" });
   const [errors, setErrors] = useState<Partial<Record<keyof typeof form | "form", string>>>({});
 
+  // Fill the form once per signed-in user. The store's user object is replaced whenever the
+  // session refreshes (/auth/me after load), and that must not wipe what's already been typed.
+  const [filledFor, setFilledFor] = useState<string | null>(null);
   useEffect(() => {
-    if (!user) return;
+    if (!user || filledFor === user.id) return;
+    setFilledFor(user.id);
     setForm({
       username: user.username ?? "",
       firstName: user.firstName ?? "",
       lastName: user.lastName ?? "",
       phone: user.phone ?? "",
     });
-  }, [user]);
+  }, [user, filledFor]);
 
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((f) => ({ ...f, [key]: e.target.value }));

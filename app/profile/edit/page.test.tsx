@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const router = vi.hoisted(() => ({ push: vi.fn(), back: vi.fn() }));
@@ -44,6 +44,14 @@ describe("Editing the profile (guide 10)", () => {
       }),
     );
     expect(useAuthStore.getState().user?.username).toBe("ada_obi");
+  });
+
+  it("keeps what's been typed when the session refreshes the user", async () => {
+    renderPage();
+    fireEvent.change(screen.getByPlaceholderText("First name"), { target: { value: "Adaeze" } });
+    // /auth/me after load puts a new user object in the store
+    act(() => useAuthStore.setState({ user: { ...user } as never }));
+    expect((screen.getByPlaceholderText("First name") as HTMLInputElement).value).toBe("Adaeze");
   });
 
   it("checks the username and phone, and shows a taken username", async () => {
