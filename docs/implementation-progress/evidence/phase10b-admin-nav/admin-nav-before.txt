@@ -1,0 +1,9 @@
+Before the fix. (This first version of the script found no sidebar links by role, so its first laptop line counts nothing; the screenshot shows Sign out below the screen.)
+PASS  Laptop: every sidebar link can be scrolled to (0 links)  (0 reachable)
+FAIL  Laptop: Sign out is on screen
+FAIL  Phone /admin: its own link shows in the bottom bar without scrolling
+FAIL  Phone /admin/settings: its own link shows in the bottom bar without scrolling
+FAIL  Phone: every bottom-bar link can be scrolled to (15 links)  (8 reachable)
+PASS  Phone: the page itself never scrolls sideways
+
+2/6 passed

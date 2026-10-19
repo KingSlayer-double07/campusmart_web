@@ -1,0 +1,8 @@
+PASS  Laptop: every sidebar link can be scrolled to (15 links)  (15 reachable)
+PASS  Laptop: Sign out is on screen
+PASS  Phone /admin: its own link shows in the bottom bar without scrolling
+PASS  Phone /admin/settings: its own link shows in the bottom bar without scrolling
+PASS  Phone: every bottom-bar link can be scrolled to (15 links)  (15 reachable)
+PASS  Phone: the page itself never scrolls sideways
+
+6/6 passed

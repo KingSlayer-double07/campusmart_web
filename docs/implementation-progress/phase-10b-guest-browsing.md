@@ -214,3 +214,76 @@ phone's theme by default (`defaultTheme="system"`), so every dark-mode phone saw
 
 **Not changed:** the brand orange as text on white is 2.9:1, just under 3:1, in light mode only. That's a brand
 colour choice, so it stays unless you want a darker orange for text.
+
+## 7. After the gate: sign-in redirects, a way to the shop for sellers, the admin menus (2026-10-19)
+
+### Sent to sign-in with a live session
+
+You reported being sent to the sign-in page repeatedly on staging without having signed out.
+
+**Causes, in the code:**
+
+1. **Two refreshes with the same token.** Refresh tokens are single-use, and the API revokes a session whose
+   token is presented twice (D6, reuse detection). After 15 minutes the browser dropped the access cookie, so
+   opening a protected page went through sign-in (`proxy.ts` can't see the refresh cookie, which only travels to
+   `/api/auth`). There, the sign-in page's silent refresh and the app's own refresh after `GET /auth/me` → 401
+   ran at the same time. When the first answer arrived after the second request had left, the second carried
+   the old token and the session was revoked. Reproduced locally with refresh answers held 400 ms
+   ([`expired-access-before.txt`](evidence/phase10b-auth-redirects/expired-access-before.txt), scenario A).
+2. **Any failed refresh signed the user out in the app.** That included a 429 rate limit, a 5xx, or Render
+   waking up. Only a dropped connection was spared.
+3. **Any failed refresh cleared both cookies on the API,** a server error included, though the session itself
+   was fine.
+
+**Fix:**
+
+- **App:**
+  - Every refresh shares one request, the sign-in page's silent one included.
+  - Tabs take turns through a browser lock (`navigator.locks`), so each sends the latest token.
+  - Only a 401 or 403 from refresh signs out. A real sign-out now returns you to the page you were on
+    (`?next=`).
+- **API:**
+  - The refresh clears the cookies only on 401 or 403.
+  - The access cookie now lasts as long as the session (30 days); the token in it still expires after 15
+    minutes. The route guard sees the cookie, so pages open directly and the app refreshes the expired token.
+    No more trip through the sign-in page.
+
+**Evidence** ([`expired-access-after.txt`](evidence/phase10b-auth-redirects/expired-access-after.txt), same
+400 ms delay):
+
+- Scenario A (a cookie set before this fix): one refresh, session kept, the page opens.
+- Scenario C (from now on): no sign-in page at all.
+- Tests:
+  - Vitest `lib/api/client.test.ts`: 429/500/502 keep you signed in; 403 signs out; one refresh with the sign-in
+    page; the browser lock. The new tests fail on the old code.
+  - e2e `phase1-auth`: the cookie's 30 days with the token's 15 minutes; a 500 during refresh keeps the cookies.
+
+### Shop on CampusMart (sellers)
+
+The seller Profile page has a "Shop on CampusMart" entry to the shop (D8: sellers can also buy). The shop's
+Profile tab already had "Sellers page" to come back. Walk
+([`seller-shop-walk-output.txt`](evidence/phase10b-auth-redirects/seller-shop-walk-output.txt), 5/5):
+Profile → shop → another store's item in the cart → "Sellers page" → dashboard. Vitest
+`app/sellers/profile/page.test.tsx`.
+
+### Admin sidebar and bottom bar
+
+You reported both running off the screen: 15 links are taller than a laptop screen and wider than a phone.
+
+- **Sidebar:** the link list now scrolls between the logo and the "Signed in as / Sign out" footer, which stays
+  on screen.
+- **Phone bottom bar:** it scrolls sideways within the screen.
+- **Both:** open on the current page's link.
+
+Check ([`admin-nav-after.txt`](evidence/phase10b-admin-nav/admin-nav-after.txt), 6/6; before: 2/6):
+
+- Laptop 1366×768: all 15 sidebar links reachable, Sign out on screen.
+- Phone 390×844: all 15 reachable, the current page's link visible, no sideways page scroll.
+- Screenshots `before-*` and `after-*`; Vitest `AdminShell.test.tsx`.
+
+### Deviations
+
+1. **The access cookie's `Max-Age` is 30 days, not 15 minutes.** Phase 1's e2e pinned 900 seconds; it's updated.
+   D6's lifetimes are unchanged: the token expires after 15 minutes and the refresh token after 30 days.
+2. **Two tabs refreshing now take turns.** A browser without `navigator.locks` (older than Safari 15.4 or Chrome
+   69) falls back to the old behaviour across tabs. Within one tab, the shared request still applies.
