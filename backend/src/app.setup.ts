@@ -1,15 +1,20 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { Application } from 'express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import type { Env } from './config/env';
 
 // Shared by main.ts and the e2e tests, so tests exercise the same pipeline as the real server.
 export function configureApp(app: INestApplication) {
   app.use(helmet()); // Basic security headers
-  // Real client IP behind the Next proxy (used by the rate limiter and the sessions list)
-  (app.getHttpAdapter().getInstance() as Application).set('trust proxy', 1);
+  // Real client IP behind the proxies (used by the rate limiter and the sessions list)
+  (app.getHttpAdapter().getInstance() as Application).set(
+    'trust proxy',
+    app.get(ConfigService<Env, true>).get('TRUST_PROXY_HOPS', { infer: true }),
+  );
 
   // Parse cookies from incoming requests — required for HTTP-only JWT cookie
   app.use(cookieParser());

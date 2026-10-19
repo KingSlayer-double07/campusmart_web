@@ -16,6 +16,7 @@ describe('MailService', () => {
   const sendMail = jest.fn();
 
   beforeEach(() => {
+    jest.mocked(createTransport).mockClear();
     jest.mocked(createTransport).mockReturnValue({ sendMail } as any);
     sendMail.mockReset();
   });
@@ -33,6 +34,35 @@ describe('MailService', () => {
     );
     expect(sendMail).not.toHaveBeenCalled();
     expect(String(log.mock.calls[0][0])).toContain('123456');
+  });
+
+  it('prints as a warning on a production server set to MAIL_TRANSPORT=console', async () => {
+    const warn = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const service = serviceFor({
+      NODE_ENV: 'production',
+      MAIL_TRANSPORT: 'console',
+    });
+    service.onModuleInit();
+    await service.send('ada@unilag.edu.ng', 'verify-email', {
+      code: '123456',
+      minutes: 10,
+    });
+    expect(createTransport).not.toHaveBeenCalled();
+    expect(sendMail).not.toHaveBeenCalled();
+    // Production only prints warnings and errors, so both lines must be warnings
+    expect(String(warn.mock.calls[0][0])).toContain('Remove it before launch');
+    expect(String(warn.mock.calls[1][0])).toContain('123456');
+  });
+
+  it('warns at start only on a production server that prints emails', () => {
+    const warn = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    serviceFor({ NODE_ENV: 'production' }).onModuleInit();
+    serviceFor({ NODE_ENV: 'development' }).onModuleInit();
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it('sends over SMTP in production', async () => {

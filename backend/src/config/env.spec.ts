@@ -73,6 +73,49 @@ describe('envSchema', () => {
     ).toBe(true);
   });
 
+  it('lets a production server print emails instead of sending them', () => {
+    const staging = {
+      ...ciEnv,
+      ...cloudinary,
+      NODE_ENV: 'production',
+      MAIL_TRANSPORT: 'console',
+    };
+    expect(envSchema.safeParse(staging).success).toBe(true);
+    // Cloudinary is still required
+    const { CLOUDINARY_API_SECRET: _omit, ...noCloudinary } = staging;
+    expect(
+      envSchema.safeParse(noCloudinary).error?.issues.map((i) => i.path[0]),
+    ).toEqual(['CLOUDINARY_API_SECRET']);
+    expect(
+      envSchema.safeParse({ ...staging, MAIL_TRANSPORT: 'sendgrid' }).success,
+    ).toBe(false);
+  });
+
+  it('requires the SMTP settings wherever MAIL_TRANSPORT=smtp', () => {
+    const result = envSchema.safeParse({ ...ciEnv, MAIL_TRANSPORT: 'smtp' });
+    expect(result.error?.issues.map((i) => i.path[0])).toEqual([
+      'MAIL_HOST',
+      'MAIL_PORT',
+      'MAIL_USER',
+      'MAIL_PASS',
+      'MAIL_FROM',
+    ]);
+    expect(
+      envSchema.safeParse({ ...ciEnv, ...mail, MAIL_TRANSPORT: 'smtp' })
+        .success,
+    ).toBe(true);
+  });
+
+  it('trusts one proxy unless TRUST_PROXY_HOPS says otherwise', () => {
+    expect(envSchema.parse(ciEnv).TRUST_PROXY_HOPS).toBe(1);
+    expect(
+      envSchema.parse({ ...ciEnv, TRUST_PROXY_HOPS: '2' }).TRUST_PROXY_HOPS,
+    ).toBe(2);
+    expect(
+      envSchema.safeParse({ ...ciEnv, TRUST_PROXY_HOPS: '-1' }).success,
+    ).toBe(false);
+  });
+
   it('boots without Cloudinary outside production', () => {
     expect(envSchema.safeParse(ciEnv).success).toBe(true);
   });

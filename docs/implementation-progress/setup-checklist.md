@@ -1,6 +1,6 @@
 # What you need to set up: Phases 5–10, launch, and what's still open
 
-Last updated 2026-10-17, after Phase 4, the pnpm switch and your decision rounds 1–3. Everything here needs you: an account, a key, a dashboard
+Last updated 2026-10-19, once staging was up (sections 1.2 and 5); before that 2026-10-17, after Phase 4, the pnpm switch and your decision rounds 1–3. Everything here needs you: an account, a key, a dashboard
 setting or a person. The choices themselves (fees, deadlines, rules) are in [decisions-needed.md](decisions-needed.md),
 each with an ID and a default. Code work isn't listed. Automated tests never touch real services (Paystack stays mocked with nock); the
 real accounts are for checking each flow end to end on a real setup.
@@ -13,7 +13,8 @@ real accounts are for checking each flow end to end on a real setup.
   403). Add them under Allowed domains:
   - `api.paystack.co` (Phase 5)
   - `api.cloudinary.com`, `res.cloudinary.com` (Phase 3 check, Phase 5 on)
-  - your staging hosts, e.g. `<name>.onrender.com` and `<name>.vercel.app`, so I can check deployments
+  - your staging hosts, `campusmart-8701.onrender.com` and `campusmart-web-three.vercel.app`, so I can check
+    deployments (still refused on 2026-10-19)
   - `accounts.google.com`, `www.googleapis.com` (Phase 10, Google sign-in)
 - **Two limits no setting fixes:**
   - This container has no public address, so Paystack's webhook can't reach it. A real test payment from start to
@@ -27,7 +28,7 @@ real accounts are for checking each flow end to end on a real setup.
 - [ ] Test secret key → `PAYSTACK_SECRET_KEY` (`sk_test_…`). The public key isn't used (guide appendix).
 - [ ] Dashboard → Settings → Preferences: **Transfers on**, and **OTP off for transfers made through the API**
       (guide 5.5). Payouts can't go out automatically otherwise.
-- [ ] Webhook URL (test mode): `https://<staging-api>/api/payments/webhook`, once staging exists. Call the API host
+- [ ] Webhook URL (test mode): `https://campusmart-8701.onrender.com/api/payments/webhook`. Call the API host
       directly, not through Vercel, so the signed body arrives untouched.
 - [ ] Ask Paystack support whether your account can get a dedicated **OPay / PalmPay** channel. They stay hidden
       until you confirm it and set `PAYSTACK_WALLET_CHANNELS=true` (decision P5).
@@ -35,6 +36,10 @@ real accounts are for checking each flow end to end on a real setup.
       it takes time.
 
 ### 1.2 Staging (recommended, for a real test payment and real emails)
+
+Up since 2026-10-19: the app at https://campusmart-web-three.vercel.app, the API at
+https://campusmart-8701.onrender.com.
+
 - [ ] **Database**: a Neon `dev` or `staging` branch → `DATABASE_URL` (pooled) and `DIRECT_URL` (direct). You chose to
       move to Neon after all phases; staging is the one exception that needs a hosted database (the API host's own
       Postgres would also do).
@@ -51,10 +56,16 @@ real accounts are for checking each flow end to end on a real setup.
   - `APP_URL` and `FRONTEND_URL`: the Vercel URL (Paystack sends buyers back there).
   - `JWT_SECRET`: a new random value, 32+ characters (`openssl rand -base64 48`).
   - `PAYMENTS_ENABLED=true`, `PAYSTACK_SECRET_KEY` (test), plus `CLOUDINARY_*` and `MAIL_*`.
+  - **Until email can be sent: `MAIL_TRANSPORT=console`** instead of `MAIL_*` (added 2026-10-19). Every email,
+    sign-up and sign-in codes included, is printed to the API's log on Render (Logs, search `dev mail`) instead of
+    being sent. Testers ask whoever has the Render dashboard for their code. The API warns about it at every start.
+  - `TRUST_PROXY_HOPS`: measured, see section 5.
   - `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`; then run `pnpm exec prisma db seed` once.
-- [ ] `NODE_ENV=production` on staging needs `MAIL_*` and `CLOUDINARY_*` first (the API refuses to start without
-      them). Otherwise run staging as `development` (Swagger on, cookies not marked secure).
-- [ ] Send me the two URLs and allow them in network access.
+- [ ] `NODE_ENV=production` on staging needs `CLOUDINARY_*`, and `MAIL_*` or `MAIL_TRANSPORT=console` (the API
+      refuses to start otherwise). Don't run staging as `development` to get around it: that also publishes Swagger,
+      stops marking cookies secure and turns off the Paystack webhook's IP check.
+- [x] Send me the two URLs (received 2026-10-19).
+- [ ] Allow them in network access (section 0).
 
 Without staging I still build and test Phase 5 fully against mocks. The real test payment then becomes a MANUAL item.
 
@@ -119,14 +130,28 @@ All in [decisions-needed.md](decisions-needed.md): A1–A2 (analytics), R1–R5 
       payouts.
 - [ ] **Real seed data**: the first school's name and email domains, its stations and agents, and a strong
       `SEED_ADMIN_PASSWORD`.
-- [ ] **Proxy hops** (open since Phase 0): once the API host is chosen, tell me if anything (a load balancer) sits
-      between Vercel and the API, so rate limits see the real visitor.
+- [ ] **Proxy hops** (open since Phase 0), `TRUST_PROXY_HOPS` on the API (default 1). A request passes through
+      Vercel's rewrite and then Render's own proxies, and neither company documents how many there are. Until the
+      number is right, the API sees a proxy's address instead of the visitor's: everyone browsing as a guest shares one
+      limit of 120 requests a minute, and Active sessions shows a proxy's address. Signed-in requests and sign-in
+      attempts are limited per account or email, so they aren't affected. Measure it on staging, then the same on
+      production:
+  1. Sign in on the Vercel URL and open Profile → Account security → Active sessions. It shows the address the API
+     recorded for this device.
+  2. Compare it with your own (search "what is my IP" on the same device and network).
+  3. If it isn't yours, raise `TRUST_PROXY_HOPS` by 1 on Render, let it redeploy, sign out and back in, and look
+     again. **Stop at the first number that shows your address.** A higher one would look the same to you, but would
+     let anyone calling the API directly choose the address they're counted as.
+  4. If 4 still doesn't show it, set it back to 1 and tell me: Vercel isn't passing the address on.
+  5. Tell me the number so I record it here.
+- [ ] **Remove `MAIL_TRANSPORT=console`** and set `MAIL_*` (section 1.4).
 - [ ] **Branch protection** (open since Phase 0): require CI on `master` and `develop`, and on `backend` while it's
       the integration branch.
 - [ ] **A real-card test order, then refunded.**
 - [ ] **Error alerts reach you.**
 - Already in code: Swagger is off in production, cookies are `secure` in production, and a production API won't
-  start without `MAIL_*` and `CLOUDINARY_*`.
+  start without `CLOUDINARY_*`, nor without `MAIL_*` unless `MAIL_TRANSPORT=console` (which it warns about at every
+  start).
 
 ## 6. Still open from Phases 0–4 and 9
 
@@ -154,6 +179,8 @@ Resolved since the earlier notes:
 | `PLATFORM_FEE_BPS` | API | 0 (P1); admins change it in `/admin/settings` from Phase 5 |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | API | now (Phase 3 check) |
 | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS`, `MAIL_FROM` | API | staging and launch (S1, S4) |
+| `MAIL_TRANSPORT=console` | API | staging only, until `MAIL_*` works: emails print to the log. Never at launch |
+| `TRUST_PROXY_HOPS` | API | staging and launch: measured (section 5); default 1 |
 | `DATABASE_URL`, `DIRECT_URL` | API | staging, launch (Neon) |
 | `JWT_SECRET` | API | staging, launch (a different one each) |
 | `APP_URL`, `FRONTEND_URL` | API | staging, launch |

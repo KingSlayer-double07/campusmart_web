@@ -404,6 +404,14 @@ Local Postgres 16. e2e ran on `campusmart_test`; the browser walk ran on `campus
   errors in the browser too would add `@sentry/nextjs` and a `NEXT_PUBLIC_SENTRY_DSN`. Say if you want it.
 - **Carried over:**
   - **Email (`MAIL_*`, S4):** codes, order emails and admin alerts print to the console until it's set.
+    - **Staging (2026-10-19):** Render's free instance type blocks SMTP, so you asked for the emails to be logged
+      instead while testing. `MAIL_TRANSPORT=console` does that on a production server too: emails print to the log
+      as warnings, the API warns at every start, and Cloudinary is still required. Checked locally
+      ([`staging-config-check-output.txt`](evidence/staging-config/staging-config-check-output.txt)): with no
+      `MAIL_*` set the API started, printed the sign-up code, and the code verified the account.
+  - **Proxy hops:** `TRUST_PROXY_HOPS` (default 1, as before) replaces the fixed 1, to be measured on staging (setup
+    checklist, section 5). The same local check sent `102.89.1.10, 76.76.21.21`: with 2 the session recorded
+    `102.89.1.10` (the visitor), with 1 `76.76.21.21` (the proxy).
   - **Banned words:** review the starter list.
   - **Other admins:** they sign up, then you make them admins.
   - **Waitlist:** the page still simulates its submission (unchanged since before Phase 1, "as now" in G4). Say if it

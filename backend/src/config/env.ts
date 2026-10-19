@@ -7,7 +7,8 @@ const optional = required.optional();
 // app refuses to boot on a missing or malformed variable instead of failing on first use.
 //
 // Variables whose feature lands in a later phase are optional until that phase, so local dev and
-// CI (which only sets the database, JWT and NODE_ENV) can boot. Mail is required in production.
+// CI (which only sets the database, JWT and NODE_ENV) can boot. Mail is required wherever emails go
+// over SMTP, which is production unless MAIL_TRANSPORT says otherwise.
 export const envSchema = z
   .object({
     NODE_ENV: z
@@ -16,6 +17,11 @@ export const envSchema = z
     PORT: z.coerce.number().int().positive().default(4000),
     FRONTEND_URL: z.url().default('http://localhost:3000'), // CORS for Swagger and tools
     APP_URL: z.url().default('http://localhost:3000'), // links in emails, Paystack callback
+    // Proxies in front of the API, so rate limits and the sessions list see the visitor's IP
+    // (Express "trust proxy"). Locally that's the Next.js rewrite; on a host it's the frontend's
+    // rewrite plus the host's own proxies. Measure it, never guess (setup checklist, section 5):
+    // one too many lets a visitor choose the IP they're counted as.
+    TRUST_PROXY_HOPS: z.coerce.number().int().nonnegative().default(1),
 
     // Database (Neon Postgres): pooled for the app, direct for migrations
     DATABASE_URL: z.url(),
@@ -24,7 +30,10 @@ export const envSchema = z
     // Auth
     JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
 
-    // Mail (SMTP, D18). In development emails print to the console instead.
+    // Mail (SMTP, D18). Where emails go is mailTransport() below: unset, they print to the console
+    // outside production and go over SMTP in it. `console` on a production server is for a
+    // staging server that can't send email yet; the API warns about it at every start.
+    MAIL_TRANSPORT: z.enum(['smtp', 'console']).optional(),
     MAIL_HOST: optional,
     MAIL_PORT: z.coerce.number().int().positive().optional(),
     MAIL_USER: optional,
@@ -94,14 +103,27 @@ export const envSchema = z
     SEED_ADMIN_PASSWORD: optional,
   })
   .superRefine((env, ctx) => {
-    if (env.NODE_ENV === 'production') {
-      // Mail sends verification codes; Cloudinary signs image uploads (Phase 3)
+    // Mail sends the sign-up and sign-in codes
+    if (mailTransport(env) === 'smtp') {
       for (const key of [
         'MAIL_HOST',
         'MAIL_PORT',
         'MAIL_USER',
         'MAIL_PASS',
         'MAIL_FROM',
+      ] as const) {
+        if (env[key] === undefined) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `${key} is required to send email over SMTP (or set MAIL_TRANSPORT=console)`,
+          });
+        }
+      }
+    }
+    if (env.NODE_ENV === 'production') {
+      // Cloudinary signs image uploads (Phase 3)
+      for (const key of [
         'CLOUDINARY_CLOUD_NAME',
         'CLOUDINARY_API_KEY',
         'CLOUDINARY_API_SECRET',
@@ -125,3 +147,13 @@ export const envSchema = z
   });
 
 export type Env = z.infer<typeof envSchema>;
+
+// Where emails go: MAIL_TRANSPORT when set, else the console outside production and SMTP in it
+export function mailTransport(env: {
+  NODE_ENV?: string;
+  MAIL_TRANSPORT?: 'smtp' | 'console';
+}): 'smtp' | 'console' {
+  return (
+    env.MAIL_TRANSPORT ?? (env.NODE_ENV === 'production' ? 'smtp' : 'console')
+  );
+}

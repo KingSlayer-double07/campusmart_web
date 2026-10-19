@@ -1,0 +1,15 @@
+== Run 1: NODE_ENV=production, MAIL_TRANSPORT=console, no MAIL_* set, TRUST_PROXY_HOPS=2
+-- Startup warnings:
+MAIL_TRANSPORT=console: emails, sign-in codes included, are printed to this log and not sent. Remove it before launch.
+register: HTTP 201
+-- The email as printed in the log:
+   [Nest] 1133  - 10/19/2026, 8:35:48 PM    WARN [MailService] [dev mail] to=staging-check-1792442145@gmail.com template=verify-email subject="Your CampusMart verification code"
+   Your CampusMart verification code is 054519.
+   
+   It expires in 10 minutes. If you didn't create an account, you can ignore this email.
+verify-email with code from the log: HTTP 200
+Sent X-Forwarded-For: 102.89.1.10, 76.76.21.21 -> sessions list shows: 102.89.1.10
+
+== Run 2: the same, TRUST_PROXY_HOPS unset (default 1)
+login: HTTP 200
+Sent X-Forwarded-For: 102.89.1.10, 76.76.21.21 -> sessions list shows: 76.76.21.21
