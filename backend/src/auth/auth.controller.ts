@@ -296,7 +296,16 @@ export class AuthController {
         await this.auth.refresh(refreshCookie(req), clientMeta(req)),
       );
     } catch (error) {
-      clearAuthCookies(res);
+      // Only a refused session (401, 403) clears the cookies. After a server error the session may be
+      // fine, and the next refresh can use them.
+      if (
+        error instanceof HttpException &&
+        [HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN].includes(
+          error.getStatus(),
+        )
+      ) {
+        clearAuthCookies(res);
+      }
       throw error;
     }
   }

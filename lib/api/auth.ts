@@ -1,4 +1,4 @@
-import { fetchApi } from './client';
+import { ApiError, fetchApi, refreshSession } from './client';
 import type { components } from './schema';
 
 // Generated from the API's OpenAPI document (D5); never hand-write these
@@ -24,7 +24,10 @@ export const authApi = {
   register: (body: RegisterBody) => fetchApi<User>('/auth/register', post(body)),
   login: (body: LoginBody) => fetchApi<User>('/auth/login', post(body)),
   logout: () => fetchApi<void>('/auth/logout', post()),
-  refresh: () => fetchApi<void>('/auth/refresh', post()),
+  // Shares the app's one-at-a-time refresh (client.ts); rejects when there's no live session
+  refresh: async () => {
+    if (!(await refreshSession())) throw new ApiError(401, 'UNAUTHENTICATED', 'Your session has ended. Sign in again.');
+  },
   me: () => fetchApi<User>('/auth/me'),
   providers: () => fetchApi<AuthProviders>('/auth/providers'),
   verifyEmail: (code: string) => fetchApi<User>('/auth/verify-email', post({ code })),

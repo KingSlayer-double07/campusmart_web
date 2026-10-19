@@ -10,6 +10,7 @@ vi.mock("@/app/store/useAuthStore", () => ({
 }));
 
 import { ApiError, fetchApi } from "./client";
+import { authApi } from "./auth";
 
 function jsonResponse(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
@@ -171,7 +172,8 @@ describe("fetchApi", () => {
 
     await expect(fetchApi("/sellers/me")).rejects.toMatchObject({ status: 401 });
     expect(authState.clearAuth).toHaveBeenCalledTimes(1);
-    expect(assign).toHaveBeenCalledWith("/onboarding/sellers/sign-in");
+    // ...and back to the page after signing in
+    expect(assign).toHaveBeenCalledWith("/onboarding/sellers/sign-in?next=%2Fsellers");
   });
 
   it("does not redirect a guest whose refresh is rejected", async () => {
@@ -182,6 +184,74 @@ describe("fetchApi", () => {
 
     await expect(fetchApi("/auth/me")).rejects.toMatchObject({ status: 401 });
     expect(assign).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [429, "TOO_MANY_REQUESTS"],
+    [500, "INTERNAL_ERROR"],
+    [502, "UNKNOWN"],
+  ])("keeps the user signed in when the refresh answers %i (says nothing about the session)", async (status, code) => {
+    authState.user = { role: "BUYER" };
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(unauthorized())
+        .mockResolvedValueOnce(jsonResponse(status, { statusCode: status, code, message: "Try again" })),
+    );
+
+    await expect(fetchApi("/orders")).rejects.toMatchObject({ status });
+    expect(authState.clearAuth).not.toHaveBeenCalled();
+    expect(assign).not.toHaveBeenCalled();
+  });
+
+  it("signs out when the refresh is forbidden (suspended, or school switched off)", async () => {
+    authState.user = { role: "BUYER" };
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(unauthorized())
+        .mockResolvedValueOnce(jsonResponse(403, { statusCode: 403, code: "INSTITUTION_INACTIVE", message: "Off" })),
+    );
+
+    await expect(fetchApi("/orders")).rejects.toMatchObject({ status: 401 });
+    expect(authState.clearAuth).toHaveBeenCalledTimes(1);
+    expect(assign).toHaveBeenCalledWith("/onboarding/buyers/sign-in?next=%2Fsellers");
+  });
+
+  it("joins the sign-in page's silent refresh to one already running (refresh tokens are single-use)", async () => {
+    let refreshCalls = 0;
+    let finish!: () => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (url === "/api/auth/refresh") {
+          refreshCalls += 1;
+          return new Promise<Response>((resolve) => (finish = () => resolve(noContent())));
+        }
+        return Promise.resolve(refreshCalls ? ok({ id: "u1" }) : unauthorized());
+      }),
+    );
+
+    const me = fetchApi("/auth/me"); // 401, so it starts a refresh
+    await vi.waitFor(() => expect(refreshCalls).toBe(1));
+    const silent = authApi.refresh(); // the sign-in page's, while the first is still on its way
+    finish();
+    await expect(Promise.all([me, silent])).resolves.toEqual([{ id: "u1" }, undefined]);
+    expect(refreshCalls).toBe(1);
+  });
+
+  it("takes turns with other tabs through a browser lock when there is one", async () => {
+    const request = vi.fn((_name: string, task: () => Promise<unknown>) => task());
+    vi.stubGlobal("navigator", { locks: { request } });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(unauthorized()).mockResolvedValueOnce(noContent()).mockResolvedValueOnce(ok([])),
+    );
+
+    await expect(fetchApi("/orders")).resolves.toEqual([]);
+    expect(request).toHaveBeenCalledWith("campusmart-session-refresh", expect.any(Function));
   });
 
   it("keeps the user signed in when the refresh fails on the network", async () => {

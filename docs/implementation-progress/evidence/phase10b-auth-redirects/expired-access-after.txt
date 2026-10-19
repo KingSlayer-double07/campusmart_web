@@ -1,0 +1,26 @@
+After the fix, refresh answers held 400 ms (slow-refresh-proxy.mjs).
+
+== A. Access cookie gone; opening /orders by address (or reloading it)
+  2568 ms  GET /orders -> 307
+  2583 ms  page: /onboarding/buyers/sign-in?next=%2Forders
+  2621 ms  page: /onboarding/buyers/sign-in?next=%2Forders
+  2679 ms  GET /api/auth/providers -> 200
+  2679 ms  GET /api/auth/me -> 401
+  3075 ms  POST /api/auth/refresh -> 204
+  3089 ms  GET /api/auth/me -> 200
+  3099 ms  GET /api/auth/me -> 200
+  3130 ms  page: /orders
+Ends on: /orders  |  session revoked: no  |  cookies left: refresh_token, access_token
+
+== B. Access cookie gone; tapping Account in the bottom bar
+ 10926 ms  page: /profile
+ 11394 ms  POST /api/auth/refresh -> 204
+Ends on: /profile  |  session revoked: no  |  cookies left: refresh_token, access_token
+
+== C. Access token expired; opening /orders by address
+ 18945 ms  page: /orders
+ 18986 ms  page: /orders
+ 19011 ms  GET /api/auth/me -> 401
+ 19431 ms  POST /api/auth/refresh -> 204
+ 19450 ms  GET /api/auth/me -> 200
+Ends on: /orders  |  session revoked: no  |  cookies left: refresh_token, access_token

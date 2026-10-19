@@ -1,6 +1,7 @@
 import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
 import { MailService } from '../src/mail/mail.service';
+import { SessionsService } from '../src/sessions/sessions.service';
 import {
   client,
   createTestApp,
@@ -96,7 +97,8 @@ describe('Phase 1 auth (e2e)', () => {
       const access = cookies.find((c) => c.startsWith('access_token='))!;
       const refresh = cookies.find((c) => c.startsWith('refresh_token='))!;
       expect(access).toMatch(/Path=\/;/);
-      expect(access).toMatch(/Max-Age=900;/);
+      // As long as the session; the token inside expires after 15 minutes (changed 2026-10-19)
+      expect(access).toMatch(/Max-Age=2592000;/);
       expect(refresh).toMatch(/Path=\/api\/auth;/);
       expect(refresh).toMatch(/Max-Age=2592000;/);
       for (const c of [access, refresh]) {
@@ -300,11 +302,43 @@ describe('Phase 1 auth (e2e)', () => {
         .set('Cookie', `access_token=${expired}`)
         .expect(401);
 
-      // The browser drops the cookie at Max-Age; the client then calls refresh once
+      // The client gets that 401 and calls refresh once
       const res = await agent.post('/api/auth/refresh').expect(204);
       expect(cookieValue(res, 'access_token')).not.toBe('');
       expect(cookieValue(res, 'refresh_token')).toMatch(/^[0-9a-f-]{36}\./);
       await agent.get('/api/auth/me').expect(200);
+    });
+
+    it('the access cookie lasts as long as the session, so the route guard still sees it after 15 minutes', async () => {
+      const user = await createUser(ctx.prisma);
+      const res = await client(ctx.app)
+        .post('/api/auth/login')
+        .send({ email: user.email, password: TEST_PASSWORD })
+        .expect(200);
+      const thirtyDays = 30 * 24 * 60 * 60;
+      for (const name of ['access_token', 'refresh_token']) {
+        const line = setCookies(res).find((c) => c.startsWith(`${name}=`));
+        expect(line).toContain(`Max-Age=${thirtyDays}`);
+      }
+      // The token inside still expires after 15 minutes (D6)
+      const { exp, iat } = ctx.app
+        .get(JwtService)
+        .decode<{ exp: number; iat: number }>(cookieValue(res, 'access_token'));
+      expect(exp - iat).toBe(15 * 60);
+    });
+
+    it('a server error during refresh keeps the cookies; only a refused session clears them', async () => {
+      const user = await createUser(ctx.prisma);
+      const agent = await signIn(ctx.app, user.email);
+      const rotate = jest
+        .spyOn(ctx.app.get(SessionsService), 'rotate')
+        .mockRejectedValueOnce(new Error('database unavailable'));
+
+      const failed = await agent.post('/api/auth/refresh').expect(500);
+      expect(setCookies(failed)).toEqual([]);
+      // The session was fine: the next try works with the same cookies
+      await agent.post('/api/auth/refresh').expect(204);
+      rotate.mockRestore();
     });
 
     it('a reused old refresh token revokes its session', async () => {

@@ -3,8 +3,9 @@ import type { NextRequest } from 'next/server';
 
 // UX redirect only (guide 1.6.7); the API enforces every rule. Either auth cookie counts.
 // Next.js 16 renamed middleware.ts to proxy.ts (guide Phase 10 clean-ups).
-// Note: the refresh cookie is scoped to /api/auth (D6), so page requests normally carry only the
-// access cookie. When it has expired, sign-in tries a silent refresh before asking for a password.
+// Note: the refresh cookie is scoped to /api/auth (D6), so page requests carry only the access cookie.
+// That cookie lasts as long as the session (its token expires after 15 minutes and the app refreshes
+// it); without it, sign-in still tries a silent refresh before asking for a password.
 // /dispatch/invite stays open: a rider sets their password there before they can sign in
 // Decision 2026-10-19: guests browse and fill a cart, and sign in at checkout; store pages need an
 // account

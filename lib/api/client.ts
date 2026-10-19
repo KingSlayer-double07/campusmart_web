@@ -49,16 +49,20 @@ export async function fetchApi<T = any>(endpoint: string, options: FetchOptions 
   }
 }
 
-// Shared across callers so parallel 401s trigger a single refresh.
+// Refresh tokens are single-use: the API ends the session when one is presented twice (D6). So every
+// refresh in this tab, the sign-in page's silent one included, shares one request, and tabs take turns
+// (they share the cookies), so each sends the latest token. True when rotated; false when the server
+// refused the session (the user is signed out); throws when it couldn't tell (network, 429, 5xx).
 let refreshPromise: Promise<boolean> | null = null;
 
-function refreshSession(): Promise<boolean> {
-  refreshPromise ??= request('/auth/refresh', { method: 'POST' })
+export function refreshSession(): Promise<boolean> {
+  refreshPromise ??= oneTabAtATime(() => request('/auth/refresh', { method: 'POST' }))
     .then(
       () => true,
       (error) => {
-        // Only sign out when the server rejected the session, not when the network dropped.
-        if (error instanceof ApiError && error.status === 0) throw error;
+        // Only a refused session signs out. A dropped network, a rate limit or a server error says
+        // nothing about the session, and the next request can try again.
+        if (!(error instanceof ApiError && (error.status === 401 || error.status === 403))) throw error;
         handleAuthFailure();
         return false;
       },
@@ -69,15 +73,21 @@ function refreshSession(): Promise<boolean> {
   return refreshPromise;
 }
 
+async function oneTabAtATime<T>(task: () => Promise<T>): Promise<T> {
+  const locks = typeof navigator === 'undefined' ? undefined : navigator.locks;
+  return locks ? await locks.request('campusmart-session-refresh', task) : task();
+}
+
 function handleAuthFailure() {
   const { user, clearAuth } = useAuthStore.getState();
   clearAuth();
 
-  // Guests have nothing to lose; only send a signed-in user back to sign-in.
+  // Guests have nothing to lose; only send a signed-in user back to sign-in, and then back here.
   if (!user || typeof window === 'undefined' || window.location.pathname.startsWith('/onboarding')) return;
+  const here = `${window.location.pathname}${window.location.search ?? ''}`;
   const signIn =
-    user.role === 'SELLER' ? '/onboarding/sellers/sign-in'
-    : user.role === 'BUYER' ? '/onboarding/buyers/sign-in'
+    user.role === 'SELLER' ? `/onboarding/sellers/sign-in?next=${encodeURIComponent(here)}`
+    : user.role === 'BUYER' ? `/onboarding/buyers/sign-in?next=${encodeURIComponent(here)}`
     : '/onboarding/role-select';
   window.location.assign(signIn);
 }

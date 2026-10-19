@@ -1,0 +1,17 @@
+Before the fix, refresh answers held 400 ms (slow-refresh-proxy.mjs). Old script: scenarios A and B only.
+
+== A. Opening /orders by address (or reloading it)
+  2567 ms  GET /orders -> 307
+  2582 ms  page: /onboarding/buyers/sign-in?next=%2Forders
+  2643 ms  page: /onboarding/buyers/sign-in?next=%2Forders
+  2708 ms  GET /api/auth/providers -> 200
+  2710 ms  GET /api/auth/me -> 401
+  3084 ms  POST /api/auth/refresh -> 204
+  3098 ms  GET /api/auth/me -> 401
+  3154 ms  POST /api/auth/refresh -> 401
+Ends on: /onboarding/buyers/sign-in  |  session revoked: 2026-10-19 22:01:35.427  |  cookies left: none
+
+== B. Tapping Account in the bottom bar
+ 10876 ms  page: /profile
+ 11330 ms  POST /api/auth/refresh -> 204
+Ends on: /profile  |  session revoked: no  |  cookies left: refresh_token, access_token
