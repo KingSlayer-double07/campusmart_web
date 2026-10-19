@@ -11,7 +11,11 @@ export function useRequireAuth(redirectTo = "/splash", { guests = false } = {}) 
   const router = useRouter();
 
   useEffect(() => {
-    if (!user && !(guests && guestSchool)) {
+    // Read the stores themselves: while React hydrates a page, zustand's hooks give the stores'
+    // initial, empty state, which sent everyone to the splash on a reload of the home page
+    const signedIn = !!useAuthStore.getState().user;
+    const browsing = guests && !!useGuestStore.getState().school;
+    if (!signedIn && !browsing) {
       router.replace(redirectTo);
     }
   }, [user, guests, guestSchool, router, redirectTo]);
