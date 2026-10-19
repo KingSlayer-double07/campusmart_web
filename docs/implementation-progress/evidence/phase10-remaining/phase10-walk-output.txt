@@ -1,0 +1,46 @@
+PASS  Sign-up shows the Terms, marked as a draft (T5)
+PASS  Google isn't offered while it isn't configured (T1)
+PASS  GET /auth/providers says Google is off  ({"google":false})
+PASS  A gmail.com address can sign up as a buyer (T1)
+PASS  The email code printed to the API console
+PASS  After confirming the email, a buyer without a school is asked to pick one
+PASS  Only schools that are switched on are listed
+PASS  Continuing without a school asks for one
+PASS  An unlisted school can join the waitlist (G4)
+PASS  The school picker fits a phone screen
+PASS  The buyer lands on the home page with University of Lagos as their school
+PASS  The new buyer can fill their cart at their school  (status 200)
+PASS  Choosing another school warns that the cart will be emptied (G1)
+PASS  The school changed and the cart is empty
+PASS  A username someone else has is refused (409 USERNAME_TAKEN)
+PASS  The profile saves the username, names and phone  (walk_844498|Walk|08031234567)
+PASS  A school email must belong to a listed school  (That email isn't from a school on CampusMart yet)
+PASS  The code goes to the school email
+PASS  The buyer is now a seller at the school email's school, still signing in with their own email
+PASS  Account security offers "Delete account" and no phone verification (T3)
+PASS  The phone verification page is gone (T3)
+PASS  A wrong password doesn't delete the account
+PASS  The account is anonymised and signed out (T6)
+PASS  The deleted account can't sign in again  (Invalid email or password)
+PASS  The home bell shows the unread count  (Notifications, 2 unread)
+PASS  The notifications page lists real notifications
+PASS  Order and payment emails are on by default (T7)
+PASS  Turning order emails off is saved
+PASS  "Mark all as read" clears the unread count
+PASS  The notifications page fits a phone screen
+PASS  Call us says "coming soon" while SUPPORT_PHONE and SUPPORT_WHATSAPP are unset (T4)
+PASS  Email support says "coming soon" while SUPPORT_EMAIL is unset
+PASS  A report needs a topic
+PASS  The report is saved for the admins
+PASS  The report shows in /admin/reports
+PASS  Admins were alerted about the report
+PASS  GET /api/health answers through the frontend with the database up  ({"status":"ok","checks":{"database":"up"}})
+PASS  The health check isn't cached
+PASS  /offline is gone
+PASS  /~offline renders without the broken emoji
+PASS  proxy.ts still sends a signed-out visitor to sign-in, keeping where they were going
+PASS  Help → Terms & Privacy shows the draft Terms
+PASS  …and the Privacy Policy under the Nigeria Data Protection Act
+PASS  The Terms page fits a phone screen
+
+44/44 checks passed
