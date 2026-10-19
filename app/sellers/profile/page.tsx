@@ -18,6 +18,7 @@ import {
   Settings,
   Shield,
   Star,
+  UserRound,
 } from "lucide-react";
 import Modal from "@/app/components/Modal";
 import PageHeader from "@/app/components/PageHeader";
@@ -229,6 +230,7 @@ export default function ProfilePage() {
     { icon: Package, label: "Orders", description: "Track and manage your sales", href: "/sellers/orders" },
     { icon: Landmark, label: "Earnings", description: "Payout account and payouts", href: "/sellers/earnings" },
     { icon: Grid, label: "Inventory", description: "Manage your products", href: "/sellers/products" },
+    { icon: UserRound, label: "Personal details", description: "Your name, username and phone", href: "/profile/edit" },
     { icon: Shield, label: "Account Security", description: "Password and active sessions", href: "/profile/account_security" },
   ];
 

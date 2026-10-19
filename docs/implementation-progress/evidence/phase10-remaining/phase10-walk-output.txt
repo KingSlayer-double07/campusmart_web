@@ -13,10 +13,11 @@ PASS  The new buyer can fill their cart at their school  (status 200)
 PASS  Choosing another school warns that the cart will be emptied (G1)
 PASS  The school changed and the cart is empty
 PASS  A username someone else has is refused (409 USERNAME_TAKEN)
-PASS  The profile saves the username, names and phone  (walk_844498|Walk|08031234567)
+PASS  The profile saves the username, names and phone  (walk_113495|Walk|08031234567)
 PASS  A school email must belong to a listed school  (That email isn't from a school on CampusMart yet)
 PASS  The code goes to the school email
 PASS  The buyer is now a seller at the school email's school, still signing in with their own email
+PASS  A seller edits their name, username and phone from their own profile
 PASS  Account security offers "Delete account" and no phone verification (T3)
 PASS  The phone verification page is gone (T3)
 PASS  A wrong password doesn't delete the account
@@ -43,4 +44,4 @@ PASS  Help → Terms & Privacy shows the draft Terms
 PASS  …and the Privacy Policy under the Nigeria Data Protection Act
 PASS  The Terms page fits a phone screen
 
-44/44 checks passed
+45/45 checks passed

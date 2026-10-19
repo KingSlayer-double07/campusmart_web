@@ -57,7 +57,8 @@ export default function EditProfilePage() {
         phone: form.phone.trim() || null,
       });
       toast.success("Profile saved");
-      setTimeout(() => router.push("/profile"), 800);
+      // Sellers reach this page from their own profile (guide 10: "Profile and seller profile edit forms")
+      setTimeout(() => router.push(user?.role === "SELLER" ? "/sellers/profile" : "/profile"), 800);
     } catch (err) {
       if (err instanceof ApiError && err.code === "USERNAME_TAKEN") setErrors({ username: err.message });
       else setErrors({ form: err instanceof ApiError ? err.message : "Something went wrong. Please try again." });

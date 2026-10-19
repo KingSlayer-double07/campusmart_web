@@ -187,6 +187,11 @@ check(
     `SELLER|${SCHOOL_EMAIL}|University of Lagos|${NEW_BUYER}`,
 );
 
+await buyer.goto(`${BASE}/sellers/profile`);
+await buyer.getByRole('link', { name: /Personal details/ }).click();
+await buyer.waitForURL(/\/profile\/edit/);
+check('A seller edits their name, username and phone from their own profile', (await buyer.getByPlaceholder('Username').inputValue()) === `walk_${String(RUN).slice(-6)}`);
+
 // ── T6: deleting the account (password checked), then the account is gone ──
 await buyer.goto(`${BASE}/profile/account_security`);
 check('Account security offers "Delete account" and no phone verification (T3)', (await buyer.getByText('Delete account').count()) > 0 && (await buyer.getByText(/phone verification/i).count()) === 0);

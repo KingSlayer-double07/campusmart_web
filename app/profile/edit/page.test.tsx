@@ -46,6 +46,18 @@ describe("Editing the profile (guide 10)", () => {
     expect(useAuthStore.getState().user?.username).toBe("ada_obi");
   });
 
+  it("takes a seller back to their seller profile after saving", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    useAuthStore.setState({ user: { ...user, role: "SELLER" } as never });
+    accountApi.updateProfile.mockResolvedValue({ ...user, role: "SELLER" });
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
+    await waitFor(() => expect(accountApi.updateProfile).toHaveBeenCalled());
+    await act(async () => vi.advanceTimersByTime(1000));
+    expect(router.push).toHaveBeenCalledWith("/sellers/profile");
+    vi.useRealTimers();
+  });
+
   it("keeps what's been typed when the session refreshes the user", async () => {
     renderPage();
     fireEvent.change(screen.getByPlaceholderText("First name"), { target: { value: "Adaeze" } });
