@@ -43,10 +43,13 @@ const json = (method: 'POST' | 'PATCH', body: unknown): RequestInit => ({
 });
 
 export const listingsApi = {
-  browse: (filters: ListingFilters & { cursor?: string }) =>
+  // institutionId: a guest's chosen school (decision 2026-10-19); left out when signed in
+  browse: (filters: ListingFilters & { cursor?: string; institutionId?: string }) =>
     fetchApi<ListingPage>('/listings', { params: params(filters) }),
-  get: (id: string) => fetchApi<Listing>(`/listings/${id}`),
-  related: (id: string) => fetchApi<ListingCard[]>(`/listings/${id}/related`),
+  get: (id: string, institutionId?: string) =>
+    fetchApi<Listing>(`/listings/${id}`, { params: params({ institutionId }) }),
+  related: (id: string, institutionId?: string) =>
+    fetchApi<ListingCard[]>(`/listings/${id}/related`, { params: params({ institutionId }) }),
   mine: (filters: { status?: Schemas['ListingStatus']; cursor?: string; limit?: number }) =>
     fetchApi<ListingPage>('/sellers/me/listings', { params: params(filters) }),
   create: (body: CreateListingBody) => fetchApi<Listing>('/listings', json('POST', body)),

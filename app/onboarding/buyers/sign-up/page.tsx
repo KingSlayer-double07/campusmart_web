@@ -1,7 +1,12 @@
 "use client";
 
+import { Suspense } from "react";
 import SignUpForm from "@/app/onboarding/components/SignUpForm";
 
 export default function BuyerSignUpPage() {
-  return <SignUpForm accountType="BUYER" />;
+  return (
+    <Suspense>
+      <SignUpForm accountType="BUYER" />
+    </Suspense>
+  );
 }

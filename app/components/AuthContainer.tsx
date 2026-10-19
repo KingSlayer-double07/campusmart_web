@@ -37,6 +37,8 @@ export default function AuthContainer({
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
 
   const mainTextColor = roleType === "buyer" ? "text-main" : "text-seller-main";
+  // Switching between sign-in and sign-up keeps where the person was going (e.g. /checkout)
+  const nextQuery = next ? `?next=${encodeURIComponent(next)}` : "";
 
   return (
     <div className="flex flex-col md:px-8 pt-8 pb-12 w-full flex-1">
@@ -119,14 +121,14 @@ export default function AuthContainer({
           {type === "login" ? (
             <>
               Don&apos;t have an account?{" "}
-              <Link href={`/onboarding/${roleType}s/sign-up`} className={`${mainTextColor} hover:underline`}>
+              <Link href={`/onboarding/${roleType}s/sign-up${nextQuery}`} className={`${mainTextColor} hover:underline`}>
                 Create one here
               </Link>
             </>
           ) : (
             <>
               {roleType === "buyer" ? "You have an account with us? Lovely!" : "Already have an account?"}{" "}
-              <Link href={`/onboarding/${roleType}s/sign-in`} className={`${mainTextColor} hover:underline`}>
+              <Link href={`/onboarding/${roleType}s/sign-in${nextQuery}`} className={`${mainTextColor} hover:underline`}>
                 Login here
               </Link>
             </>

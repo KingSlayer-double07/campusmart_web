@@ -3,22 +3,30 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/app/store/useAuthStore";
+import { useGuestStore } from "@/app/store/useGuestStore";
 import { homeForRole } from "@/lib/auth/redirects";
 
 export default function SplashScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
 
+  const introSeen = useGuestStore((s) => s.introSeen);
+  const guestSchool = useGuestStore((s) => !!s.school);
+
+  // Signed in: home. A first visit: the intro slides, then the three choices. A guest who has
+  // already picked a school to browse goes straight back to it (decision 2026-10-19).
   useEffect(() => {
     const timer = setTimeout(() => {
       if (user) {
         router.replace(user.emailVerifiedAt ? homeForRole(user.role) : "/onboarding/verify-email");
+      } else if (!introSeen) {
+        router.replace("/onboarding/intro");
       } else {
-        router.replace("/onboarding/role-select");
+        router.replace(guestSchool ? "/" : "/onboarding/role-select");
       }
     }, 2200);
     return () => clearTimeout(timer);
-  }, [user, router]);
+  }, [user, introSeen, guestSchool, router]);
 
   return (
     <>

@@ -25,7 +25,10 @@ describe("afterSignIn", () => {
   });
 
   it("asks a buyer without a school to pick one first (T1), even with a next path", () => {
-    expect(afterSignIn({ role: "BUYER", emailVerifiedAt: verified, institutionId: null }, "/orders")).toBe("/onboarding/school");
+    expect(afterSignIn({ role: "BUYER", emailVerifiedAt: verified, institutionId: null })).toBe("/onboarding/school");
+    // ...and keeps where they were going for after (decision 2026-10-19)
+    expect(afterSignIn({ role: "BUYER", emailVerifiedAt: verified, institutionId: null }, "/orders")).toBe("/onboarding/school?next=%2Forders");
+    expect(afterSignIn({ role: "BUYER", emailVerifiedAt: verified, institutionId: null }, "https://evil.test")).toBe("/onboarding/school");
     expect(needsSchool({ role: "SELLER", institutionId: null })).toBe(false);
   });
 

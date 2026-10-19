@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { reviewsApi, type CreateReviewBody } from '../reviews';
 import { buyerOrdersKey } from './useBuyerOrders';
+import { useBrowseSchool } from './useBrowseSchool';
 import { listingsKey } from './useListings';
 
 export const reviewsKey = ['reviews'] as const;
@@ -10,11 +11,13 @@ const pageParams = {
   getNextPageParam: (last: { nextCursor: string | null }) => last.nextCursor ?? undefined,
 };
 
+// Guests read these too (decision 2026-10-19)
 export function useListingReviews(listingId: string | undefined) {
+  const { institutionId, ready } = useBrowseSchool();
   return useInfiniteQuery({
-    queryKey: [...reviewsKey, 'listing', listingId],
-    queryFn: ({ pageParam }) => reviewsApi.forListing(listingId!, pageParam),
-    enabled: !!listingId,
+    queryKey: [...reviewsKey, 'listing', listingId, institutionId ?? 'mine'],
+    queryFn: ({ pageParam }) => reviewsApi.forListing(listingId!, pageParam, institutionId),
+    enabled: !!listingId && ready,
     ...pageParams,
   });
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { MailCheck } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import Button from "@/app/components/Button";
@@ -28,7 +28,17 @@ function codeErrorMessage(err: unknown): string {
 }
 
 export default function VerifyEmailPage() {
+  return (
+    <Suspense>
+      <VerifyEmail />
+    </Suspense>
+  );
+}
+
+function VerifyEmail() {
   const router = useRouter();
+  // Where a guest was going before signing up (e.g. /checkout)
+  const next = useSearchParams().get("next");
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
@@ -47,8 +57,8 @@ export default function VerifyEmailPage() {
   useEffect(() => {
     if (!mounted) return;
     if (!user) router.replace("/onboarding/role-select");
-    else if (user.emailVerifiedAt) router.replace(afterSignIn(user));
-  }, [mounted, user, router]);
+    else if (user.emailVerifiedAt) router.replace(afterSignIn(user, next));
+  }, [mounted, user, router, next]);
 
   const handleVerify = async () => {
     const parsed = codeSchema.safeParse(code);

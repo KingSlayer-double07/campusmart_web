@@ -10,8 +10,12 @@ const MAX_QUANTITY = 100;
 
 // Guide 4.3.1: after sign-in, this device's guest cart joins the account's cart once, then the
 // guest cart is cleared. If the merge fails (offline, email not verified yet) it stays for next time.
+// It waits for the account to have a school too: a buyer who signed up after browsing as a guest
+// picks theirs first (decision 2026-10-19), and the merge needs it.
 export function useGuestCartMerge() {
-  const userId = useAuthStore((s) => (s.user?.emailVerifiedAt ? s.user.id : null));
+  const userId = useAuthStore((s) =>
+    s.user?.emailVerifiedAt && s.user.institutionId ? s.user.id : null,
+  );
   const queryClient = useQueryClient();
   const running = useRef(false);
 

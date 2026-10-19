@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, Mail, Store } from "lucide-react";
 import AuthContainer from "@/app/components/AuthContainer";
+import { safeNext } from "@/lib/auth/redirects";
 import FormInput from "@/app/components/FormInput";
 import { useAuthStore } from "@/app/store/useAuthStore";
 import { authApi, type AccountType } from "@/lib/api/auth";
@@ -34,6 +35,8 @@ const TITLES: Record<AccountType, React.ReactNode> = {
 // email, from which the API finds the school; a buyer may use any email and picks their school next (T1).
 export default function SignUpForm({ accountType }: { accountType: AccountType }) {
   const router = useRouter();
+  // Where a guest was going (e.g. /checkout); kept through confirming the email and the school
+  const next = safeNext(useSearchParams().get("next"));
   const setUser = useAuthStore((s) => s.setUser);
   const [storeName, setStoreName] = useState("");
   const [email, setEmail] = useState("");
@@ -61,7 +64,7 @@ export default function SignUpForm({ accountType }: { accountType: AccountType }
       if (accountType === "SELLER" && storeName.trim()) {
         localStorage.setItem(PENDING_STORE_NAME_KEY, storeName.trim());
       }
-      router.push("/onboarding/verify-email");
+      router.push(next ? `/onboarding/verify-email?next=${encodeURIComponent(next)}` : "/onboarding/verify-email");
     } catch (err) {
       // Sellers only: a buyer's email doesn't have to be a school's (G4: an unlisted school waits)
       if (err instanceof ApiError && err.code === "INSTITUTION_NOT_SUPPORTED") {
@@ -82,6 +85,7 @@ export default function SignUpForm({ accountType }: { accountType: AccountType }
       onSubmit={handleSignUp}
       loading={loading}
       error={error}
+      next={next}
     >
       {accountType === "SELLER" && (
         <FormInput

@@ -46,7 +46,7 @@ describe('useGuestCartMerge', () => {
   afterEach(cleanup);
 
   it('merges the guest cart after a verified sign-in, then clears it', async () => {
-    useAuthStore.setState({ user: { id: 'u1', emailVerifiedAt: '2026-10-01T00:00:00Z' } as never });
+    useAuthStore.setState({ user: { id: 'u1', emailVerifiedAt: '2026-10-01T00:00:00Z', institutionId: 'unilag' } as never });
     const cart = { groups: [], subtotalKobo: 0, itemCount: 0, issues: [] };
     merge.mockResolvedValue(cart);
     const client = renderMerger();
@@ -60,13 +60,19 @@ describe('useGuestCartMerge', () => {
     expect(client.getQueryData(cartKey)).toBe(cart);
   });
 
-  it('waits for a verified email, and keeps the guest cart if the merge fails', async () => {
+  it('waits for a verified email and a school, and keeps the guest cart if the merge fails', async () => {
     useAuthStore.setState({ user: { id: 'u1', emailVerifiedAt: null } as never });
     renderMerger();
     expect(merge).not.toHaveBeenCalled();
     cleanup();
 
-    useAuthStore.setState({ user: { id: 'u1', emailVerifiedAt: '2026-10-01T00:00:00Z' } as never });
+    // A buyer who signed up after browsing has no school until they pick it (decision 2026-10-19)
+    useAuthStore.setState({ user: { id: 'u1', emailVerifiedAt: '2026-10-01T00:00:00Z', institutionId: null } as never });
+    renderMerger();
+    expect(merge).not.toHaveBeenCalled();
+    cleanup();
+
+    useAuthStore.setState({ user: { id: 'u1', emailVerifiedAt: '2026-10-01T00:00:00Z', institutionId: 'unilag' } as never });
     merge.mockRejectedValue(new Error('offline'));
     renderMerger();
     await waitFor(() => expect(merge).toHaveBeenCalledTimes(1));

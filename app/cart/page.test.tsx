@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), back: vi.fn() }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), back: vi.fn() }), usePathname: () => "/cart" }));
 vi.mock("@/app/components/ListingsCarousel", () => ({ default: () => null }));
 const cartApi = vi.hoisted(() => ({ get: vi.fn(), setItem: vi.fn(), removeItem: vi.fn(), merge: vi.fn() }));
 vi.mock("@/lib/api/checkout", () => ({ cartApi }));

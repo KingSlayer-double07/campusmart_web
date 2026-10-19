@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { BadgeCheck, ChevronRight, Flag, Heart, HeartPlus, ImageOff, Search, Share2, Star } from "lucide-react";
 import AddCartNav from "@/app/components/addCartNav";
 import PageHeader from "@/app/components/PageHeader";
@@ -12,6 +12,7 @@ import ReviewList, { Stars } from "@/app/components/ReviewList";
 import SignInToSaveSheet from "@/app/components/SignInToSaveSheet";
 import { ToastContainer, useToast } from "@/app/components/Toast";
 import TrustedBadge from "@/app/components/TrustedBadge";
+import { useAuthStore } from "@/app/store/useAuthStore";
 import type { Listing, ListingVariant } from "@/lib/api/listings";
 import { ApiError } from "@/lib/api/client";
 import { useListing, useRelatedListings } from "@/lib/api/hooks/useListings";
@@ -129,6 +130,8 @@ export default function ProductItem() {
   const wishlist = useWishlist();
   const [askSignIn, setAskSignIn] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const router = useRouter();
+  const signedIn = useAuthStore((s) => !!s.user);
   const isHearted = wishlist.isSaved(id);
   const reviews = useListingReviews(listing && listing.ratingCount > 0 ? id : undefined);
 
@@ -299,7 +302,10 @@ export default function ProductItem() {
           {!listing.isOwner && (
             <button
               type="button"
-              onClick={() => setReporting(true)}
+              // A guest signs in first (decision 2026-10-19), then comes back here
+              onClick={() =>
+                signedIn ? setReporting(true) : router.push(`/onboarding/buyers/sign-in?next=${encodeURIComponent(`/productItem/${id}`)}`)
+              }
               className="mt-1 flex items-center gap-1.5 self-start text-xs font-medium text-foreground-muted hover:text-foreground"
             >
               <Flag size={13} />

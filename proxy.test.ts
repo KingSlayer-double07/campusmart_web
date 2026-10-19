@@ -25,6 +25,15 @@ describe("proxy", () => {
     expect(res.headers.get("location")).toBeNull();
   });
 
+  it("lets a guest open the cart, and asks them to sign in for checkout and store pages (decision 2026-10-19)", () => {
+    // The proxy runs only on the matcher's paths
+    expect(PROTECTED_PREFIXES).not.toContain("/cart");
+    expect(config.matcher).not.toContain("/cart/:path*");
+    expect(config.matcher).toContain("/stores/:path*");
+    expect(new URL(run("/checkout").headers.get("location")!).searchParams.get("next")).toBe("/checkout");
+    expect(new URL(run("/stores/s1").headers.get("location")!).pathname).toBe("/onboarding/buyers/sign-in");
+  });
+
   it("never looks for the old auth_token cookie", () => {
     expect(run("/profile", { auth_token: "dev-mock-token" }).status).toBe(307);
   });

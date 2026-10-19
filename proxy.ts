@@ -6,7 +6,9 @@ import type { NextRequest } from 'next/server';
 // Note: the refresh cookie is scoped to /api/auth (D6), so page requests normally carry only the
 // access cookie. When it has expired, sign-in tries a silent refresh before asking for a password.
 // /dispatch/invite stays open: a rider sets their password there before they can sign in
-export const PROTECTED_PREFIXES = ['/sellers', '/profile', '/admin', '/agent', '/dispatch', '/checkout', '/cart', '/orders'];
+// Decision 2026-10-19: guests browse and fill a cart, and sign in at checkout; store pages need an
+// account
+export const PROTECTED_PREFIXES = ['/sellers', '/profile', '/admin', '/agent', '/dispatch', '/checkout', '/orders', '/stores'];
 
 // Pages under a protected prefix that a signed-out visitor still needs
 const OPEN_PATHS = ['/dispatch/invite'];
@@ -31,7 +33,7 @@ export const config = {
     '/agent/:path*',
     '/dispatch/:path*',
     '/checkout/:path*',
-    '/cart/:path*',
     '/orders/:path*',
+    '/stores/:path*',
   ],
 };

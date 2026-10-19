@@ -3,8 +3,9 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 
 const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }));
 const register = vi.hoisted(() => vi.fn());
+const search = vi.hoisted(() => ({ params: new URLSearchParams() }));
 
-vi.mock("next/navigation", () => ({ useRouter: () => router }));
+vi.mock("next/navigation", () => ({ useRouter: () => router, useSearchParams: () => search.params }));
 vi.mock("next/link", () => ({
   default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => (
     <a href={href} {...rest}>
@@ -37,6 +38,7 @@ describe("SignUpForm", () => {
   beforeEach(() => {
     router.push.mockReset();
     register.mockReset();
+    search.params = new URLSearchParams();
     useAuthStore.setState({ user: null });
   });
   afterEach(cleanup);
@@ -92,6 +94,15 @@ describe("SignUpForm", () => {
     await waitFor(() => expect(router.push).toHaveBeenCalledWith("/onboarding/verify-email"));
     expect(register.mock.calls[0][0].accountType).toBe("SELLER");
     expect(useAuthStore.getState().user).toEqual(user);
+  });
+
+  it("keeps a guest's destination (e.g. checkout) through confirming the email (decision 2026-10-19)", async () => {
+    search.params = new URLSearchParams({ next: "/checkout" });
+    register.mockResolvedValue({ id: "u1", email: "ada@gmail.com", role: "BUYER", emailVerifiedAt: null });
+    render(<SignUpForm accountType="BUYER" />);
+    expect(screen.getByRole("link", { name: /login here/i }).getAttribute("href")).toBe("/onboarding/buyers/sign-in?next=%2Fcheckout");
+    fill("ada@gmail.com");
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/onboarding/verify-email?next=%2Fcheckout"));
   });
 
   it("shows the API error message under the form", async () => {

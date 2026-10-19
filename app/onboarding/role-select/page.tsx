@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useGuestStore } from "@/app/store/useGuestStore";
 import Button from "@/app/components/Button";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -96,11 +97,16 @@ export default function RoleSelectPage() {
   const router = useRouter();
   const [selected, setSelected] = useState<Role>(null);
 
+  const guestSchool = useGuestStore((s) => s.school);
+
+  // Browse needs no account, only a school (decision 2026-10-19); buying and selling sign in first
   const handleContinue = () => {
     if (!selected) return;
 
     if (selected === "sell") {
       router.push("/onboarding/sellers/welcome");
+    } else if (selected === "browse") {
+      router.push(guestSchool ? "/" : "/onboarding/guest-school");
     } else {
       router.push("/onboarding/buyers/welcome");
     }

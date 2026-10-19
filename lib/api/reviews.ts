@@ -15,8 +15,8 @@ const post = (body?: unknown): RequestInit => ({ method: 'POST', ...(body !== un
 
 // Guide 8.4: rating what you received, and reading reviews
 export const reviewsApi = {
-  forListing: (listingId: string, cursor?: string) =>
-    fetchApi<ReviewPage>(`/listings/${listingId}/reviews`, { params: toParams({ cursor }) }),
+  forListing: (listingId: string, cursor?: string, institutionId?: string) =>
+    fetchApi<ReviewPage>(`/listings/${listingId}/reviews`, { params: toParams({ cursor, institutionId }) }),
   forStore: (sellerId: string, cursor?: string) => fetchApi<ReviewPage>(`/stores/${sellerId}/reviews`, { params: toParams({ cursor }) }),
   create: (sellerOrderId: string, body: CreateReviewBody) => fetchApi<Review>(`/seller-orders/${sellerOrderId}/reviews`, post(body)),
 };

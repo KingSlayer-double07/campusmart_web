@@ -23,8 +23,11 @@ export function afterSignIn(
   next?: string | null,
 ): string {
   if (!user.emailVerifiedAt) return '/onboarding/verify-email';
-  if (needsSchool(user)) return '/onboarding/school';
-  return safeNext(next) ?? homeForRole(user.role);
+  const target = safeNext(next);
+  if (needsSchool(user)) {
+    return target ? `/onboarding/school?next=${encodeURIComponent(target)}` : '/onboarding/school';
+  }
+  return target ?? homeForRole(user.role);
 }
 
 export const needsSchool = (user: Pick<User, 'role' | 'institutionId'>) =>
