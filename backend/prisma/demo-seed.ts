@@ -1342,46 +1342,47 @@ export async function seedDemo(
   }
 
   // ── Write it all in one transaction, then let the app work out ratings and trust ──
-  await prisma.$transaction([
-    ...(school.deliveryFeeKobo === null
-      ? [
-          prisma.institution.update({
-            where: { id: school.id },
-            data: { deliveryFeeKobo },
-          }),
-        ]
-      : []),
-    prisma.campusPlace.createMany({ data: rows.places }),
-    prisma.user.createMany({ data: rows.users }),
-    prisma.sellerProfile.createMany({ data: rows.profiles }),
-    prisma.sellerProfile.updateMany({
-      where: { userId: { in: ['tolu', 'emeka'].map((k) => person(k).id) } },
-      data: { lowStockAlertedAt: ago(2 * 24) },
-    }),
-    prisma.verificationRequest.createMany({ data: rows.verifications }),
-    prisma.invite.createMany({ data: rows.invites }),
-    prisma.listing.createMany({ data: rows.listings }),
-    prisma.listingImage.createMany({ data: rows.images }),
-    prisma.listingVariant.createMany({ data: rows.variants }),
-    prisma.listingDailyStat.createMany({ data: rows.stats }),
-    prisma.listingView.createMany({ data: rows.views }),
-    prisma.order.createMany({ data: rows.orders }),
-    prisma.sellerOrder.createMany({ data: rows.sellerOrders }),
-    prisma.orderItem.createMany({ data: rows.items }),
-    prisma.payment.createMany({ data: rows.payments }),
-    prisma.deliveryJob.createMany({ data: rows.jobs }),
-    prisma.payout.createMany({ data: rows.payouts }),
-    prisma.refund.createMany({ data: rows.refunds }),
-    prisma.dispute.createMany({ data: rows.disputes }),
-    prisma.problemReport.createMany({ data: rows.problems }),
-    prisma.review.createMany({ data: rows.reviews }),
-    prisma.wishlist.createMany({ data: rows.wishlist }),
-    prisma.cartItem.createMany({ data: rows.carts }),
-    prisma.supportReport.createMany({ data: rows.reports }),
-    prisma.moderationAction.createMany({ data: rows.moderation }),
-    prisma.notification.createMany({ data: rows.notifications }),
-    prisma.auditLog.createMany({ data: rows.audit }),
-  ]);
+  await prisma.$transaction(
+    async (tx) => {
+      if (school.deliveryFeeKobo === null) {
+        await tx.institution.update({
+          where: { id: school.id },
+          data: { deliveryFeeKobo },
+        });
+      }
+      await tx.campusPlace.createMany({ data: rows.places });
+      await tx.user.createMany({ data: rows.users });
+      await tx.sellerProfile.createMany({ data: rows.profiles });
+      await tx.sellerProfile.updateMany({
+        where: { userId: { in: ['tolu', 'emeka'].map((k) => person(k).id) } },
+        data: { lowStockAlertedAt: ago(2 * 24) },
+      });
+      await tx.verificationRequest.createMany({ data: rows.verifications });
+      await tx.invite.createMany({ data: rows.invites });
+      await tx.listing.createMany({ data: rows.listings });
+      await tx.listingImage.createMany({ data: rows.images });
+      await tx.listingVariant.createMany({ data: rows.variants });
+      await tx.listingDailyStat.createMany({ data: rows.stats });
+      await tx.listingView.createMany({ data: rows.views });
+      await tx.order.createMany({ data: rows.orders });
+      await tx.sellerOrder.createMany({ data: rows.sellerOrders });
+      await tx.orderItem.createMany({ data: rows.items });
+      await tx.payment.createMany({ data: rows.payments });
+      await tx.deliveryJob.createMany({ data: rows.jobs });
+      await tx.payout.createMany({ data: rows.payouts });
+      await tx.refund.createMany({ data: rows.refunds });
+      await tx.dispute.createMany({ data: rows.disputes });
+      await tx.problemReport.createMany({ data: rows.problems });
+      await tx.review.createMany({ data: rows.reviews });
+      await tx.wishlist.createMany({ data: rows.wishlist });
+      await tx.cartItem.createMany({ data: rows.carts });
+      await tx.supportReport.createMany({ data: rows.reports });
+      await tx.moderationAction.createMany({ data: rows.moderation });
+      await tx.notification.createMany({ data: rows.notifications });
+      await tx.auditLog.createMany({ data: rows.audit });
+    },
+    { maxWait: 10000, timeout: 30000 },
+  );
   for (const pair of reviewed) {
     const [listingId, sellerId] = pair.split('|');
     await recountRatings(
