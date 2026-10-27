@@ -1,0 +1,14 @@
+PASS  A guest sees a full shop: products from six stores  (20 product cards on the home page)
+PASS  Ifeoma has five orders, one on its way now  (5 orders)
+PASS  The newest order is with a rider, Grace Udoh
+PASS  Her notifications tell the story of her orders  (17 on the first page)
+PASS  Three favourites
+PASS  A product shows its rating and reviews
+PASS  The store page: Gadget Plug, its rating and listings
+PASS  Gadget Plug's dashboard has 30 days of sales and views  (₦138900 from 9 orders, 1346 views)
+PASS  Its payouts: paid ones and one that failed
+PASS  Musa sees an open job, his current one and his history  (1 open, 1 his, 9 done)
+PASS  The admin overview has numbers and things waiting  (21 accounts, 7 sellers, 1 dispute, 1 failed payout, 1 to review, 3 reports)
+PASS  The audit log has the history  (20 on the first page)
+
+12/12 passed

@@ -64,6 +64,9 @@ https://campusmart-8701.onrender.com.
 - [ ] `NODE_ENV=production` on staging needs `CLOUDINARY_*`, and `MAIL_*` or `MAIL_TRANSPORT=console` (the API
       refuses to start otherwise). Don't run staging as `development` to get around it: that also publishes Swagger,
       stops marking cookies secure and turns off the Paystack webhook's IP check.
+- [ ] **Demo data** (optional, asked for 2026-10-27): from your computer, `cd backend && DATABASE_URL="<Neon pooled
+      URL>" DEMO_PASSWORD="<password for every demo account>" pnpm run seed:demo`. Removing it: the same with
+      `-- --remove`. Details in [demo-data.md](demo-data.md).
 - [x] Send me the two URLs (received 2026-10-19).
 - [ ] Allow them in network access (section 0).
 
@@ -181,6 +184,7 @@ Resolved since the earlier notes:
 | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS`, `MAIL_FROM` | API | staging and launch (S1, S4) |
 | `MAIL_TRANSPORT=console` | API | staging only, until `MAIL_*` works: emails print to the log. Never at launch |
 | `TRUST_PROXY_HOPS` | API | staging and launch: measured (section 5); default 1 |
+| `DEMO_PASSWORD`, `DEMO_SCHOOL_DOMAIN` (optional) | your computer, for `pnpm run seed:demo` | staging demo data only; never set on a server |
 | `DATABASE_URL`, `DIRECT_URL` | API | staging, launch (Neon) |
 | `JWT_SECRET` | API | staging, launch (a different one each) |
 | `APP_URL`, `FRONTEND_URL` | API | staging, launch |

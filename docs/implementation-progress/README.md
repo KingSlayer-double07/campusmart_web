@@ -21,6 +21,9 @@ its checklist, changes, verification evidence, deviations and open asks.
 
 Status values: NOT STARTED / IN PROGRESS / BLOCKED / DONE / DONE pending manual checks.
 
+Also: [demo data for staging](demo-data.md) (`pnpm run seed:demo`, 2026-10-27), which you run against staging
+yourself.
+
 ## Decisions since the guide
 
 Your decisions that change or extend the guide. Each phase file has the detail.
