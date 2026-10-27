@@ -58,6 +58,7 @@ import type { PrismaService } from '../src/prisma/prisma.service';
 import { recountRatings } from '../src/reviews/review-rules';
 import { SettingsService } from '../src/settings/settings.service';
 import { TrustService } from '../src/trust/trust.service';
+import { describeDatabaseUrl } from './demo/database-url';
 import {
   DEMO_BUYERS,
   DEMO_CARTS,
@@ -1543,8 +1544,21 @@ export async function removeDemo(prisma: PrismaClient) {
 }
 
 async function main() {
+  const target = describeDatabaseUrl(process.env.DATABASE_URL);
+  // The server and database, never the password, so it's clear which one this will change
+  console.log(
+    `${process.argv.includes('--remove') ? 'Removing the demo data from' : 'Adding the demo data to'} ` +
+      `database "${target.database}" on ${target.host}`,
+  );
+  if (target.local) {
+    console.log(
+      "That's a database on this computer, not Neon. Stop now (Ctrl+C) if you meant staging.",
+    );
+  }
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
+    adapter: new PrismaPg({
+      connectionString: process.env.DATABASE_URL!.trim(),
+    }),
   });
   try {
     if (process.argv.includes('--remove')) {
@@ -1572,6 +1586,21 @@ async function main() {
       console.log(`  seller  ${s.email}  (${s.store})`);
     for (const r of result.riders) console.log(`  rider   ${r}`);
     for (const b of result.buyers) console.log(`  buyer   ${b}`);
+  } catch (error) {
+    // Nothing is written until the first query gets through, so a refused connection changes nothing
+    const message = error instanceof Error ? error.message : String(error);
+    if (
+      /can't reach database server|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|timeout/i.test(
+        message,
+      )
+    ) {
+      throw new Error(
+        `Couldn't connect to ${target.host}. Nothing was changed. Check the address in Neon's ` +
+          "Connect dialog, and that the project isn't paused (Neon pauses idle free projects; opening " +
+          `its dashboard wakes it).\n\n${message}`,
+      );
+    }
+    throw error;
   } finally {
     await prisma.$disconnect();
   }

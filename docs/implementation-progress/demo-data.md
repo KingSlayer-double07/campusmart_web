@@ -15,6 +15,20 @@ pnpm install
 DATABASE_URL="<Neon pooled URL>" DEMO_PASSWORD="<a password for every demo account>" pnpm run seed:demo
 ```
 
+That's for Git Bash, macOS and Linux. In **Windows PowerShell** the variables go on their own lines:
+
+```
+$env:DATABASE_URL="<Neon pooled URL>"
+$env:DEMO_PASSWORD="<a password for every demo account>"
+pnpm run seed:demo
+```
+
+Replace `<Neon pooled URL>` with the address itself (it starts with `postgresql://`), without the `< >`. In the
+Neon console it's under Connect; copy the connection string only, not the `psql '…'` line around it.
+
+It starts by printing which database it will change (the server and database name, never the password), so check
+that line is your Neon project before it goes on.
+
 - **Before it:**
   - The school needs to exist and be switched on. By default that's **Test University**, matched by name (capitals
     don't matter); set `DEMO_SCHOOL="<name>"` for another.
@@ -26,6 +40,19 @@ DATABASE_URL="<Neon pooled URL>" DEMO_PASSWORD="<a password for every demo accou
   took part in, a tester's order from a demo store included. The campus places and the delivery fee stay, since
   they're the school's. Run it before going live if staging ever becomes production.
 - **To refresh the dates later:** remove it, then add it again.
+
+## If it won't connect
+
+- **"Can't reach database server at base":** `DATABASE_URL` wasn't a real address. The driver reads any text that
+  isn't one as a database on a server called "base". Usual causes: the `<Neon pooled URL>` placeholder left in, or
+  the whole `psql '…'` line pasted. From 2026-10-27 the seed says so before it connects. Nothing is written until
+  its first query gets through.
+- **A password with `@`, `#`, `/`, `?` or `:` in it** breaks the address unless those characters are
+  percent-encoded (`@` is `%40`). Easier: reset the password in Neon to letters and numbers.
+- **"Couldn't connect to ep-…":** the address looks right but the server didn't answer. Neon pauses idle free
+  projects; opening the project in the Neon console wakes it. Then run it again.
+- **It says the database is "on this computer":** your shell or `backend/.env` has a local `DATABASE_URL`. The one
+  in front of the command wins; if there's none, `backend/.env` is used.
 
 ## What's in it
 
