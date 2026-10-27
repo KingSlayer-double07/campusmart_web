@@ -5,11 +5,16 @@ import {
   ProductCondition,
 } from '../../src/generated/prisma/enums';
 
-// A reserved domain (RFC 2606): nothing sent to it can reach anyone, and it marks every demo row
+// The school the demo lives in, by name (asked for 2026-10-27): staging's test school, which takes
+// Gmail, Hotmail, Yahoo and Outlook addresses so testers needn't be students anywhere
+export const DEMO_SCHOOL = 'Test University';
+
+// A reserved domain (RFC 2606): nothing sent to it can reach anyone, and it marks every demo row.
+// Seeded accounts are placed in the school directly, so they needn't be on its domains.
 export const DEMO_DOMAIN = 'demo.campusmart.test';
 
-// Halls, faculties and gates at the University of Lagos, for delivery (decision DF3). Edit these
-// for another school.
+// Halls, faculties and gates riders deliver to (decision DF3), named after the University of Lagos's.
+// Each is added only if the school doesn't have it.
 export const DEMO_PLACES = [
   'Moremi Hall',
   'Madam Kofo Hall',

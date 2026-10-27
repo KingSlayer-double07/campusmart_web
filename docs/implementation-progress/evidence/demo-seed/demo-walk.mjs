@@ -49,10 +49,10 @@ const settle = async (page) => {
 };
 const text = (page) => page.locator('main').first().innerText();
 
-// ── A guest browsing the University of Lagos ──
+// ── A guest browsing Test University ──
 const schoolId = process.env.SCHOOL_ID;
 let ctx = await context(phone, {
-  'campus-mart-guest': JSON.stringify({ state: { school: { id: schoolId, name: 'University of Lagos' }, introSeen: true }, version: 0 }),
+  'campus-mart-guest': JSON.stringify({ state: { school: { id: schoolId, name: process.env.SCHOOL_NAME ?? 'Test University' }, introSeen: true }, version: 0 }),
 });
 let page = await ctx.newPage();
 await page.goto(`${BASE}/`);

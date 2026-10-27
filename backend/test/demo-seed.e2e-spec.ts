@@ -33,6 +33,13 @@ describe('Demo seed (e2e)', () => {
       SEED_ADMIN_EMAIL: ADMIN,
       SEED_ADMIN_PASSWORD: 'SeedAdmin123',
     });
+    // Staging's test school, as set up there (2026-10-27)
+    await ctx.prisma.institution.create({
+      data: {
+        name: 'Test University',
+        domains: ['gmail.com', 'hotmail.com', 'yahoo.com', 'outlook.com'],
+      },
+    });
   });
 
   afterAll(async () => {
@@ -43,6 +50,15 @@ describe('Demo seed (e2e)', () => {
     const result = await seedDemo(ctx.prisma, { DEMO_PASSWORD });
     expect(result.counts.users).toBe(20);
     const p = ctx.prisma;
+    // All of it at Test University; the base seed's University of Lagos gets nothing
+    expect(result.school).toBe('Test University');
+    const unilag = await p.institution.findUniqueOrThrow({
+      where: { name: 'University of Lagos' },
+    });
+    expect(await p.user.count({ where: { institutionId: unilag.id } })).toBe(0);
+    expect(await p.listing.count({ where: { institutionId: unilag.id } })).toBe(
+      0,
+    );
     const counts = await Promise.all([
       p.sellerProfile.count(),
       p.verificationRequest.count(),
@@ -179,7 +195,7 @@ describe('Demo seed (e2e)', () => {
     await expect(
       seedDemo(ctx.prisma, {
         DEMO_PASSWORD,
-        DEMO_SCHOOL_DOMAIN: 'nowhere.edu.ng',
+        DEMO_SCHOOL: 'Nowhere University',
       }),
     ).rejects.toThrow(/No active school/);
   });

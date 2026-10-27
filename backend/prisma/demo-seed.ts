@@ -7,7 +7,8 @@
 // From backend/:
 //   DATABASE_URL=... DEMO_PASSWORD=... pnpm run seed:demo      adds the demo data (once)
 //   DATABASE_URL=... pnpm run seed:demo -- --remove            removes it
-// Needs the school (DEMO_SCHOOL_DOMAIN, default unilag.edu.ng; the base seed adds it) and an admin.
+// Needs the school, found by name (DEMO_SCHOOL, default "Test University": the staging school for testers,
+// which takes Gmail, Hotmail, Yahoo and Outlook addresses), and an admin.
 // The rows are written as the app would have written them, with its own helpers for codes, fees,
 // deadlines and refunds; ratings and trust scores are then worked out by the app's own code.
 import 'dotenv/config';
@@ -66,6 +67,7 @@ import {
   DEMO_ORDERS,
   DEMO_PLACES,
   DEMO_RIDERS,
+  DEMO_SCHOOL,
   DEMO_SELLERS,
   DEMO_WISHLISTS,
   REVIEW_COMMENTS,
@@ -148,16 +150,17 @@ export async function seedDemo(
   if (!PASSWORD_RULE.test(password)) {
     throw new Error(`DEMO_PASSWORD: ${PASSWORD_MESSAGE}`);
   }
-  const domain = (env.DEMO_SCHOOL_DOMAIN ?? 'unilag.edu.ng')
-    .trim()
-    .toLowerCase();
+  const schoolName = (env.DEMO_SCHOOL ?? DEMO_SCHOOL).trim();
   const school = await prisma.institution.findFirst({
-    where: { domains: { has: domain }, isActive: true },
+    where: {
+      name: { equals: schoolName, mode: 'insensitive' },
+      isActive: true,
+    },
   });
   if (!school) {
     throw new Error(
-      `No active school with the email domain ${domain}. Run the base seed first ` +
-        '(pnpm exec prisma db seed), or set DEMO_SCHOOL_DOMAIN.',
+      `No active school named "${schoolName}". Add it in /admin/institutions, or set DEMO_SCHOOL ` +
+        'to the name of another one.',
     );
   }
   const admins = await prisma.user.findMany({

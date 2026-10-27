@@ -1,7 +1,8 @@
 # Demo data for staging
 
 Asked for on 2026-10-27: sample rows in every major table, for one school with several campus places and up to
-twenty people, so staging looks like an app in use. Branch `feat/demo-seed` (off `backend` at `7f6196d`).
+twenty people, so staging looks like an app in use. The school is **Test University**, your staging school for
+testers, which takes Gmail, Hotmail, Yahoo and Outlook addresses. Branch `feat/demo-seed` (off `backend` at `7f6196d`).
 
 ## Running it
 
@@ -15,8 +16,8 @@ DATABASE_URL="<Neon pooled URL>" DEMO_PASSWORD="<a password for every demo accou
 ```
 
 - **Before it:**
-  - The school needs to exist. By default that's the one with the `unilag.edu.ng` domain; set `DEMO_SCHOOL_DOMAIN`
-    for another.
+  - The school needs to exist and be switched on. By default that's **Test University**, matched by name (capitals
+    don't matter); set `DEMO_SCHOOL="<name>"` for another.
   - An admin account needs to exist (`pnpm exec prisma db seed` adds both).
 - **`DEMO_PASSWORD`:** at least 8 characters with an upper-case letter, a lower-case letter and a number. Share it
   with your testers yourself; it isn't stored anywhere in the repo.
@@ -31,8 +32,13 @@ DATABASE_URL="<Neon pooled URL>" DEMO_PASSWORD="<a password for every demo accou
 All demo accounts are on `@demo.campusmart.test`, a reserved domain no email can reach. They're set not to receive
 order emails.
 
-- **The school:**
-  - 10 campus places (halls, faculties, the main library), added only if missing.
+They aren't on Test University's domains, and needn't be: seeded accounts are placed in the school directly, and
+they sign in, buy, sell and deliver normally (checked below). Names like `tolulope.adeyemi@gmail.com` could belong to
+real people, who would then get CampusMart's emails.
+
+- **The school (Test University):**
+  - 10 campus places named after the University of Lagos's halls, faculties and library, added only if missing.
+    Say if you'd like other names.
   - A delivery fee of ₦500, set only if the school had none. Without one, dispatch isn't offered (C10).
 - **7 sellers:**
   - TrendHUB NG, Glow by Ada, Mama Chi's Kitchen, Gadget Plug, Inkwell Studio, Kemi's Campus Services: verified
@@ -99,20 +105,21 @@ Other limits:
 
 ## Verification evidence
 
-- **Local run on a fresh database** (migrations, base seed, demo seed): 6 seconds.
+- **Local run on a fresh database** (migrations, base seed, Test University with your four domains, demo seed): 6
+  seconds. All 20 accounts are at Test University, and none at the base seed's University of Lagos.
   - Every major table has rows; sessions and sign-in codes come when people sign in.
   - A second run refuses.
   - `--remove` leaves only the admin and the campus places, and the demo data goes in again afterwards.
-- **e2e `test/demo-seed.e2e-spec.ts`** (5 tests, in CI from now on, so a schema change that breaks the seed fails
+- **e2e `test/demo-seed.e2e-spec.ts`** (5 tests, with Test University set up as on staging, in CI from now on, so a schema change that breaks the seed fails
   there):
-  - every table filled;
+  - every table filled, all at Test University;
   - a buyer, seller, rider and the admin through the API;
   - none of the background jobs has anything due right after seeding;
   - runs once, and removal keeps a tester's account;
   - it needs a strong password and the school.
 - **Browser walk** ([`demo-walk.mjs`](evidence/demo-seed/demo-walk.mjs) →
   [`demo-walk-output.txt`](evidence/demo-seed/demo-walk-output.txt), **12/12**):
-  - **Guest:** the home page with 20 products.
+  - **Guest:** "Browsing Test University", with 20 products on the home page.
   - **Buyer:** five orders, one with a rider; 17 notifications; favourites; a product with reviews; a store page.
   - **Seller:** a dashboard with 30 days of sales (₦138,900 from 9 orders, 1,346 views); payouts, paid and failed.
   - **Rider:** one open job, one current, nine done.

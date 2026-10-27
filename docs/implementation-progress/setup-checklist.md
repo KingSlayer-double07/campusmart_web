@@ -184,7 +184,7 @@ Resolved since the earlier notes:
 | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS`, `MAIL_FROM` | API | staging and launch (S1, S4) |
 | `MAIL_TRANSPORT=console` | API | staging only, until `MAIL_*` works: emails print to the log. Never at launch |
 | `TRUST_PROXY_HOPS` | API | staging and launch: measured (section 5); default 1 |
-| `DEMO_PASSWORD`, `DEMO_SCHOOL_DOMAIN` (optional) | your computer, for `pnpm run seed:demo` | staging demo data only; never set on a server |
+| `DEMO_PASSWORD`, `DEMO_SCHOOL` (optional, default "Test University") | your computer, for `pnpm run seed:demo` | staging demo data only; never set on a server |
 | `DATABASE_URL`, `DIRECT_URL` | API | staging, launch (Neon) |
 | `JWT_SECRET` | API | staging, launch (a different one each) |
 | `APP_URL`, `FRONTEND_URL` | API | staging, launch |
